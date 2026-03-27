@@ -847,7 +847,7 @@ function smDoLogin(){ document.getElementById('smEmailInput').focus(); }
   <div style="font-size:14px;font-weight:700;color:var(--ink2);margin-bottom:12px;letter-spacing:-0.01em;">About the data</div>
   <div class="step-card" style="margin-bottom:20px;">
     <div class="step-body" style="padding:18px 20px;">
-      <p style="font-size:13.5px;color:var(--ink2);line-height:1.7;margin-bottom:10px;"><strong>Salary data</strong> is sourced from Glassdoor India, AmbitionBox, Naukri, and iimjobs for India ranges, and levels.fyi, Glassdoor US/UK, and Blind for global ranges. Gaming roles additionally benchmarked against Mercer/AON CY25 data. Figures represent Q4 2025 market benchmarks. INR = CTC (Cost to Company, includes base + PF + variable). USD = total compensation at growth-stage companies.</p>
+      <p style="font-size:13.5px;color:var(--ink2);line-height:1.7;margin-bottom:10px;"><strong>Salary data</strong> is sourced from Glassdoor India, AmbitionBox, Naukri, and iimjobs for India ranges, and levels.fyi, Glassdoor US/UK, and Blind for global ranges. INR = CTC (Cost to Company, includes base + PF + variable). USD = total compensation at growth-stage companies.</p>
       <p style="font-size:13.5px;color:var(--ink2);line-height:1.7;margin-bottom:10px;"><strong>Role database</strong> covers 188 roles across Engineering, Data, Design, Product, Marketing, Sales, HR, Finance, Operations, Salesforce/CRM, and Gaming. Role definitions, required skills, and experience bands are derived from patterns across thousands of real JDs and verified salary benchmarks up to Q4 2025.</p>
       <p style="font-size:13.5px;color:var(--ink2);line-height:1.7;"><strong>Skills database</strong> contains 1,403 skills across 74 categories — covering tech, non-tech, industry-specific, and emerging skills. Last updated: Q4 2025.</p>
     </div>
@@ -2650,7 +2650,7 @@ const ROLES = [
    desc:'Leads the entire production function of a gaming studio — managing producers, setting processes, reporting to studio head, and owning delivery timelines.',
    hint:'Head of Game Production needs multiple shipped titles and 10+ years in the industry. Very few profiles in India at this level. Budget for a global or remote candidate.',
    exp:{senior:[8,12,'₹60–110L / $188–275k'],lead:[12,18,'₹110–185L / $278–388k']},
-   keywords:['Head of Game Production','Head of Production','Director of Production','VP Production (Gaming)']},
+   keywords:['Head of Game Production','Head of Production','Director of Production']},
 
   {title:'Senior Game Designer',dept:'Gaming',
    required:['Game Design','Game Physics','Level Design'],
@@ -2674,14 +2674,6 @@ const ROLES = [
    desc:'Analyses game performance metrics — DAU/MAU, retention, monetisation funnels, and live ops events — to inform product and design decisions.',
    exp:{mid:[3,5,'₹12–25L / $82–128k'],senior:[5,9,'₹25–50L / $130–195k'],lead:[9,14,'₹50–85L / $198–278k']},
    keywords:['Product Analyst (Gaming)','Game Analyst','LiveOps Analyst','Monetisation Analyst (Games)','Game Data Analyst']},
-
-  {title:'VP Technology (Gaming)',dept:'Gaming',
-   required:['Engineering Leadership','System Design','Game Development'],
-   nice:['C++','Unreal Engine','Unity','Cloud Architecture','Team Building','Hiring','Budget Management','Technical Strategy','Vendor Management'],
-   desc:'Leads all technical functions of a gaming studio — engineering, infrastructure, and tools. Sets technical vision and manages engineering leads.',
-   hint:'VP Technology in gaming must have prior gaming industry experience. General tech leadership is not enough — they must understand game loops, live operations, and player-facing latency constraints.',
-   exp:{senior:[8,12,'₹85–145L / $248–355k'],lead:[12,18,'₹145–240L / $358–488k']},
-   keywords:['VP Technology (Gaming)','CTO (Gaming)','Head of Engineering (Games)','Technical Director (Games)']},
 
   {title:'Director of Animation',dept:'Gaming',
    required:['Character Animation','Team Leadership','Animation Pipeline'],
