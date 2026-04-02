@@ -34,32 +34,31 @@
 body{background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:100vh;font-size:15px;}
 
 /* ── Suite bar ── */
-.suite-bar{background:var(--ink);color:rgba(255,255,255,0.7);font-family:var(--mono);font-size:11.5px;padding:0 24px;height:36px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
-.suite-brand{color:#fff;font-weight:600;letter-spacing:.04em;}
 .suite-steps{display:flex;align-items:center;gap:6px;}
-.suite-step{display:flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;color:rgba(255,255,255,0.45);text-decoration:none;transition:color .15s;}
-.suite-step:hover{color:rgba(255,255,255,0.8);}
-.suite-step.active{background:rgba(255,255,255,0.12);color:#fff;font-weight:700;}
-.suite-step-num{width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;background:rgba(255,255,255,0.15);}
-.suite-step.active .suite-step-num{background:var(--teal);}
-.suite-arrow{color:rgba(255,255,255,0.25);font-size:10px;}
+.suite-step{display:flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;font-size:11px;font-weight:500;color:var(--ink3);text-decoration:none;transition:all .15s;}
+.suite-step:hover{color:var(--ink2);background:var(--bg);}
+.suite-step.active{background:var(--accent-lt);color:var(--accent);font-weight:700;}
+.suite-step-num{width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;background:var(--border);}
+.suite-step.active .suite-step-num{background:var(--accent);color:#fff;}
+.suite-arrow{color:var(--ink3);font-size:10px;}
 
 /* ── Topbar ── */
 .topbar{background:var(--white);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px);}
-.brand{display:flex;align-items:center;gap:10px;}
-.brand-logo{width:30px;height:30px;background:var(--teal);border-radius:8px;display:flex;align-items:center;justify-content:center;}
-.brand-logo svg{width:16px;height:16px;}
-.brand-name{font-weight:800;font-size:16px;letter-spacing:-0.02em;}
-.brand-name span{color:var(--teal);}
-.brand-tag{font-size:11px;color:var(--ink3);background:var(--bg);border:1px solid var(--border);padding:2px 8px;border-radius:20px;font-family:var(--mono);}
-.topbar-link{font-size:13px;color:var(--ink3);text-decoration:none;font-weight:500;padding:6px 12px;border-radius:7px;transition:all .15s;border:1.5px solid var(--border);}
-.topbar-link:hover{color:var(--accent);border-color:var(--accent);background:var(--accent-lt);}
+.topbar-brand{display:flex;align-items:center;gap:10px;}
+.topbar-logo{width:30px;height:30px;background:var(--teal);border-radius:8px;display:flex;align-items:center;justify-content:center;}
+.topbar-logo svg{width:16px;height:16px;}
+.topbar-name{font-weight:800;font-size:16px;letter-spacing:-0.02em;color:var(--ink);}
+.topbar-name span{color:var(--teal);}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.btn-contact{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--teal);color:#fff;border:none;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:all .15s;}
+.btn-contact:hover{background:#0d5e58;transform:translateY(-1px);}
+.btn-contact svg{width:14px;height:14px;}
 
 /* ── Layout ── */
 .main{max-width:860px;margin:0 auto;padding:32px 24px 80px;}
 
 /* ── Hero ── */
-.hero{background:linear-gradient(135deg,#0f766e 0%,#0d9488 100%);border-radius:16px;padding:32px 36px;margin-bottom:24px;color:#fff;}
+.hero{background:linear-gradient(135deg,#0f766e 0%,#14b8a6 100%);border-radius:16px;padding:32px 36px;margin-bottom:24px;color:#fff;}
 .hero h2{font-size:26px;font-weight:800;letter-spacing:-0.03em;line-height:1.2;margin-bottom:8px;}
 .hero p{font-size:14px;opacity:.85;line-height:1.65;}
 
@@ -197,7 +196,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:10
 .page.active{display:block;}
 
 /* ── How to use ── */
-.how-hero{background:linear-gradient(135deg,#0f766e 0%,#0d9488 100%);border-radius:16px;padding:32px 36px;margin-bottom:24px;color:#fff;}
+.how-hero{background:linear-gradient(135deg,#0f766e 0%,#14b8a6 100%);border-radius:16px;padding:32px 36px;margin-bottom:24px;color:#fff;}
 .how-hero h2{font-size:22px;font-weight:800;letter-spacing:-0.02em;margin-bottom:8px;}
 .how-hero p{font-size:14px;opacity:.85;line-height:1.65;max-width:520px;}
 .how-steps{display:flex;flex-direction:column;gap:14px;margin-bottom:24px;}
@@ -237,7 +236,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:10
 .pw-overlay.open{opacity:1;pointer-events:auto;}
 .pw-modal{background:var(--white);border-radius:18px;padding:0;width:100%;max-width:480px;box-shadow:0 24px 80px rgba(0,0,0,0.18);overflow:hidden;transform:translateY(10px);transition:transform .2s;}
 .pw-overlay.open .pw-modal{transform:translateY(0);}
-.pw-top{background:linear-gradient(135deg,#0f766e 0%,#0d9488 100%);padding:28px 32px;color:#fff;}
+.pw-top{background:linear-gradient(135deg,#0f766e 0%,#14b8a6 100%);padding:28px 32px;color:#fff;}
 .pw-top h2{font-size:20px;font-weight:800;letter-spacing:-0.02em;margin-bottom:6px;}
 .pw-top p{font-size:13.5px;opacity:.85;line-height:1.55;}
 .pw-body{padding:24px 32px;}
@@ -275,6 +274,9 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:10
 
 /* ── Interactive salary selector ── */
 .salary-selector{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.cur-chip{padding:4px 10px;border-radius:20px;border:1.5px solid var(--border);background:var(--white);color:var(--ink3);font-size:11.5px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:all .15s;}
+.cur-chip.active{border-color:var(--teal);background:var(--teal-lt);color:var(--teal);}
+.cur-chip:hover{border-color:var(--border2);color:var(--ink);}
 .sal-btn{padding:4px 10px;border-radius:20px;font-family:var(--mono);font-size:11px;font-weight:600;border:1.5px solid;cursor:pointer;transition:all .15s;background:transparent;}
 .sal-btn.junior{color:var(--green);border-color:rgba(13,122,78,0.3);}
 .sal-btn.junior.active{background:var(--green-lt);border-color:var(--green);}
@@ -549,6 +551,13 @@ let smOtpCode = '';
 
 /* ── Page load: check login ── */
 (function(){
+  // ── TEST MODE: bypass login (remove this block before going live) ──
+  if(!localStorage.getItem('sm_user_email')){
+    localStorage.setItem('sm_user_email', 'test@preview.local');
+    localStorage.setItem('sm_login_date', Date.now().toString());
+  }
+  // ── END TEST MODE ──
+
   // Auto-login via URL param (passed from TalentXRay)
   const urlParams = new URLSearchParams(window.location.search);
   const urlEmail = urlParams.get('au');
@@ -641,7 +650,7 @@ function smUpdateNavLinks(){
   const email = localStorage.getItem('sm_user_email');
   if(!email) return;
   const enc = encodeURIComponent(email);
-  const ids = ['suiteNavTxr','topbarNavTxr'];
+  const ids = ['suiteNavTxr'];
   ids.forEach(id=>{
     const el = document.getElementById(id);
     if(el){
@@ -686,7 +695,14 @@ function smDoLogin(){ document.getElementById('smEmailInput').focus(); }
 </script>
 
 
-<div class="suite-bar">
+<header class="topbar">
+  <div class="topbar-brand">
+    <div class="topbar-logo">
+      <svg viewBox="0 0 16 16" fill="none"><path d="M3 8h10M8 3l5 5-5 5" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <span class="topbar-name">Skill<span>Mapper</span></span>
+  </div>
+  <!-- Suite steps centred -->
   <div class="suite-steps">
     <span class="suite-step active">
       <span class="suite-step-num">1</span>
@@ -698,18 +714,13 @@ function smDoLogin(){ document.getElementById('smEmailInput').focus(); }
       TalentXRay
     </a>
   </div>
-  <span id="trialBadge" style="display:none;" class="trial-badge"></span>
-</div>
-
-<header class="topbar">
-  <div class="brand">
-    <div class="brand-logo">
-      <svg viewBox="0 0 16 16" fill="none"><path d="M3 8h10M8 3l5 5-5 5" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </div>
-    <span class="brand-name">Skill<span>Mapper</span></span>
-
+  <div class="topbar-right">
+    <span id="trialBadge" style="display:none;" class="trial-badge"></span>
+    <button class="btn-contact" onclick="openLoginModal()">
+      <svg viewBox="0 0 16 16" fill="none"><path d="M8 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM3 13a5 5 0 0 1 10 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      <span class="btn-contact-text">Sign in</span>
+    </button>
   </div>
-  <a class="topbar-link" id="topbarNavTxr" href="https://talentxray.netlify.app">Step 2: Source with TalentXRay →</a>
 </header>
 
 <!-- Tab nav -->
@@ -897,9 +908,11 @@ function smDoLogin(){ document.getElementById('smEmailInput').focus(); }
   <div style="font-size:14px;font-weight:700;color:var(--ink2);margin-bottom:12px;letter-spacing:-0.01em;">About the data</div>
   <div class="step-card" style="margin-bottom:20px;">
     <div class="step-body" style="padding:18px 20px;">
-      <p style="font-size:13.5px;color:var(--ink2);line-height:1.7;margin-bottom:10px;"><strong>Salary data</strong> is sourced from Glassdoor India, AmbitionBox, Naukri, and iimjobs for India ranges, and levels.fyi, Glassdoor US/UK, and Blind for global ranges. INR = CTC (Cost to Company, includes base + PF + variable). USD = total compensation at growth-stage companies.</p>
-      <p style="font-size:13.5px;color:var(--ink2);line-height:1.7;margin-bottom:10px;"><strong>Role database</strong> covers 188 roles across Engineering, Data, Design, Product, Marketing, Sales, HR, Finance, Operations, Salesforce/CRM, and Gaming. Role definitions, required skills, and experience bands are derived from patterns across thousands of real JDs and verified salary benchmarks up to Q4 2025.</p>
-      <p style="font-size:13.5px;color:var(--ink2);line-height:1.7;"><strong>Skills database</strong> contains 1,403 skills across 74 categories — covering tech, non-tech, industry-specific, and emerging skills. Last updated: Q4 2025.</p>
+      <p style="font-size:13.5px;color:var(--ink2);line-height:1.7;margin-bottom:10px;"><strong>Salary data — how we built it and what it means.</strong> The ranges you see are market estimates built from publicly available sources: Glassdoor India, AmbitionBox, Naukri, and iimjobs for India ranges; Levels.fyi, Glassdoor US/UK, LinkedIn Salary, and Blind for global ranges. We did not verify these against any proprietary database or conduct a formal compensation survey. They represent patterns we observed across public data up to early 2026. Actual compensation varies significantly by company size, city, funding stage, and candidate profile — treat these as a starting point, not a source of truth.</p>
+      <p style="font-size:13.5px;color:var(--ink2);line-height:1.7;margin-bottom:10px;"><strong>We are crowdsourcing better data.</strong> When you click Mid, Senior, or Lead salary levels, we invite you to share your own CTC anonymously. Every submission helps us move from estimates to real percentile data. Once we have enough submissions per role, we will show 25th and 95th percentile ranges sourced directly from professionals like you. Your data is stored anonymously — no name, no email, just role, experience band, CTC, currency, and country.</p>
+      <p style="font-size:13.5px;color:var(--ink2);line-height:1.7;margin-bottom:10px;"><strong>Cross-reference before acting.</strong> We recommend verifying with AmbitionBox, Glassdoor, or Levels.fyi before making or evaluating an offer. INR figures are CTC (base + PF + variable). USD figures are total compensation at growth-stage companies.</p>
+      <p style="font-size:13.5px;color:var(--ink2);line-height:1.7;margin-bottom:10px;"><strong>Role database</strong> covers 200+ roles across Engineering, Data, Design, Product, Marketing, Sales, HR, Finance, Operations, and Legal. Role definitions, required skills, and experience bands are derived from patterns across thousands of real JDs and public salary data up to Q1 2026.</p>
+      <p style="font-size:13.5px;color:var(--ink2);line-height:1.7;"><strong>Skills database</strong> contains 1,400+ skills across 74 categories — covering tech, non-tech, industry-specific, and emerging skills. Last updated: Q1 2026.</p>
     </div>
   </div>
 
@@ -908,9 +921,9 @@ function smDoLogin(){ document.getElementById('smEmailInput').focus(); }
 
 <!-- Footer -->
 <footer class="site-footer">
-  <strong>SkillMapper</strong> · Salary data: Glassdoor / AmbitionBox · Built by <a href="https://www.linkedin.com/in/himani-rawat-339324132/" target="_blank">Himani Rawat</a> · Data updated Dec 2025
-  <span style="display:block;font-size:10.5px;color:rgba(255,255,255,0.45);margin-top:5px;">Salary benchmarks based on publicly available data from Glassdoor India, AmbitionBox, and Naukri. For reference only.</span>
-  <span style="display:block;font-size:10px;color:rgba(255,255,255,0.35);margin-top:4px;">© 2026 Himani Rawat · All rights reserved · Salary benchmarks are indicative only</span>
+  <strong>SkillMapper</strong> · Built by an HR Industry Expert · Data updated Q1 2026
+  <span style="display:block;font-size:10.5px;color:rgba(255,255,255,0.45);margin-top:5px;">Salary ranges are market estimates sourced from open sources and crowdsourcing from professionals. Indicative only — verify before making offers.</span>
+  <span style="display:block;font-size:10px;color:rgba(255,255,255,0.35);margin-top:4px;">© 2026 Himani Rawat</span>
 </footer>
 
 <div class="toast" id="toast"></div>
@@ -1125,6 +1138,12 @@ function runTitleMode(){
     const defaultSal = defaultData ? `${defaultData[0]}–${defaultData[1]} yrs &nbsp;·&nbsp; <strong>${defaultData[2]||''}</strong>` : '';
     const reqSkills = (r.required||[]).map(s=>`<span class="skill-pill skill-matched">${s}</span>`).join('');
     const niceSkills = (r.nice||[]).slice(0,6).map(s=>`<span class="skill-pill skill-missing">${s}</span>`).join('');
+    // Designation suggestions — all keywords except the first (canonical title)
+    const altNames = (r.keywords||[]).slice(1).slice(0,5);
+    const alsoKnownAs = altNames.length ? `<div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:2px;">
+      <span style="font-size:10.5px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-right:2px;white-space:nowrap;">Also called</span>
+      ${altNames.map(k=>`<span style="font-size:11px;color:var(--ink2);background:var(--bg);border:1px solid var(--border);padding:2px 8px;border-radius:20px;font-family:var(--mono);">${k}</span>`).join('')}
+    </div>` : '';
     const titleParam = encodeURIComponent(r.title);
     const altTitlesParam = encodeURIComponent((r.keywords||[]).slice(1,2).join(','));
     const allPassSkills = [...new Set([...(r.required||[]).slice(0,2)])].slice(0,4);
@@ -1152,6 +1171,7 @@ function runTitleMode(){
             <span style="font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-right:2px;">Nice to have</span>
             ${niceSkills}
           </div>
+          ${alsoKnownAs}
         </div>
         <div class="rc-actions" style="margin-top:10px;">
           <a class="btn-search" href="https://talentxray.netlify.app?title=${titleParam}&alt=${altTitlesParam}&skills=${encodeURIComponent(allPassSkills.join(','))}&from=skillmapper" target="_blank">
@@ -1310,6 +1330,67 @@ const ALL_SKILLS = Object.entries(SKILLS_DB).flatMap(([cat,skills])=>skills.map(
    Each role has: title, dept, required, nice, desc, exp, keywords, hint
    hint = contextual tip shown on card to guide the user
    ══════════════════════════════════════ */
+/* ══════════════════════════════════════════
+   LOCATION & MULTI-CURRENCY SALARY SYSTEM
+   ══════════════════════════════════════════ */
+
+function detectUserLocation(){
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    if(tz.includes('Asia/Kolkata') || tz.includes('Asia/Calcutta')) return 'IN';
+    if(tz.includes('America/') || tz.includes('US/')) return 'US';
+    if(tz.includes('Asia/Dubai') || tz.includes('Asia/Muscat') || tz.includes('Asia/Riyadh')) return 'AE';
+    if(tz.includes('Europe/') || tz.includes('Atlantic/')) return 'EU';
+    return 'IN';
+  } catch(e){ return 'IN'; }
+}
+
+const USER_LOCATION = detectUserLocation();
+
+const CURRENCIES = {
+  INR: { symbol:'₹', label:'INR', suffix:'L',  parse: raw => { const m=raw.match(/₹([\d.]+)–([\d.]+)L/); return m?[parseFloat(m[1]),parseFloat(m[2])]:null; }, format:(lo,hi)=>`₹${lo}–${hi}L` },
+  USD: { symbol:'$', label:'USD', suffix:'k',  parse: raw => { const m=raw.match(/\$([\d.]+)–([\d.]+)k/); return m?[parseFloat(m[1]),parseFloat(m[2])]:null; }, format:(lo,hi)=>`$${lo}–${hi}k` },
+  AED: { symbol:'AED', label:'AED', suffix:'k', parse: raw => { const m=raw.match(/\$([\d.]+)–([\d.]+)k/); return m?[Math.round(m[1]*3.67),Math.round(m[2]*3.67)]:null; }, format:(lo,hi)=>`AED ${lo}–${hi}k`, fromUSD:true },
+  EUR: { symbol:'€', label:'EUR', suffix:'k',  parse: raw => { const m=raw.match(/\$([\d.]+)–([\d.]+)k/); return m?[Math.round(parseFloat(m[1])*0.88),Math.round(parseFloat(m[2])*0.88)]:null; }, format:(lo,hi)=>`€${lo}–${hi}k`, fromUSD:true },
+};
+
+// Default currency by location
+const LOC_DEFAULT_CURRENCIES = {
+  IN: ['INR'],
+  US: ['USD'],
+  AE: ['AED'],
+  EU: ['EUR'],
+};
+
+// User's selected currencies — starts with location default, user can add more
+let selectedCurrencies = [...(LOC_DEFAULT_CURRENCIES[USER_LOCATION] || ['INR'])];
+
+function getSalaryDisplay(rawSal){
+  if(!rawSal) return '';
+  return selectedCurrencies.map(cur => {
+    const cfg = CURRENCIES[cur];
+    if(!cfg) return '';
+    const parsed = cfg.parse(rawSal);
+    if(!parsed) return '';
+    return cfg.format(parsed[0], parsed[1]);
+  }).filter(Boolean).join(' · ');
+}
+
+// Salary unlock — stores until June 2026
+const SAL_UNLOCK_KEY = 'sm_sal_unlocked_until';
+const SAL_UNLOCK_UNTIL = new Date('2026-06-30').getTime();
+
+function isSalaryUnlocked(){
+  return parseInt(localStorage.getItem(SAL_UNLOCK_KEY)||'0') > Date.now();
+}
+
+function unlockSalary(){
+  localStorage.setItem(SAL_UNLOCK_KEY, SAL_UNLOCK_UNTIL.toString());
+  document.getElementById('salContribModal').style.display = 'none';
+  // Re-render all active salary buttons
+  document.querySelectorAll('.sal-btn.active').forEach(btn => applySelectLevel(btn));
+}
+
 const ROLES = [
   // ── Engineering ──
   {title:'Full Stack Engineer',dept:'Engineering',
@@ -1317,21 +1398,21 @@ const ROLES = [
    desc:'Builds both frontend and backend. Owns features end-to-end from UI to database.',
    hint:'If you need frontend-heavy work, specify React/Vue/Angular. If backend-heavy, add Node.js or Python to your search.',
    exp:{junior:[0,2,'₹4–9L / $55–85k'],mid:[2,5,'₹12–24L / $95–140k'],senior:[5,9,'₹24–48L / $150–200k'],lead:[8,14,'₹48–80L / $200–260k']},
-   keywords:['Full Stack Developer','Software Engineer','Software Engineer - Full Stack','SDE3','IC4','Fullstack Developer','Full Stack Dev','FS Engineer','FSE']},
+   keywords:['Full Stack Developer','Software Engineer','Software Engineer - Full Stack','SDE3','IC4','Fullstack Developer']},
 
   {title:'Frontend Engineer',dept:'Engineering',
    required:['React','JavaScript','HTML','CSS'],nice:['TypeScript','Next.js','Redux','Tailwind CSS','Webpack','Vue.js','Svelte','SvelteKit','SASS','GSAP','D3.js','Three.js','Framer Motion','Vite','Zustand','Tanstack Query','Nuxt.js','Remix','Astro','Chart.js','LESS','MobX','Jotai','Recoil','Qwik','Rollup'],
    desc:'Specialises in browser-side development. Builds performant, accessible UIs.',
    hint:'Add the specific framework you use — React, Vue, or Angular — to narrow results significantly.',
    exp:{junior:[0,2,'₹4–8L / $52–78k'],mid:[2,5,'₹9–20L / $85–128k'],senior:[5,9,'₹20–40L / $135–180k'],lead:[8,14,'₹40–68L / $180–240k']},
-   keywords:['Frontend Developer','UI Engineer','React Developer','Vue Developer','Frontend Dev','Front End Developer','Front-End Engineer','FE Engineer','FE Dev','FED']},
+   keywords:['Frontend Developer','UI Engineer','React Developer','Vue Developer','Frontend Dev','Front End Developer','Front-End Engineer']},
 
   {title:'Backend Engineer',dept:'Engineering',
    required:['REST APIs'],nice:['PostgreSQL','MySQL','MongoDB','Python','Java','Go','Node.js','Docker','Redis','Kafka','Microservices','Laravel','Fastify','WebSockets','tRPC','Gin','Echo','Hono','ASP.NET Core','PHP','S3','SQS','SNS','Lambda','RDS','EC2','DigitalOcean','Vercel','Railway','Render','Actix','Envoy','Caddy','HAProxy','Firestore','ClickHouse','Elixir','C','API Development','API Gateway','Rust','Pub/Sub','Couchbase','SQLite','Neon','PlanetScale','Fly.io','Rocket','FaunaDB','RethinkDB','Upstash','Groovy','Erlang','Clojure'],
    desc:'Designs and builds server-side logic, APIs, and databases. Focuses on performance and scalability.',
    hint:'Specify your tech stack (Python/Django, Java/Spring, Go, Node.js) to find someone with direct experience.',
    exp:{junior:[0,2,'₹4–9L / $55–82k'],mid:[2,5,'₹10–24L / $92–138k'],senior:[5,9,'₹24–48L / $145–200k'],lead:[8,14,'₹48–85L / $200–260k']},
-   keywords:['Backend Developer','Server-side Engineer','API Engineer','Software Engineer - Backend','SDE','SDE1','SDE2','SWE','SWE1','SWE2','SSE','MTS','IC3','BE Engineer','BE Dev','BED']},
+   keywords:['Backend Developer','Server-side Engineer','API Engineer','Software Engineer - Backend','SDE','SDE1','SDE2','SWE','SWE1','SWE2','SSE','MTS','IC3']},
 
   {title:'Software Engineer (Python)',dept:'Engineering',
    required:['Python'],nice:['Django','FastAPI','Flask','PostgreSQL','Docker','AWS','Redis','Celery','Julia'],
@@ -1436,21 +1517,21 @@ const ROLES = [
    desc:'Builds and maintains data pipelines and infrastructure. Enables analysts by ensuring clean, reliable data.',
    hint:'If you need someone to build dashboards too, add Tableau/Power BI. Pure Data Engineers don\'t usually do reporting.',
    exp:{junior:[1,3,'₹7–14L / $78–108k'],mid:[3,6,'₹16–32L / $115–162k'],senior:[6,10,'₹32–60L / $168–225k'],lead:[9,14,'₹60–98L / $225–285k']},
-   keywords:['Data Engineer','Big Data Engineer','ETL Engineer','Data Platform Engineer','Analytics Engineer','DE','Big Data Eng','ETL Dev']},
+   keywords:['Data Engineer','Big Data Engineer','ETL Engineer','Data Platform Engineer','Analytics Engineer','DE']},
 
   {title:'Analytics Engineer',dept:'Data',
    required:['SQL','dbt'],nice:['Python','Snowflake','BigQuery','Looker','Tableau','Airflow','Spark','LookML','ClickHouse','Observable'],
    desc:'Transforms raw data into clean, analysis-ready datasets. Sits between data engineering and analytics.',
    hint:'Analytics Engineers write SQL and dbt, but don\'t build pipelines. If you need both, hire a Data Engineer.',
    exp:{junior:[1,3,'₹6–12L / $68–95k'],mid:[3,6,'₹14–28L / $105–152k'],senior:[6,9,'₹28–50L / $158–210k'],lead:[8,13,'₹50–82L / $210–265k']},
-   keywords:['Analytics Engineer','BI Engineer','Data Transformation Engineer','SQL Engineer','Analytics Eng','dbt Developer']},
+   keywords:['Analytics Engineer','BI Engineer','Data Transformation Engineer','SQL Engineer']},
 
   {title:'Data Scientist',dept:'Data',
    required:['Python','Machine Learning','Statistics'],nice:['TensorFlow','PyTorch','Scikit-learn','Pandas','SQL','R','Spark','Deep Learning','NLP','XGBoost','LightGBM','CatBoost','SHAP','Feature Engineering','Bayesian Methods','Time Series','Regression','Classification','Seaborn','Plotly','Statistical Analysis','Keras','Matplotlib','SciPy'],
    desc:'Extracts insights using statistical models and ML. Solves business problems through experimentation.',
    hint:'Data Scientists at startups often need both modelling AND communication skills. Add "stakeholder management" if that matters.',
    exp:{junior:[1,3,'₹8–16L / $85–118k'],mid:[3,6,'₹18–35L / $128–178k'],senior:[6,10,'₹35–65L / $182–238k'],lead:[9,14,'₹65–108L / $238–298k']},
-   keywords:['Data Scientist','Applied Scientist','Research Scientist','ML Scientist','DS','Data Sci']},
+   keywords:['Data Scientist','Applied Scientist','Research Scientist','ML Scientist','DS']},
 
   {title:'Machine Learning Engineer',dept:'Data',
    required:['Python','Machine Learning','TensorFlow'],nice:['PyTorch','MLOps','Docker','Kubernetes','Spark','Scikit-learn','AWS','Kubeflow','Feature Store','LightGBM','CatBoost','SHAP','Feature Engineering','Triton','OpenTelemetry','Apache Spark','Keras'],
@@ -1486,14 +1567,14 @@ const ROLES = [
    desc:'Owns end-to-end product design — from research and ideation through to polished UI.',
    hint:'If you need someone to do user research too, add "user research" and "usability testing". Pure UI designers won\'t do research.',
    exp:{junior:[0,2,'₹4–9L / $56–82k'],mid:[2,5,'₹10–24L / $92–138k'],senior:[5,9,'₹24–45L / $145–198k'],lead:[8,14,'₹45–80L / $198–258k']},
-   keywords:['Product Designer','UX/UI Designer','UI/UX Designer','Digital Product Designer','Sr. Designer','UI/UX','UX/UI','Product Design']},
+   keywords:['Product Designer','UX/UI Designer','UI/UX Designer','Digital Product Designer','Sr. Designer','UI/UX','UX/UI']},
 
   {title:'UX Researcher',dept:'Design',
    required:['User Research','Usability Testing'],nice:['Figma','A/B Testing','Information Architecture','Data Analysis','Prototyping','Survey Design','Eye Tracking','Design Thinking','Service Design','Card Sorting','Tree Testing','Heatmaps','Personas','Journey Mapping','Maze','UserTesting','Experience Design','Inclusive Design','Abstract','ProtoPie','Marvel'],
    desc:'Conducts user research to inform product decisions. Runs interviews, tests, and synthesises findings.',
    hint:'UX Researchers are rare at early-stage startups — most founders need a Product Designer who does research. Only hire a dedicated researcher at 50+ person companies.',
    exp:{junior:[0,2,'₹4–8L / $56–78k'],mid:[2,5,'₹9–20L / $82–125k'],senior:[5,9,'₹20–38L / $132–178k'],lead:[8,13,'₹38–65L / $178–232k']},
-   keywords:['UX Researcher','User Researcher','Design Researcher','Insights Researcher','UX','UXD','UX Designer','UX Research','User Experience Researcher']},
+   keywords:['UX Researcher','User Researcher','Design Researcher','Insights Researcher','UX','UXD','UX Designer']},
 
   {title:'UI Designer',dept:'Design',
    required:['Figma','UI Design'],nice:['Design Systems','Illustrator','Prototyping','HTML','CSS','Motion Design','Sketch','Webflow'],
@@ -1515,7 +1596,7 @@ const ROLES = [
    desc:'PM with deep technical background. Works on platform, API, or developer-facing products.',
    hint:'TPMs are rare — most startups need a strong PM who can talk to engineers, not a TPM. Only hire a TPM for developer tools or API products.',
    exp:{junior:[2,4,'₹12–20L / $105–138k'],mid:[4,7,'₹22–44L / $148–192k'],senior:[7,11,'₹44–78L / $195–252k'],lead:[10,15,'₹78–118L / $252–322k']},
-   keywords:['Technical PM','TPM','Technical Product Manager','Platform PM','Tech PM','Engineering PM']},
+   keywords:['Technical PM','TPM','Technical Product Manager','Platform PM']},
 
   // ── Marketing ──
   {title:'Digital Marketing Manager',dept:'Marketing',
@@ -1544,21 +1625,56 @@ const ROLES = [
    desc:'Drives user acquisition and retention through data-driven experiments across all channels.',
    hint:'Growth Marketers are T-shaped — broad across channels, deep in experimentation. Add "A/B testing" and "funnel analysis" to find the right profile.',
    exp:{junior:[0,2,'₹3–8L / $46–68k'],mid:[2,5,'₹9–20L / $72–118k'],senior:[5,8,'₹20–38L / $118–158k'],lead:[7,12,'₹38–65L / $158–208k']},
-   keywords:['Growth Marketer','Digital Marketer','Growth Manager','T-shaped Marketer','CMO','VP Marketing','Chief Marketing Officer','Growth Hacker','Growth Marketing Manager']},
+   keywords:['Growth Marketer','Digital Marketer','Growth Manager','T-shaped Marketer','CMO','VP Marketing','Chief Marketing Officer']},
+
+  {title:'Organic Growth Specialist',dept:'Marketing',
+   required:['SEO','Content Marketing','Analytics'],nice:['Technical SEO','Link Building','Keyword Research','Google Search Console','Ahrefs','Semrush','Core Web Vitals','Schema Markup','Blog Writing','Backlink Strategy','Content Clusters','Topical Authority','YouTube SEO','Reddit Marketing','Community Led Growth','Product Led Growth','Viral Loops','Referral Programmes'],
+   desc:'Grows traffic and users without paid spend. Owns SEO, content strategy, community, and viral mechanics to drive compounding organic growth.',
+   hint:'Often called Growth Hacker, SEO Lead, or Organic Growth Manager. The key differentiator is zero or near-zero CAC — they should show examples of sustainable traffic growth without ads.',
+   exp:{junior:[0,2,'₹3–7L / $44–65k'],mid:[2,5,'₹8–18L / $68–112k'],senior:[5,8,'₹18–35L / $112–152k'],lead:[7,12,'₹35–60L / $152–195k']},
+   keywords:['Organic Growth Specialist','Growth Hacker','SEO Growth Manager','Organic Growth Manager','Product Led Growth Manager','Community Led Growth','Viral Growth']},
+
+  {title:'Investor Relations Manager',dept:'Finance',
+   required:['Investor Relations','Financial Reporting','Stakeholder Management'],nice:['Equity Story','IR Strategy','Analyst Briefings','Earnings Calls','Road Shows','Press Releases','SEBI Compliance','Annual Reports','Cap Table Management','Board Reporting','Financial Modelling','PowerPoint','Bloomberg','Refinitiv','ESG Reporting','Proxy Advisory'],
+   desc:'Manages communication between the company and its investor community. Owns earnings calls, analyst relations, and IR strategy to maintain and grow institutional confidence.',
+   hint:'IR is typically a post-IPO or late-stage startup hire. For early-stage startups, CFO or VP Finance usually covers investor comms. Look for candidates who have worked at listed companies or VC-backed growth-stage firms.',
+   exp:{junior:[2,4,'₹8–16L / $70–95k'],mid:[4,7,'₹18–35L / $95–145k'],senior:[7,11,'₹35–65L / $145–210k'],lead:[10,15,'₹65–110L / $210–300k']},
+   keywords:['Investor Relations Manager','IR Manager','Head of Investor Relations','VP Investor Relations','Capital Markets Manager']},
+
+  {title:'Revenue Operations Manager',dept:'Sales',
+   required:['Revenue Operations','CRM','Sales Analytics'],nice:['Salesforce','HubSpot','SQL','Pipeline Management','Forecasting','Sales Enablement','Marketing Operations','Customer Success Operations','Clari','Gong','Outreach','Salesloft','Bizops','Data Analytics','Go-to-Market','Territory Planning','Quota Setting','Commission Modelling'],
+   desc:'Aligns sales, marketing, and customer success operations to remove friction and improve revenue predictability. Owns the GTM tech stack and revenue data.',
+   hint:'RevOps is different from Sales Ops — it covers the full revenue cycle, not just sales. Most needed at Series B+ when GTM complexity creates operational drag.',
+   exp:{junior:[1,3,'₹6–14L / $65–90k'],mid:[3,6,'₹15–30L / $92–138k'],senior:[6,10,'₹30–55L / $140–195k'],lead:[9,14,'₹55–90L / $195–265k']},
+   keywords:['Revenue Operations Manager','RevOps Manager','Sales Operations Manager','GTM Operations','Revenue Operations Lead']},
+
+  {title:'People Analytics Manager',dept:'HR',
+   required:['HR Analytics','People Analytics','SQL'],nice:['Python','R','Tableau','Power BI','Workday','HRIS','Predictive Modelling','Attrition Analysis','Workforce Planning','Headcount Planning','Compensation Analytics','DEI Analytics','Employee Surveys','Survey Analysis','Looker','Data Visualisation'],
+   desc:'Uses data to drive people decisions — from attrition prediction to headcount planning, compensation benchmarking, and DEI reporting.',
+   hint:'People Analytics is distinct from HR Reporting. Analysts produce backward-looking reports; People Analytics Managers build forward-looking models. Hire when you have 500+ employees and people decisions are expensive.',
+   exp:{junior:[1,3,'₹6–12L / $62–88k'],mid:[3,6,'₹13–26L / $90–135k'],senior:[6,10,'₹26–50L / $138–185k'],lead:[9,14,'₹50–80L / $185–245k']},
+   keywords:['People Analytics Manager','HR Analytics Manager','Workforce Analytics Lead','People Data Analyst']},
+
+  {title:'Technical Program Manager',dept:'Engineering',
+   required:['Program Management','Cross-functional Coordination','Risk Management'],nice:['Agile','Scrum','JIRA','Roadmap Planning','Stakeholder Management','REST APIs','System Design','SQL','OKRs','Release Management','Dependency Management','Engineering Leadership','Technical Documentation'],
+   desc:'Drives large, complex engineering programs across multiple teams. Bridges technical execution with business objectives and removes cross-team blockers.',
+   hint:'TPMs are rare — they need both technical credibility and program management discipline. Often confused with Product Managers. TPMs own HOW things get built; PMs own WHAT gets built.',
+   exp:{junior:[2,4,'₹8–16L / $75–105k'],mid:[4,7,'₹18–38L / $108–158k'],senior:[7,11,'₹38–68L / $160–220k'],lead:[10,15,'₹68–110L / $220–300k']},
+   keywords:['Technical Program Manager','TPM','Senior TPM','Staff TPM','Program Manager Engineering']},
 
   {title:'Content Marketer',dept:'Marketing',
    required:['Content Marketing','Copywriting'],nice:['SEO','Email Marketing','Social Media','Analytics','Blog Writing','Video Scripts','WordPress','HubSpot','Webinar Hosting','Editorial Calendar','Newsletter','Podcast Advertising'],
    desc:'Creates content that attracts and converts audiences. Manages editorial calendars and drives organic growth.',
    hint:'If you need organic user growth specifically, add "SEO" and "blog". If you want social media only, add "social media manager".',
    exp:{junior:[0,2,'₹2–5L / $40–62k'],mid:[2,5,'₹6–15L / $65–98k'],senior:[5,8,'₹15–30L / $102–145k'],lead:[7,12,'₹30–52L / $145–192k']},
-   keywords:['Content Marketer','Content Strategist','Content Manager','SEO Content Writer','Content Writer','Content Creator']},
+   keywords:['Content Marketer','Content Strategist','Content Manager','SEO Content Writer']},
 
   {title:'Performance Marketing Manager',dept:'Marketing',
    required:['Paid Ads','SEM','Analytics'],nice:['SEO','Facebook Ads','Google Ads','Conversion Rate Optimisation','Email Marketing','SQL','A/B Testing','Meta Ads','TikTok Ads','YouTube Ads','Instagram Ads','LinkedIn Ads','Display Advertising','Programmatic Advertising','Native Advertising','Retargeting','Affiliate Marketing','Shopify','Amazon Seller','Marketplace Management','Product Listing Optimisation','Landing Page Optimisation','Loyalty Programmes','Personalisation','Upsell/Cross-sell'],
    desc:'Manages paid acquisition channels — Google, Meta, LinkedIn — to drive measurable ROI.',
    hint:'Specify which platforms matter — Google Ads for search intent, Meta/Instagram for consumer, LinkedIn for B2B. Add the platform name to TalentXRay search.',
    exp:{junior:[0,2,'₹3–7L / $50–72k'],mid:[2,5,'₹9–22L / $82–125k'],senior:[5,9,'₹22–42L / $128–172k'],lead:[8,13,'₹42–70L / $172–222k']},
-   keywords:['Performance Marketer','Paid Marketing Manager','Digital Advertising Manager','SEM Manager','Performance Marketing Manager','Paid Ads Manager']},
+   keywords:['Performance Marketer','Paid Marketing Manager','Digital Advertising Manager','SEM Manager']},
 
   {title:'Social Media Manager',dept:'Marketing',
    required:['Social Media Management','Content Marketing'],nice:['Copywriting','Video Marketing','Canva','Instagram','LinkedIn Content','Community Management','Analytics','Brand Voice'],
@@ -1587,14 +1703,14 @@ const ROLES = [
    desc:'Sources and hires talent. Manages the full recruitment lifecycle from sourcing to offer.',
    hint:'Add the type of hiring — Technical Recruiter for engineering roles, Non-tech Recruiter for business roles. Very different profiles.',
    exp:{junior:[0,2,'₹3–6L / $45–62k'],mid:[2,5,'₹7–16L / $68–98k'],senior:[5,8,'₹16–30L / $102–142k'],lead:[7,12,'₹30–52L / $145–188k']},
-   keywords:['Talent Acquisition Specialist','Recruiter','Technical Recruiter','TA Manager','HR Recruiter','TA Specialist','TA Exec','Talent Recruiter']},
+   keywords:['Talent Acquisition Specialist','Recruiter','Technical Recruiter','TA Manager','HR Recruiter']},
 
   {title:'HR Business Partner',dept:'HR',
    required:['Employee Relations','Performance Management','Organisational Development'],nice:['HR Analytics','HRIS','Compensation & Benefits','L&D','Onboarding','Workday','BambooHR','Succession Planning','Workforce Planning','HR Business Partnering','360 Feedback','Goal Setting','Grievance Handling','Job Architecture','HR Compliance','HR Policies','Labour Law','Visa & Immigration','Labour Laws','Statutory Compliance','Employment Law','Industrial Relations','POSH Compliance','Factories Act','Contract Labour','Gratuity','Labour Welfare Fund','Standing Orders'],
    desc:'Strategic HR partner aligned to business units. Connects people strategy with business goals.',
    hint:'HRBPs are usually hired at 100+ headcount. Below that, a People Ops Manager covering all HR functions is more practical.',
    exp:{junior:[2,4,'₹5–11L / $62–82k'],mid:[4,7,'₹13–26L / $92–128k'],senior:[7,11,'₹26–48L / $135–178k'],lead:[10,15,'₹48–85L / $178–248k']},
-   keywords:['HR Business Partner','HRBP','People Partner','People Business Partner','Sr HRBP','Lead HRBP','Senior HRBP']},
+   keywords:['HR Business Partner','HRBP','People Partner','People Business Partner']},
 
   {title:'People Business Partner',dept:'HR',
    required:['HR Business Partnering','Employee Relations','Stakeholder Management'],nice:['Organisational Development','Performance Management','Change Management','Culture Building','Workforce Planning','Succession Planning','HR Analytics','Compensation & Benefits','L&D Strategy','Employee Engagement','360 Feedback','Goal Setting','HRIS','Workday','BambooHR','Coaching','Grievance Handling','HR Policies','Employment Law','Labour Laws','Diversity & Inclusion'],
@@ -1616,14 +1732,14 @@ const ROLES = [
    desc:'Analyses financial data to support business decisions. Builds models, forecasts, and reports.',
    hint:'Add "startup" if you need someone comfortable with uncertainty and scrappy models, vs "enterprise" finance backgrounds.',
    exp:{junior:[0,2,'₹4–9L / $56–82k'],mid:[2,5,'₹10–24L / $92–138k'],senior:[5,9,'₹24–45L / $142–192k'],lead:[8,13,'₹45–75L / $192–248k']},
-   keywords:['Financial Analyst','Finance Analyst','FP&A Analyst','Business Finance Analyst','FA','Fin Analyst','Finance Exec']},
+   keywords:['Financial Analyst','Finance Analyst','FP&A Analyst','Business Finance Analyst']},
 
   {title:'Startup Finance Manager',dept:'Finance',
    required:['Financial Modelling','Cap Table','Unit Economics'],nice:['FP&A','Excel','P&L Management','Fundraising','Accounting','SQL','Python','ESOP','Cap Table Management','SAFEs','Convertible Notes','409A Valuation','Runway Analysis','CAC/LTV','Term Sheet Negotiation','VC Relations','Series Funding','Equity Modelling'],
    desc:'Manages financial operations for early-stage startups — fundraising prep, runway, and investor reporting.',
    hint:'This role often combines CFO + accounting functions at seed/Series A. If you\'re pre-Series B, look for someone who can handle both strategy and operations.',
    exp:{junior:[2,4,'₹9–16L / $82–118k'],mid:[4,7,'₹18–36L / $125–172k'],senior:[7,11,'₹36–65L / $178–232k'],lead:[10,15,'₹65–108L / $232–308k']},
-   keywords:['Finance Manager','Head of Finance','VP Finance','CFO','Startup CFO','Finance Controller','Fin Manager','Financial Controller']},
+   keywords:['Finance Manager','Head of Finance','VP Finance','CFO','Startup CFO','Finance Controller']},
 
   // ── Operations ──
   {title:'Operations Manager',dept:'Operations',
@@ -1646,7 +1762,7 @@ const ROLES = [
    desc:'Generates qualified leads and books meetings for the sales team through outbound prospecting.',
    hint:'SDRs are entry-level outbound hunters. If you need someone to close deals too, you need an Account Executive instead.',
    exp:{junior:[0,1,'₹3–6L / $42–58k'],mid:[1,3,'₹6–12L / $58–85k'],senior:[3,6,'₹12–20L / $85–118k'],lead:[5,9,'₹20–32L / $118–162k']},
-   keywords:['SDR','Sales Development Representative','Business Development Representative','BDR','Outbound Sales','Sales Dev Rep','Sales Rep']},
+   keywords:['SDR','Sales Development Representative','Business Development Representative','BDR','Outbound Sales','Sales Dev Rep']},
 
   {title:'Account Executive',dept:'Sales',
    required:['B2B Sales','SaaS Sales'],nice:['Salesforce','HubSpot','Enterprise Sales','Negotiation','Demo Skills','Contract Management','MEDDIC','CRM','Gong','Chorus','Salesloft','ZoomInfo','SPIN Selling','Challenger Sale','Value Selling','RFP Response','Inside Sales','SMB Sales','B2C Sales','Field Sales','Territory Management','HubSpot CRM','Pipedrive','Freshsales','Zoho CRM','Proposal Writing'],
@@ -1660,7 +1776,7 @@ const ROLES = [
    desc:'Ensures customers achieve value from the product. Owns onboarding, retention, and expansion revenue.',
    hint:'CS at SaaS companies is increasingly tied to revenue (upsells, renewals). Add "expansion revenue" if you want a commercial CS profile.',
    exp:{junior:[0,2,'₹4–8L / $52–72k'],mid:[2,5,'₹9–20L / $78–118k'],senior:[5,9,'₹20–38L / $122–168k'],lead:[8,13,'₹38–65L / $168–218k']},
-   keywords:['Customer Success Manager','CSM','Account Manager','Client Success Manager','CS Manager','Customer Success Lead']},
+   keywords:['Customer Success Manager','CSM','Account Manager','Client Success Manager','CS Manager']},
 
   // ── Salesforce & CRM ──
   {title:'Salesforce Developer',dept:'Salesforce',
@@ -1668,21 +1784,21 @@ const ROLES = [
    desc:'Builds custom applications on Salesforce using Apex, Lightning Web Components, and declarative tools.',
    hint:'Add "certified" to find candidates with Salesforce Platform Developer I/II certification — common requirement in JDs.',
    exp:{junior:[0,2,'₹3–8L / $52–78k'],mid:[2,5,'₹9–20L / $82–125k'],senior:[5,9,'₹20–42L / $128–178k'],lead:[8,13,'₹42–72L / $178–238k']},
-   keywords:['Salesforce Developer','SFDC Developer','Apex Developer','LWC Developer','SFDC Dev','SF Developer']},
+   keywords:['Salesforce Developer','SFDC Developer','Apex Developer','LWC Developer']},
 
   {title:'Salesforce Administrator',dept:'Salesforce',
    required:['Salesforce','Salesforce CRM','Flow Builder'],nice:['SOQL','Salesforce Sales Cloud','Salesforce Service Cloud','Process Builder','Data Management','Reports','Dashboards'],
    desc:'Configures and maintains Salesforce org — users, data, flows, reports, and declarative customisations.',
    hint:'Admins configure without code. If you also need custom development, hire a Developer. Most startups need an Admin first.',
    exp:{junior:[0,2,'₹2–5L / $40–62k'],mid:[2,5,'₹6–15L / $65–92k'],senior:[5,8,'₹15–28L / $95–132k'],lead:[7,12,'₹28–48L / $132–178k']},
-   keywords:['Salesforce Admin','Salesforce Administrator','SFDC Admin','CRM Administrator','SF Admin','SFDC Administrator']},
+   keywords:['Salesforce Admin','Salesforce Administrator','SFDC Admin','CRM Administrator']},
 
   {title:'Salesforce Architect',dept:'Salesforce',
    required:['Salesforce','Apex','Salesforce Integration','SOQL'],nice:['MuleSoft','Salesforce REST API','LWC','Salesforce CPQ','Enterprise Architecture','AWS','Salesforce Experience Cloud','Salesforce Financial Services Cloud','Salesforce Health Cloud','NPSP','Salesforce Nonprofit','Salesforce Commerce Cloud','Salesforce Connect','Salesforce Pardot'],
    desc:'Designs scalable, enterprise-grade Salesforce solutions across multiple clouds and integrations.',
    hint:'Architects are hired when you have a complex multi-org or multi-cloud setup. Most startups need a senior Developer, not an Architect.',
    exp:{junior:[3,5,'₹14–22L / $105–142k'],mid:[5,8,'₹22–45L / $148–198k'],senior:[8,12,'₹45–78L / $202–268k'],lead:[11,16,'₹78–128L / $268–358k']},
-   keywords:['Salesforce Architect','Technical Architect','Solution Architect (Salesforce)','CTA','SFDC Architect','SF Architect']},
+   keywords:['Salesforce Architect','Technical Architect','Solution Architect (Salesforce)','CTA']},
 
   {title:'Salesforce Consultant',dept:'Salesforce',
    required:['Salesforce CRM','Salesforce Sales Cloud'],nice:['Flow Builder','Salesforce CPQ','Salesforce Service Cloud','Business Analysis','Requirements Gathering','SOQL','Salesforce Commerce Cloud','Salesforce Pardot'],
@@ -1767,14 +1883,14 @@ const ROLES = [
    desc:'Implements gameplay systems — mechanics, physics, AI, input handling, and player experience features inside the game engine.',
    hint:'Gameplay Engineers are different from Engine Engineers. If you need someone to add features to a game (abilities, levels, combat), this is the role. Engine Engineering (graphics, rendering) is a more senior specialty.',
    exp:{junior:[0,2,'₹9–23L'],mid:[2,5,'₹13–47L'],senior:[5,9,'₹31–77L'],lead:[8,14,'₹71–119L']},
-   keywords:['Gameplay Programmer','Gameplay Developer','Game Developer','Game Engineer','Unity Developer','Unreal Developer','C# Developer (Games)','Games Programmer']},
+   keywords:['Gameplay Programmer','Gameplay Developer','Game Developer','Game Engineer','Unity Developer','Unreal Developer','C# Developer','Games Programmer']},
 
   {title:'Game Designer',dept:'Design',
    required:['Game Physics','Unity'],nice:['Unreal Engine','Game Design','Level Design','Narrative Design','UI Design','Figma','Blender','3D Modelling'],
    desc:'Designs game systems, mechanics, levels, and player progression. Bridges creative vision with technical implementation.',
    hint:'Game Designers range from system designers (combat, economy) to level designers (maps, environments) to narrative designers (story, dialogue). Specify which you need.',
    exp:{junior:[0,2,'₹5–23L'],mid:[2,5,'₹13–47L'],senior:[5,9,'₹31–77L'],lead:[8,14,'₹71–119L']},
-   keywords:['Game Designer','Level Designer','Narrative Designer','Systems Designer','Game Design Lead','Game Design','Level Design Lead','System Designer']},
+   keywords:['Game Designer','Level Designer','Narrative Designer','Systems Designer','Game Design Lead']},
 
   {title:'Game Artist / 3D Artist',dept:'Design',
    required:['Blender','3D Modelling'],nice:['Maya','3ds Max','ZBrush','Texturing','Rigging','Unity','Unreal Engine','Photoshop','Substance Painter'],
@@ -1788,14 +1904,14 @@ const ROLES = [
    desc:'Builds games and interactive experiences in Unity. Covers gameplay, UI, physics, and deployment across mobile, PC, and console.',
    hint:'Unity dominates mobile and indie games. If your game is mobile-first, add "mobile gaming" and "iOS/Android". If VR/AR, add those specifically.',
    exp:{junior:[0,2,'₹9–23L'],mid:[2,5,'₹13–47L'],senior:[5,9,'₹31–77L'],lead:[8,14,'₹71–119L']},
-   keywords:['Unity Developer','Unity Engineer','Unity Programmer','C# Game Developer','Unity Eng','Unity Dev','C# Games Developer']},
+   keywords:['Unity Developer','Unity Engineer','Unity Programmer','C# Game Developer']},
 
   {title:'Unreal Engine Developer',dept:'Engineering',
    required:['Unreal Engine','C++ (Unreal)'],nice:['Shader Programming','Game Physics','Multiplayer Networking','Blueprint','VR Design','DirectX','Vulkan','WebGL'],
    desc:'Builds high-fidelity games and simulations in Unreal Engine. Commonly used for AAA games, architectural visualisation, and film VFX.',
    hint:'Unreal developers are rarer and more expensive than Unity developers. Needed for high-end PC/console games, architectural viz, or simulation projects.',
    exp:{junior:[1,3,'₹13–34L'],mid:[3,6,'₹21–63L'],senior:[6,10,'₹47–102L'],lead:[9,14,'₹88–157L']},
-   keywords:['Unreal Developer','Unreal Engine Programmer','C++ Game Developer','Unreal Engineer','Unreal Eng','UE Developer','UE Engineer','C++ Games Developer']},
+   keywords:['Unreal Developer','Unreal Engine Programmer','C++ Game Developer','Unreal Engineer']},
 
   // ── Blockchain / Web3 ──
   {title:'Blockchain Developer',dept:'Engineering',
@@ -1803,7 +1919,7 @@ const ROLES = [
    desc:'Builds decentralised applications, smart contracts, and blockchain infrastructure. Works across EVM-compatible chains.',
    hint:'Blockchain developers are expensive and niche. Only hire for a product that genuinely requires on-chain logic. Most "blockchain ideas" can be built without one.',
    exp:{junior:[1,3,'₹8–16L / $92–128k'],mid:[3,6,'₹18–38L / $135–195k'],senior:[6,10,'₹38–72L / $200–268k'],lead:[9,14,'₹72–118L / $268–358k']},
-   keywords:['Blockchain Developer','Smart Contract Developer','Web3 Developer','Solidity Developer','DeFi Developer','Web3 Eng','Blockchain Eng','Smart Contract Eng']},
+   keywords:['Blockchain Developer','Smart Contract Developer','Web3 Developer','Solidity Developer','DeFi Developer']},
 
   // ── Creative / Media ──
   {title:'Video Editor',dept:'Design',
@@ -1833,7 +1949,7 @@ const ROLES = [
    desc:'Develops firmware and software for embedded devices — microcontrollers, IoT sensors, automotive systems, and industrial equipment.',
    hint:'Embedded engineers are very different from software engineers. They need hardware knowledge. If your product has a physical device, you need this profile specifically.',
    exp:{junior:[0,2,'₹4–8L / $55–80k'],mid:[2,5,'₹10–22L / $90–132k'],senior:[5,9,'₹22–45L / $138–192k'],lead:[8,14,'₹45–78L / $192–255k']},
-   keywords:['Embedded Engineer','Firmware Engineer','IoT Developer','Embedded Software Developer','Embedded Dev','Embedded SW Engineer','Firmware Dev']},
+   keywords:['Embedded Engineer','Firmware Engineer','IoT Developer','Embedded Software Developer']},
 
   {title:'Data Science / Research Intern',dept:'Data',
    required:['Python','Statistics'],nice:['Machine Learning','Pandas','NumPy','Scikit-learn','SQL','R','Jupyter','TensorFlow'],
@@ -1887,21 +2003,21 @@ const ROLES = [
    desc:'Oversees IT infrastructure, support teams, and technology strategy. Manages vendors, budgets, and IT service delivery.',
    hint:'IT Manager in India often combines infra + support + vendor management. For large orgs, this splits into IT Infrastructure Manager and IT Service Delivery Manager. Always ask: do they need to be hands-on or purely managerial?',
    exp:{junior:[2,4,'₹6–12L / $55–80k'],mid:[4,8,'₹14–28L / $85–130k'],senior:[8,13,'₹30–55L / $135–185k'],lead:[12,18,'₹55–95L / $188–260k']},
-   keywords:['IT Manager','IT Head','Head of IT','IT Operations Manager','IT Infrastructure Manager','Technology Manager','IT Lead','IT Supervisor']},
+   keywords:['IT Manager','IT Head','Head of IT','IT Operations Manager','IT Infrastructure Manager','Technology Manager']},
 
   {title:'System Administrator',dept:'IT',
    required:['Linux','Windows Server','Active Directory'],nice:['Azure','AWS','VMware','PowerShell','Bash','DNS','DHCP','Group Policy','Backup Solutions','Monitoring Tools','Patch Management','Cisco','macOS','Ubuntu','Alpine Linux','CentOS','Debian','Red Hat','CoreOS','Hyper-V','KVM'],
    desc:'Manages and maintains servers, operating systems, and core IT infrastructure. Ensures uptime, security, and performance.',
    hint:'Specify Linux vs Windows focus. Linux SysAdmins go cloud-heavy (AWS/GCP). Windows SysAdmins deal with Active Directory and Microsoft stack. Cloud-focused roles now often called Cloud SysAdmin or DevOps.',
    exp:{junior:[0,2,'₹3–7L / $42–65k'],mid:[2,5,'₹8–18L / $68–108k'],senior:[5,9,'₹18–36L / $112–162k'],lead:[8,13,'₹36–62L / $165–222k']},
-   keywords:['System Administrator','SysAdmin','Systems Engineer','IT Systems Administrator','Windows Administrator','Linux Administrator','Sys Admin','IT Admin']},
+   keywords:['System Administrator','SysAdmin','Systems Engineer','IT Systems Administrator','Windows Administrator','Linux Administrator']},
 
   {title:'Network Engineer',dept:'IT',
    required:['Cisco','Network Configuration','TCP/IP'],nice:['Juniper','Palo Alto','Firewalls','VPN','MPLS','BGP','OSPF','SD-WAN','Network Monitoring','Wireshark','CCNA','CCNP','Network Security'],
    desc:'Designs, implements, and manages network infrastructure — routers, switches, firewalls, and WAN/LAN. Ensures connectivity and security.',
    hint:'CCNA/CCNP certifications are standard requirements in India. Add cloud networking (AWS VPC, Azure VNet) if the role involves hybrid cloud. Pure network roles are shrinking at startups — they combine with SysAdmin.',
    exp:{junior:[0,2,'₹3–7L / $42–62k'],mid:[2,5,'₹8–20L / $68–112k'],senior:[5,9,'₹20–40L / $115–168k'],lead:[8,13,'₹40–70L / $170–228k']},
-   keywords:['Network Engineer','Network Administrator','Network Analyst','NOC Engineer','Infrastructure Engineer (Network)','CCNA Engineer','Network Admin','Network Specialist']},
+   keywords:['Network Engineer','Network Administrator','Network Analyst','NOC Engineer','Infrastructure Engineer (Network)','CCNA Engineer']},
 
   {title:'Database Administrator (DBA)',dept:'IT',
    required:['SQL','Database Management'],nice:['Oracle','MySQL','PostgreSQL','SQL Server','MongoDB','Performance Tuning','Backup & Recovery','Replication','AWS RDS','Azure SQL','PLSQL','Database Security','Clustering','Aurora','MariaDB','Oracle DB','CockroachDB','Cassandra','InfluxDB','Elasticsearch','T-SQL','PL/SQL','Supabase','Couchbase'],
@@ -2143,7 +2259,7 @@ const ROLES = [
    desc:'Designs and manages compensation structures and employee benefits. Conducts salary benchmarking, manages pay bands, and administers benefits programmes.',
    hint:'C&B is a specialist HR role — relatively rare in companies under 200 employees. Mercer and Aon Hewitt survey participation experience is valued. ESOP/equity experience is premium for startup roles.',
    exp:{junior:[1,3,'₹4–8L / $52–70k'],mid:[3,6,'₹10–22L / $80–118k'],senior:[6,10,'₹22–42L / $122–175k'],lead:[9,14,'₹42–72L / $178–238k']},
-   keywords:['Compensation and Benefits Specialist','C&B Manager','Total Rewards Manager','Rewards Analyst','HR Compensation Analyst','C&B Specialist','Compensation Analyst']},
+   keywords:['Compensation and Benefits Specialist','C&B Manager','Total Rewards Manager','Rewards Analyst','HR Compensation Analyst']},
 
   {title:'Recruitment Manager',dept:'HR',
    required:['Talent Acquisition','Recruitment Strategy','Stakeholder Management'],nice:['LinkedIn Recruiter','SmartRecruiters','Greenhouse','Lever','Naukri','Campus Recruitment','Lateral Hiring','Employer Branding','Bulk Hiring','Technical Recruiting','HR Analytics','ATS','Vendor Management','Interview Training','Workday Recruiting','iCIMS','Taleo','RPO','Recruitment Analytics','Direct Sourcing','Background Verification','Labour Laws','Exit Management'],
@@ -2202,7 +2318,7 @@ const ROLES = [
    desc:'Builds augmented and virtual reality experiences using Unity, Unreal, or WebXR. Works on spatial interfaces, 3D interactions, and immersive product experiences.',
    hint:'AR/VR talent is scarce in India — expect a small pool. Unity-based AR is most common. WebXR is growing for browser-based AR. Apple Vision Pro development is extremely nascent — avoid requiring it for now.',
    exp:{junior:[1,3,'₹6–14L / $65–95k'],mid:[3,6,'₹16–32L / $100–162k'],senior:[6,10,'₹32–62L / $168–228k'],lead:[9,14,'₹62–108L / $232–308k']},
-   keywords:['AR Developer','VR Developer','AR/VR Developer','Mixed Reality Developer','Spatial Computing Developer','XR Developer','AR Eng','VR Eng','XR Eng','MR Developer']},
+   keywords:['AR Developer','VR Developer','AR/VR Developer','Mixed Reality Developer','Spatial Computing Developer','XR Developer']},
 
   // ── Data & AI Specialist ──
   {title:'Data Architect',dept:'Data',
@@ -2626,6 +2742,46 @@ const ROLES = [
    exp:{junior:[1,3,'₹5–12L / $55–80k'],mid:[3,6,'₹12–28L / $82–138k'],senior:[6,10,'₹28–55L / $140–205k'],lead:[9,14,'₹55–95L / $208–298k']},
    keywords:['Business Development Manager','BD Manager','Partnerships Manager','Strategic Alliances Manager']},
 
+  {title:'Organic Growth Manager',dept:'Marketing',
+   required:['SEO','Content Marketing','Growth Hacking'],
+   nice:['Technical SEO','Link Building','Content Strategy','Keyword Research','Ahrefs','SEMrush','Screaming Frog','Google Search Console','CRO','A/B Testing','Analytics','User Acquisition','Viral Loops','Referral Programmes','Product-Led Growth','Community Building','Social Media','Email Marketing','Programmatic SEO'],
+   desc:'Drives sustainable user and revenue growth through non-paid channels — SEO, content, product-led growth, referrals, and community.',
+   hint:'Organic Growth is a long game — expect 6–12 months before compounding effects kick in. Hire someone with both technical SEO depth and content strategy experience. Growth Hackers who only know paid channels will struggle here.',
+   exp:{junior:[1,3,'₹5–11L / $52–80k'],mid:[3,6,'₹12–26L / $88–130k'],senior:[6,10,'₹26–50L / $135–185k'],lead:[9,14,'₹50–90L / $188–265k']},
+   keywords:['Organic Growth Manager','Growth Hacker','SEO Growth Manager','Content Growth Manager','Product-Led Growth Manager','PLG Manager','Organic Growth Lead']},
+
+  {title:'Investor Relations Manager',dept:'Finance',
+   required:['Investor Relations','Financial Modelling','Stakeholder Management'],
+   nice:['Equity Research','Capital Markets','Board Reporting','SEBI Compliance','Earnings Calls','Annual Reports','ESG Reporting','Fundraising','Pitch Decks','Valuation','Corporate Finance','Excel','PowerPoint','Bloomberg','Refinitiv','Regulatory Filings','NSE/BSE Compliance','SEC Filings','Proxy Statements'],
+   desc:'Manages the company\'s relationships with investors, analysts, and the financial community. Owns earnings communications, regulatory filings, and investor events.',
+   hint:'IR Managers are typically hired pre-IPO or post-IPO. Pre-IPO, they support fundraising and investor narrative. Post-IPO, they handle quarterly earnings, analyst day, and regulatory compliance. Look for someone who has worked at a listed company or investment bank.',
+   exp:{junior:[2,4,'₹8–16L / $65–95k'],mid:[4,7,'₹18–35L / $98–148k'],senior:[7,12,'₹35–65L / $152–225k'],lead:[10,16,'₹65–120L / $228–338k']},
+   keywords:['Investor Relations Manager','IR Manager','Investor Relations Officer','IRO','Capital Markets Manager','IR Lead']},
+
+  {title:'Revenue Operations Manager',dept:'Sales',
+   required:['Revenue Operations','CRM','Sales Analytics'],
+   nice:['HubSpot','Salesforce','Outreach','Salesloft','Gong','ZoomInfo','SQL','Tableau','Pipeline Management','Forecasting','Sales Enablement','Marketing Operations','Customer Success Operations','GTM Strategy','Automation','Workflows','Data Hygiene','Commission Planning','Quota Setting'],
+   desc:'Aligns sales, marketing, and customer success operations to drive predictable revenue. Owns CRM health, data, tooling, and revenue forecasting.',
+   hint:'RevOps is one of the fastest growing roles in SaaS. Hire when you have 3+ sellers and are losing visibility into pipeline. The right RevOps hire can find 20–30% more revenue from existing pipeline by fixing broken processes.',
+   exp:{junior:[1,3,'₹6–14L / $60–90k'],mid:[3,6,'₹14–30L / $92–148k'],senior:[6,10,'₹30–58L / $152–218k'],lead:[9,14,'₹58–100L / $222–312k']},
+   keywords:['Revenue Operations Manager','RevOps Manager','Revenue Operations Lead','Sales Operations Manager','GTM Operations Manager','RevOps']},
+
+  {title:'Founding Engineer',dept:'Engineering',
+   required:['Full Stack Development','System Design','JavaScript'],
+   nice:['React','Node.js','Python','AWS','PostgreSQL','Redis','Docker','Kubernetes','Product Thinking','Technical Leadership','Architecture','API Design','Microservices','CI/CD','Startup Experience','TypeScript'],
+   desc:'First or early engineering hire at a startup. Builds from zero, wears multiple hats, makes architectural decisions, and often transitions into engineering leadership.',
+   hint:'Founding Engineers are rare and expensive. They need both technical depth and the ability to operate in chaos. Look for people who have built side projects or worked at early-stage startups before. Equity compensation is essential — cash alone won\'t attract this profile.',
+   exp:{junior:[0,2,'₹12–22L / $80–130k'],mid:[2,5,'₹22–45L / $132–195k'],senior:[5,10,'₹45–90L / $198–320k'],lead:[8,15,'₹90–180L / $325–550k']},
+   keywords:['Founding Engineer','Founding Software Engineer','Seed Engineer','Early Engineer','Engineer #1','First Engineer','Founding Full Stack Engineer']},
+
+  {title:'AI Product Manager',dept:'Product',
+   required:['Product Strategy','AI/ML','Product Roadmap'],
+   nice:['LLMs','Generative AI','Prompt Engineering','Python','Data Analysis','User Research','A/B Testing','SQL','API Design','RAG','Fine-tuning','MLOps','Product Analytics','Stakeholder Management','Agile','GPT','Claude','Gemini','Responsible AI'],
+   desc:'Owns the product strategy and roadmap for AI-powered features or products. Bridges the gap between ML teams and business outcomes.',
+   hint:'AI PMs are in extremely short supply. The best ones have a combination of traditional PM skills, enough ML knowledge to have credible conversations with engineers, and strong user intuition. Beware of people who just know the buzzwords — test them on product judgment and first principles.',
+   exp:{junior:[2,4,'₹14–28L / $95–148k'],mid:[4,7,'₹28–55L / $152–225k'],senior:[7,11,'₹55–95L / $228–335k'],lead:[10,15,'₹95–170L / $340–520k']},
+   keywords:['AI Product Manager','AI PM','ML Product Manager','Generative AI PM','LLM Product Manager','AI/ML Product Manager','Product Manager AI']},
+
   // ── Additional Operations ──
   {title:'Scrum Master',dept:'Operations',
    required:['Agile','Scrum','Facilitation'],
@@ -2667,7 +2823,7 @@ const ROLES = [
    desc:'Creates 3D environments, props, and level art for games. Uses Maya/Blender for modelling and Substance Painter for texturing.',
    hint:'Environment Artists in India are increasingly available due to growing gaming studios. Hyderabad, Pune, and Bengaluru have the largest pools. Portfolio quality matters far more than years of experience.',
    exp:{junior:[0,2,'₹3–8L / $38–62k'],mid:[2,5,'₹8–18L / $65–108k'],senior:[5,9,'₹18–35L / $110–162k'],lead:[8,13,'₹35–60L / $165–235k']},
-   keywords:['3D Environment Artist','Environment Artist','Level Artist','Prop Artist','3D Artist (Games)']},
+   keywords:['3D Environment Artist','Environment Artist','Level Artist','Prop Artist','3D Artist']},
 
   {title:'Character Artist',dept:'Gaming',
    required:['ZBrush','3D Modelling','Character Design'],
@@ -2677,13 +2833,13 @@ const ROLES = [
    exp:{junior:[0,2,'₹3–8L / $40–65k'],mid:[2,5,'₹8–18L / $68–112k'],senior:[5,9,'₹18–36L / $115–172k'],lead:[8,13,'₹36–62L / $175–248k']},
    keywords:['Character Artist','3D Character Artist','Hero Character Artist','Creature Artist','Character Modeller']},
 
-  {title:'Art Director (Games)',dept:'Gaming',
+  {title:'Art Director',dept:'Gaming',
    required:['Art Direction','Concept Art','Team Leadership'],
    nice:['Photoshop','Unreal Engine','Unity','3D Modelling','Visual Development','Style Guide Creation','Stakeholder Management','Hiring'],
    desc:'Sets and maintains the visual style of a game across all art disciplines — concept, 3D, UI, and VFX. Leads the art team and works directly with the creative director.',
    hint:'Art Directors in games need both strong artistic taste and leadership skills. Most grow from Senior Concept Artist or Senior Environment Artist roles. Require 8+ years with shipped titles.',
    exp:{mid:[5,8,'₹25–48L / $115–165k'],senior:[8,12,'₹48–85L / $168–248k'],lead:[12,18,'₹85–140L / $250–355k']},
-   keywords:['Art Director','Game Art Director','Visual Director','Senior Art Director (Games)','Lead Artist']},
+   keywords:['Art Director','Game Art Director','Visual Director','Senior Art Director','Lead Artist']},
 
   {title:'Game Audio Designer',dept:'Gaming',
    required:['Game Audio','FMOD','Sound Design'],
@@ -2691,7 +2847,7 @@ const ROLES = [
    desc:'Designs and integrates audio for games — sound effects, ambient audio, music integration, and adaptive audio systems using FMOD or Wwise.',
    hint:'Game Audio Designers are extremely rare in India. Most game studios outsource audio or hire a single generalist. FMOD/Wwise middleware experience is non-negotiable for a serious hire.',
    exp:{junior:[1,3,'₹4–10L / $48–75k'],mid:[3,6,'₹10–22L / $78–125k'],senior:[6,10,'₹22–42L / $128–188k'],lead:[9,14,'₹42–72L / $190–268k']},
-   keywords:['Game Audio Designer','Sound Designer (Games)','Audio Engineer (Games)','Game Sound Designer']},
+   keywords:['Game Audio Designer','Sound Designer','Audio Engineer','Game Sound Designer']},
 
   {title:'Game Producer',dept:'Gaming',
    required:['Game Production','Agile','Project Management'],
@@ -2723,14 +2879,14 @@ const ROLES = [
    desc:'Tests games for bugs, balancing issues, and user experience problems across platforms. Documents issues and works with developers to reproduce and verify fixes.',
    hint:'Game Testers are entry-level and plentiful. The challenge is finding testers with structured testing methodology (not just players who want free games). QA leads with gaming domain knowledge are scarcer.',
    exp:{junior:[0,2,'₹2–6L / $32–52k'],mid:[2,4,'₹6–12L / $55–80k'],senior:[4,7,'₹12–22L / $82–128k'],lead:[7,11,'₹22–38L / $130–185k']},
-   keywords:['Game Tester','QA Tester (Games)','Games QA Analyst','QA Analyst (Gaming)','Game Quality Assurance']},
+   keywords:['Game Tester','QA Tester','QA Analyst','QA Analyst','Game Quality Assurance']},
 
-  {title:'Senior Product Analyst (Gaming)',dept:'Gaming',
+  {title:'Senior Product Analyst',dept:'Gaming',
    required:['Product Analytics','SQL','A/B Testing'],
    nice:['Python','Tableau','Mixpanel','Amplitude','Game Metrics','Funnel Analysis','Cohort Analysis','LiveOps Analytics','Monetisation Analytics'],
    desc:'Analyses game performance metrics — DAU/MAU, retention, monetisation funnels, and live ops events — to inform product and design decisions.',
    exp:{mid:[3,5,'₹12–25L / $82–128k'],senior:[5,9,'₹25–50L / $130–195k'],lead:[9,14,'₹50–85L / $198–278k']},
-   keywords:['Product Analyst (Gaming)','Game Analyst','LiveOps Analyst','Monetisation Analyst (Games)','Game Data Analyst']},
+   keywords:['Product Analyst','Game Analyst','LiveOps Analyst','Monetisation Analyst','Data Analyst (Gaming)']},
 
   {title:'Director of Animation',dept:'Gaming',
    required:['Character Animation','Team Leadership','Animation Pipeline'],
@@ -2744,14 +2900,14 @@ const ROLES = [
    nice:['Discord','Content Marketing','Analytics','Video Marketing','Brand Voice','Twitter/X Marketing','LinkedIn Content','Influencer Marketing','Mobile Gaming'],
    desc:'Manages player communities across Discord, Reddit, and social media. Runs community events, gathers player feedback, and represents the player voice internally.',
    exp:{mid:[2,5,'₹8–18L / $62–105k'],senior:[5,9,'₹18–35L / $108–168k'],lead:[9,14,'₹35–60L / $170–248k']},
-   keywords:['Senior Game Community Manager','Game Community Manager','Player Engagement Manager','Community Lead (Gaming)']},
+   keywords:['Senior Game Community Manager','Game Community Manager','Player Engagement Manager','Community Lead']},
 
-  {title:'UI/UX Designer (Gaming)',dept:'Gaming',
+  {title:'UI/UX Designer',dept:'Gaming',
    required:['Figma','UI Design','UX Design'],
    nice:['Adobe XD','After Effects','User Research','Usability Testing','Unity','Unreal Engine','Motion Design','Photoshop','Illustrator','Prototyping','Design Sprints','Design Thinking','Journey Mapping','Heatmaps'],
    desc:'Designs HUDs, menus, and in-game UI for games. Creates wireframes, prototypes, and final UI assets that balance aesthetics with game readability.',
    exp:{junior:[0,2,'₹3–8L / $42–68k'],mid:[2,5,'₹8–18L / $70–118k'],senior:[5,9,'₹18–35L / $120–178k'],lead:[8,13,'₹35–60L / $180–255k']},
-   keywords:['UI/UX Designer (Gaming)','Game UI Designer','HUD Designer','Interface Designer (Games)','Associate UI/UX Lead']},
+   keywords:['UI/UX Designer','Game UI Designer','HUD Designer','Interface Designer','Associate UI/UX Lead']},
 
 
 ];
@@ -2782,6 +2938,22 @@ function switchMode(mode, btn){
     selectedTitleModeRoles = [];
     renderSelectedTitleChips();
   }
+  // Clear results and skills when switching modes — fresh start each time
+  skills = [];
+  window._aiTopRoles = [];
+  activeDept = 'all';
+  renderBubbles();
+  document.getElementById('deptFilter').style.display = 'none';
+  document.getElementById('resultsArea').innerHTML = `<div class="empty-state"><div class="empty-icon" style="font-size:36px;margin-bottom:10px;">🎯</div><div class="empty-title">Start above to see role matches</div><div class="empty-sub">Type skills, search by title, or describe what you need.</div></div>`;
+  document.getElementById('nlInput').value = '';
+  document.getElementById('mainInput').value = '';
+  document.getElementById('titleModeInput').value = '';
+  // Clear title mode results
+  const titleResults = document.getElementById('titleModeResults');
+  if(titleResults) titleResults.innerHTML = '';
+  const titleDeptFilter = document.getElementById('deptFilterTitle');
+  if(titleDeptFilter) titleDeptFilter.style.display = 'none';
+
   currentMode = mode;
   document.querySelectorAll('.mode-tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.mode-pane').forEach(p=>p.classList.remove('active'));
@@ -2789,7 +2961,7 @@ function switchMode(mode, btn){
   document.getElementById('pane-'+mode).classList.add('active');
   if(mode==='nl') document.getElementById('nlInput').focus();
   else {
-    window._aiTopRoles = []; // clear NL boosts when switching to skills mode
+    window._aiTopRoles = [];
     document.getElementById('mainInput').focus();
   }
 }
@@ -3347,7 +3519,7 @@ const NL_MAP = [
 
   // ── Art Director / Audio ──
   {p:['art director games','game art director','visual director games','game audio','game sound designer','audio designer games','sound effects games','music games'],
-   skills:['Art Direction','Concept Art','Photoshop'], roles:['Art Director (Games)','Game Audio Designer']},
+   skills:['Art Direction','Concept Art','Photoshop'], roles:['Art Director','Game Audio Designer']},
 
   // ── Game Production ──
   {p:['game producer','produce a game','game project manager','head of game production','game development producer','release manager games'],
@@ -3363,11 +3535,11 @@ const NL_MAP = [
 
   // ── Gaming Product / Strategy ──
   {p:['product analyst gaming','game analytics','gaming kpi','game metrics analyst','live ops analyst','monetisation analyst games'],
-   skills:['Product Analytics','SQL','A/B Testing'], roles:['Senior Product Analyst (Gaming)']},
+   skills:['Product Analytics','SQL','A/B Testing'], roles:['Senior Product Analyst']},
 
   // ── Gaming Leadership ──
   {p:['vp technology gaming','head of engineering games','cto gaming studio','engineering director games','technical director games'],
-   skills:['System Design','Engineering Leadership','Game Development'], roles:['VP Technology (Gaming)']},
+   skills:['System Design','Engineering Leadership','Game Development'], roles:['VP Technology']},
 
   // ── Gaming Community / HR ──
   {p:['community manager gaming','game community','player community','discord community games','social media manager games','manage game community'],
@@ -3375,7 +3547,7 @@ const NL_MAP = [
 
   // ── Game UI/UX ──
   {p:['game ui designer','hud designer','ui ux designer games','interface designer games','game interface'],
-   skills:['Figma','UI Design','UX Design'], roles:['UI/UX Designer (Gaming)']},
+   skills:['Figma','UI Design','UX Design'], roles:['UI/UX Designer']},
 
 
   {p:['cloud architect','design cloud infrastructure','cloud architecture','aws architecture','azure architecture'],
@@ -3822,9 +3994,13 @@ function render(){
   area.innerHTML=`
     <div class="results-header">
       <div class="results-title">${results.length} matching role${results.length!==1?'s':''}</div>
-      <div class="results-count">${skills.length} skill${skills.length!==1?'s':''} entered</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="results-count">${skills.length} skill${skills.length!==1?'s':''} entered</div>
+        <button onclick="clearAndTryAgain()" style="padding:4px 10px;background:transparent;border:1.5px solid var(--border);border-radius:20px;font-size:11.5px;font-weight:600;color:var(--ink3);cursor:pointer;font-family:var(--sans);">↩ New search</button>
+      </div>
     </div>
     ${matchNote}
+    ${renderCurrencySelector()}
     <div class="result-grid">${html}</div>`;
 }
 
@@ -4325,26 +4501,61 @@ function clearAndTryAgain(){
 
 /* ─── Salary level selector ─── */
 function selectLevel(btn){
+  const lvl = btn.dataset.lvl;
+  if(lvl !== 'junior' && !isSalaryUnlocked()){
+    showSalaryContrib(btn);
+    return;
+  }
+  applySelectLevel(btn);
+}
+
+function applySelectLevel(btn){
   const cardId = btn.dataset.card;
-  const lvl    = btn.dataset.lvl;
   const yrsMin = btn.dataset.min;
   const yrsMax = btn.dataset.max;
   const sal    = btn.dataset.sal;
 
-  // Update button states in this selector group
   const group = document.getElementById(cardId);
   if(group){
     group.querySelectorAll('.sal-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
   }
 
-  // Update salary display
   const el = document.getElementById(cardId+'_sal');
   if(!el) return;
   const yrsStr = yrsMin+'–'+yrsMax+' yrs';
-  el.innerHTML = sal ? yrsStr+' &nbsp;·&nbsp; <strong>'+sal+'</strong>' : yrsStr;
+  const displaySal = getSalaryDisplay(sal);
+
+  el.innerHTML = displaySal
+    ? yrsStr + ' &nbsp;·&nbsp; <strong>' + displaySal + '</strong>'
+    : yrsStr;
 }
 
+// Currency selector — shown above salary on first role card or globally
+function toggleCurrency(cur){
+  const idx = selectedCurrencies.indexOf(cur);
+  if(idx > -1){
+    if(selectedCurrencies.length === 1) return; // always keep at least one
+    selectedCurrencies.splice(idx,1);
+  } else {
+    selectedCurrencies.push(cur);
+  }
+  // Re-render all active salary buttons
+  document.querySelectorAll('.sal-btn.active').forEach(btn => applySelectLevel(btn));
+  // Update chip styles
+  document.querySelectorAll('.cur-chip').forEach(chip => {
+    chip.classList.toggle('active', selectedCurrencies.includes(chip.dataset.cur));
+  });
+}
+
+function renderCurrencySelector(){
+  const all = ['INR','USD','AED','EUR'];
+  const labels = {INR:'🇮🇳 ₹ INR', USD:'🇺🇸 $ USD', AED:'🇦🇪 AED', EUR:'🇪🇺 € EUR'};
+  return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center;">
+    <span style="font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;">Show salary in:</span>
+    ${all.map(cur=>`<button class="cur-chip${selectedCurrencies.includes(cur)?' active':''}" data-cur="${cur}" onclick="toggleCurrency('${cur}')">${labels[cur]}</button>`).join('')}
+  </div>`;
+}
 
 initQuickPicks();
 
@@ -4364,5 +4575,906 @@ window.addEventListener('load', function(){
 <!-- Paywall Modal -->
 
 
+<!-- Hidden Netlify form for salary submissions -->
+<form name="salary-contrib" data-netlify="true" netlify-honeypot="bot-field" hidden>
+  <input name="designation"><input name="sub_dept"><input name="dept"><input name="experience"><input name="ctc"><input name="currency"><input name="country"><input name="role_desc"><input name="loc_detected">
+</form>
+
+<!-- Salary Contribution Modal -->
+<div id="salContribModal" style="display:none;position:fixed;inset:0;z-index:99997;background:rgba(15,14,12,0.65);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:24px;width:100%;max-width:430px;box-shadow:0 32px 80px rgba(0,0,0,0.25);overflow:hidden;position:relative;max-height:92vh;overflow-y:auto;">
+
+    <button onclick="skipSalaryContrib()" onmouseenter="setPandaMood('sad')" onmouseleave="setPandaMood('pace')"
+      style="position:absolute;top:12px;right:12px;background:rgba(255,255,255,0.9);border:1px solid #e4e2db;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:#6b6963;z-index:10;line-height:1;">×</button>
+
+
+    <!-- Panda Header — SVG kawaii style -->
+    <div style="background:linear-gradient(145deg,#0f766e 0%,#0f766e 60%,#14b8a6 100%);position:relative;overflow:hidden;">
+      <div style="position:absolute;top:-40px;right:-40px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,0.07);"></div>
+      <div style="position:absolute;bottom:20px;left:-15px;width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,0.04);"></div>
+
+      <div style="display:flex;align-items:flex-end;padding:16px 20px 0;gap:14px;position:relative;z-index:2;">
+
+        <!-- Panda (SVG, animated) -->
+        <div style="flex-shrink:0;position:relative;width:70px;height:83px;">
+          <!-- Speech bubble -->
+          <div id="pandaBubble" style="position:absolute;top:-6px;left:50%;transform:translateX(-50%) scale(0.8);background:white;border-radius:12px 12px 12px 2px;padding:5px 10px;font-size:11px;font-weight:700;color:#0f766e;white-space:nowrap;box-shadow:0 3px 12px rgba(0,0,0,0.18);opacity:0;transition:opacity .4s cubic-bezier(.34,1.56,.64,1),transform .4s cubic-bezier(.34,1.56,.64,1);pointer-events:none;font-family:Outfit,sans-serif;z-index:10;"></div>
+          <!-- Ground shadow -->
+          <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:72px;height:7px;background:rgba(0,0,0,0.18);border-radius:50%;animation:groundPulse 1.1s cubic-bezier(.45,0,.55,1) infinite;"></div>
+          <!-- Panda body (walks) -->
+          <div id="pandaBody" style="position:absolute;bottom:5px;left:50%;transform:translateX(-50%);animation:pandaWalk 1.1s cubic-bezier(.45,0,.55,1) infinite;">
+            <svg width="74" height="87" viewBox="0 0 106 124" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <radialGradient id="dgW" cx="38%" cy="28%" r="68%">
+                  <stop offset="0%" stop-color="#ffffff"/>
+                  <stop offset="75%" stop-color="#f2ede6"/>
+                  <stop offset="100%" stop-color="#e0d8cc"/>
+                </radialGradient>
+                <radialGradient id="dgWh" cx="35%" cy="25%" r="70%">
+                  <stop offset="0%" stop-color="#ffffff"/>
+                  <stop offset="100%" stop-color="#ede8e0"/>
+                </radialGradient>
+                <radialGradient id="dgEar" cx="32%" cy="22%" r="65%">
+                  <stop offset="0%" stop-color="#f5a832"/>
+                  <stop offset="60%" stop-color="#e8921a"/>
+                  <stop offset="100%" stop-color="#c97010"/>
+                </radialGradient>
+                <radialGradient id="dgNose" cx="28%" cy="22%" r="60%">
+                  <stop offset="0%" stop-color="#3a3a3a"/>
+                  <stop offset="100%" stop-color="#111"/>
+                </radialGradient>
+                <radialGradient id="dgIris" cx="35%" cy="30%" r="65%">
+                  <stop offset="0%" stop-color="#a0611a"/>
+                  <stop offset="100%" stop-color="#6b3a0a"/>
+                </radialGradient>
+                <radialGradient id="dgTng" cx="40%" cy="30%" r="65%">
+                  <stop offset="0%" stop-color="#fc8080"/>
+                  <stop offset="100%" stop-color="#e84040"/>
+                </radialGradient>
+                <filter id="dSh" x="-15%" y="-15%" width="130%" height="130%">
+                  <feDropShadow dx="1" dy="2" stdDeviation="2.5" flood-color="#333" flood-opacity="0.22"/>
+                </filter>
+              </defs>
+
+              <!-- TAIL — white, curls to right -->
+              <path d="M80 96 Q98 84 96 68 Q94 56 84 61" stroke="#d8d2c8" stroke-width="11" stroke-linecap="round" fill="none"/>
+              <path d="M80 96 Q98 84 96 68 Q94 56 84 61" stroke="white" stroke-width="7.5" stroke-linecap="round" fill="none"/>
+
+              <!-- BACK LEGS — sitting position -->
+              <g id="pandaLegL" style="transform-origin:28px 97px;animation:legSwingL 1.1s cubic-bezier(.45,0,.55,1) infinite;">
+                <ellipse cx="24" cy="100" rx="16" ry="11" fill="url(#dgW)" filter="url(#dSh)"/>
+                <ellipse cx="21" cy="112" rx="15" ry="7.5" fill="#e8e2d8"/>
+                <ellipse cx="14" cy="114" rx="5" ry="3.5" fill="#ddd6c8"/>
+                <ellipse cx="21" cy="116" rx="5.5" ry="3.5" fill="#ddd6c8"/>
+                <ellipse cx="29" cy="115" rx="5" ry="3.5" fill="#ddd6c8"/>
+              </g>
+              <g id="pandaLegR" style="transform-origin:78px 97px;animation:legSwingR 1.1s cubic-bezier(.45,0,.55,1) infinite;">
+                <ellipse cx="82" cy="100" rx="16" ry="11" fill="url(#dgW)" filter="url(#dSh)"/>
+                <ellipse cx="85" cy="112" rx="15" ry="7.5" fill="#e8e2d8"/>
+                <ellipse cx="78" cy="115" rx="5" ry="3.5" fill="#ddd6c8"/>
+                <ellipse cx="85" cy="116" rx="5.5" ry="3.5" fill="#ddd6c8"/>
+                <ellipse cx="92" cy="114" rx="5" ry="3.5" fill="#ddd6c8"/>
+              </g>
+
+              <!-- BODY — large white pear shape -->
+              <ellipse cx="53" cy="89" rx="32" ry="28" fill="url(#dgW)" filter="url(#dSh)"/>
+              <!-- Chest highlight -->
+              <ellipse cx="48" cy="82" rx="18" ry="16" fill="white" opacity="0.55"/>
+
+              <!-- FRONT LEGS -->
+              <g id="pandaArmL" style="transform-origin:30px 90px;animation:armSwingL 1.1s cubic-bezier(.45,0,.55,1) infinite;">
+                <ellipse cx="25" cy="96" rx="13" ry="18" fill="url(#dgW)" filter="url(#dSh)" transform="rotate(-6 25 96)"/>
+                <ellipse cx="21" cy="113" rx="15" ry="7.5" fill="#e8e2d8"/>
+                <ellipse cx="14" cy="115" rx="5" ry="3.5" fill="#ddd6c8"/>
+                <ellipse cx="21" cy="117" rx="5.5" ry="3.5" fill="#ddd6c8"/>
+                <ellipse cx="29" cy="116" rx="5" ry="3.5" fill="#ddd6c8"/>
+              </g>
+              <g id="pandaArmR" style="transform-origin:76px 90px;animation:armSwingR 1.1s cubic-bezier(.45,0,.55,1) infinite;">
+                <ellipse cx="81" cy="96" rx="13" ry="18" fill="url(#dgW)" filter="url(#dSh)" transform="rotate(6 81 96)"/>
+                <ellipse cx="85" cy="113" rx="15" ry="7.5" fill="#e8e2d8"/>
+                <ellipse cx="78" cy="116" rx="5" ry="3.5" fill="#ddd6c8"/>
+                <ellipse cx="85" cy="117" rx="5.5" ry="3.5" fill="#ddd6c8"/>
+                <ellipse cx="92" cy="115" rx="5" ry="3.5" fill="#ddd6c8"/>
+              </g>
+
+              <!-- COLLAR — teal with gold tag -->
+              <rect x="30" y="72" width="46" height="9.5" rx="4.8" fill="#0f766e" filter="url(#dSh)"/>
+              <rect x="30" y="72" width="46" height="4" rx="4.8" fill="white" opacity="0.2"/>
+              <circle cx="53" cy="81.5" r="4" stroke="#fbbf24" stroke-width="1.8" fill="none"/>
+              <path d="M53 85.5 C53 85.5 50 82.5 50 81 C50 80 51 79.5 52 80 C52.5 79.5 53 79.5 53 80 C53 79.5 53.5 79.5 54 80 C55 79.5 56 80 56 81 C56 82.5 53 85.5 53 85.5Z" fill="#fbbf24"/>
+
+              <!-- EARS — large amber floppy, behind head -->
+              <g id="pandaEars" style="animation:earWiggle 2.8s cubic-bezier(.45,0,.55,1) infinite;transform-origin:53px 30px;">
+                <!-- Left ear — hangs forward from side of head -->
+                <path d="M19 32 Q8 16 13 6 Q20 -2 30 7 Q40 18 33 40 Q27 42 19 32Z" fill="url(#dgEar)" filter="url(#dSh)"/>
+                <path d="M21 30 Q12 16 16 8 Q22 3 29 10 Q37 20 31 38Z" fill="#f0a028" opacity="0.45"/>
+                <!-- Right ear -->
+                <path d="M87 32 Q98 16 93 6 Q86 -2 76 7 Q66 18 73 40 Q79 42 87 32Z" fill="url(#dgEar)" filter="url(#dSh)"/>
+                <path d="M85 30 Q94 16 90 8 Q84 3 77 10 Q69 20 75 38Z" fill="#f0a028" opacity="0.45"/>
+              </g>
+
+              <!-- HEAD — large white round -->
+              <circle cx="53" cy="42" r="36" fill="url(#dgWh)" filter="url(#dSh)"/>
+              <!-- Head specular highlight -->
+              <ellipse cx="40" cy="24" rx="13" ry="8.5" fill="white" opacity="0.28" transform="rotate(-22 40 24)"/>
+
+              <!-- EYEBROW PATCHES — amber spots, hallmark of this breed -->
+              <ellipse cx="37" cy="26" rx="10" ry="6.5" fill="#e8981a" opacity="0.88" transform="rotate(-12 37 26)"/>
+              <ellipse cx="69" cy="26" rx="10" ry="6.5" fill="#e8981a" opacity="0.88" transform="rotate(12 69 26)"/>
+              <!-- Eyebrow highlight -->
+              <ellipse cx="34" cy="24" rx="4" ry="2.5" fill="#f5b840" opacity="0.5" transform="rotate(-12 34 24)"/>
+              <ellipse cx="66" cy="24" rx="4" ry="2.5" fill="#f5b840" opacity="0.5" transform="rotate(12 66 24)"/>
+
+              <!-- EYES — large with brown iris, expressive -->
+              <g id="pandaEyes">
+                <!-- White sclera -->
+                <ellipse cx="37" cy="38" rx="11.5" ry="11" fill="white"/>
+                <ellipse cx="69" cy="38" rx="11.5" ry="11" fill="white"/>
+                <!-- Brown iris -->
+                <circle cx="37.5" cy="38.5" r="7.5" fill="url(#dgIris)"/>
+                <circle cx="69.5" cy="38.5" r="7.5" fill="url(#dgIris)"/>
+                <!-- Black pupil -->
+                <circle cx="38" cy="39" r="4.8" fill="#111"/>
+                <circle cx="70" cy="39" r="4.8" fill="#111"/>
+                <!-- Primary shine — large -->
+                <circle cx="35" cy="35.5" r="3" fill="white"/>
+                <circle cx="67" cy="35.5" r="3" fill="white"/>
+                <!-- Secondary shine -->
+                <circle cx="41" cy="42" r="1.5" fill="white" opacity="0.65"/>
+                <circle cx="73" cy="42" r="1.5" fill="white" opacity="0.65"/>
+              </g>
+
+              <!-- BLINK OVERLAY -->
+              <g id="pandaBlink" style="animation:blinkCycle 5.5s cubic-bezier(.45,0,.55,1) infinite;pointer-events:none;">
+                <ellipse cx="37" cy="38" rx="11.5" ry="0" fill="url(#dgWh)"/>
+                <ellipse cx="69" cy="38" rx="11.5" ry="0" fill="url(#dgWh)"/>
+              </g>
+
+              <!-- MUZZLE — large light patch covering lower half of face -->
+              <ellipse cx="53" cy="58" rx="20" ry="17" fill="#f5f0e6"/>
+              <ellipse cx="44" cy="54" rx="9" ry="6" fill="white" opacity="0.35"/>
+
+              <!-- NOSE — large, signature dog feature -->
+              <ellipse cx="53" cy="50" rx="13" ry="10" fill="url(#dgNose)" filter="url(#dSh)"/>
+              <!-- Nose sheen -->
+              <ellipse cx="48" cy="46" rx="4.5" ry="3" fill="white" opacity="0.38" transform="rotate(-15 48 46)"/>
+
+              <!-- NOSE DIVOT -->
+              <path d="M53 60 L53 63" stroke="#888" stroke-width="1.8" stroke-linecap="round"/>
+
+              <!-- MOUTH -->
+              <g id="pandaMouth">
+                <path d="M42 64 Q53 71 64 64" stroke="#777" stroke-width="2" stroke-linecap="round" fill="none"/>
+              </g>
+
+              <!-- BLUSH -->
+              <ellipse id="pandaBlushL" cx="18" cy="52" rx="9" ry="5.5" fill="#fca5a5" opacity="0.5"/>
+              <ellipse id="pandaBlushR" cx="88" cy="52" rx="9" ry="5.5" fill="#fca5a5" opacity="0.5"/>
+
+              <!-- QUESTION BADGE -->
+              <g id="pandaQuestion" opacity="0" style="transition:opacity 0.3s;">
+                <circle cx="86" cy="10" r="12" fill="#fbbf24"/>
+                <text x="82.5" y="15.5" font-size="13" fill="white" font-weight="900" font-family="Outfit,sans-serif">?</text>
+              </g>
+
+              <!-- TEARS -->
+              <g id="pandaTears" opacity="0">
+                <ellipse cx="22" cy="48" rx="3" ry="6" fill="#93c5fd" style="animation:tearFall 0.9s cubic-bezier(.55,.06,.68,.19) infinite;"/>
+                <ellipse cx="84" cy="48" rx="3" ry="6" fill="#93c5fd" style="animation:tearFall 0.9s cubic-bezier(.55,.06,.68,.19) 0.2s infinite;"/>
+              </g>
+            </svg>
+          </div>
+        </div>
+
+
+        <!-- Title + subtitle -->
+        <div style="flex:1;padding-bottom:18px;">
+          <div id="salModalTitle" style="font-size:20px;font-weight:800;color:white;letter-spacing:-0.03em;line-height:1.2;margin-bottom:7px;font-family:Outfit,sans-serif;">Pretty please? 🥺</div>
+          <div id="salModalSub" style="font-size:13px;color:rgba(255,255,255,0.88);line-height:1.55;font-family:Outfit,sans-serif;">Help others know what they're worth! Share your CTC anonymously — 20 seconds 💚</div>
+        </div>
+      </div>
+
+      <!-- White curve into form -->
+      <div style="height:22px;background:white;border-radius:22px 22px 0 0;margin-top:6px;"></div>
+    </div>
+    <div id="salFormArea" style="padding:14px 22px 22px;background:#fff;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:9px;">
+
+        <!-- Department -->
+        <div>
+          <label style="font-size:10.5px;font-weight:700;color:#6b6963;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em;font-family:Outfit,sans-serif;">Department</label>
+          <select id="salDept" onchange="onSalDeptChange()" style="width:100%;padding:8px 11px;border:1.5px solid #e4e2db;border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;outline:none;box-sizing:border-box;color:#1a1917;background:#fff;">
+            <option value="">Select...</option>
+            <option value="Engineering">Engineering</option>
+            <option value="Data">Data</option>
+            <option value="Design">Design</option>
+            <option value="Product">Product</option>
+            <option value="Marketing">Marketing</option>
+            <option value="Sales">Sales</option>
+            <option value="HR">HR</option>
+            <option value="Finance">Finance</option>
+            <option value="Operations">Operations</option>
+            <option value="Legal">Legal</option>
+            <option value="Gaming">Gaming</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <!-- Sub-function (filters based on dept) -->
+        <div>
+          <label style="font-size:10.5px;font-weight:700;color:#6b6963;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em;font-family:Outfit,sans-serif;">Sub-function</label>
+          <select id="salSubDept" onchange="onSalSubDeptChange()" style="width:100%;padding:8px 11px;border:1.5px solid #e4e2db;border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;outline:none;box-sizing:border-box;color:#1a1917;background:#fff;">
+            <option value="">Select dept first...</option>
+          </select>
+        </div>
+
+        <!-- Custom sub-function for Other dept -->
+        <div id="salSubOtherWrap" style="grid-column:1/-1;display:none;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;">
+            <div>
+              <label style="font-size:10.5px;font-weight:700;color:#6b6963;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em;font-family:Outfit,sans-serif;">Your Department</label>
+              <input id="salCustomDept" type="text" placeholder="e.g. Customer Success" style="width:100%;padding:8px 11px;border:1.5px solid #e4e2db;border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;outline:none;box-sizing:border-box;color:#1a1917;">
+            </div>
+            <div>
+              <label style="font-size:10.5px;font-weight:700;color:#6b6963;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em;font-family:Outfit,sans-serif;">Sub-function / Team</label>
+              <input id="salSubOther" type="text" placeholder="e.g. Onboarding, Partnerships" style="width:100%;padding:8px 11px;border:1.5px solid #e4e2db;border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;outline:none;box-sizing:border-box;color:#1a1917;">
+            </div>
+          </div>
+        </div>
+
+        <!-- New role description -->
+        <div id="salRoleDescWrap" style="grid-column:1/-1;display:none;background:#f0fdf9;border:1.5px solid #0f766e;border-radius:10px;padding:10px 12px;">
+          <div style="font-size:11px;font-weight:700;color:#0f766e;margin-bottom:6px;font-family:Outfit,sans-serif;">✨ Looks new — what does this role do? (1 line)</div>
+          <input id="salRoleDesc" type="text" placeholder="e.g. Manages cloud infra and CI/CD pipelines" style="width:100%;padding:7px 10px;border:1.5px solid #cde8e0;border-radius:7px;font-family:Outfit,sans-serif;font-size:12px;outline:none;box-sizing:border-box;color:#1a1917;">
+        </div>
+
+        <!-- Designation — always free text -->
+        <div style="grid-column:1/-1;">
+          <label style="font-size:10.5px;font-weight:700;color:#6b6963;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em;font-family:Outfit,sans-serif;">Your Designation <span style="font-weight:400;text-transform:none;font-size:10px;color:#aaa;">— whatever your company calls it</span></label>
+          <input id="salRole" type="text" placeholder="e.g. Senior Manager, Associate II, L5, Principal" autocomplete="off" style="width:100%;padding:8px 11px;border:1.5px solid #e4e2db;border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;outline:none;box-sizing:border-box;color:#1a1917;">
+        </div>
+
+        <!-- Experience range -->
+        <div>
+          <label style="font-size:10.5px;font-weight:700;color:#6b6963;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em;font-family:Outfit,sans-serif;">Experience</label>
+          <select id="salYrs" style="width:100%;padding:8px 11px;border:1.5px solid #e4e2db;border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;outline:none;box-sizing:border-box;color:#1a1917;background:#fff;">
+            <option value="">Select...</option>
+            <option value="0-2">0–2 years</option>
+            <option value="2-4">2–4 years</option>
+            <option value="4-6">4–6 years</option>
+            <option value="6-9">6–9 years</option>
+            <option value="9-12">9–12 years</option>
+            <option value="12+">12+ years</option>
+          </select>
+        </div>
+
+        <div>
+          <label style="font-size:10.5px;font-weight:700;color:#6b6963;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em;font-family:Outfit,sans-serif;">Your CTC</label>
+          <input id="salCtc" type="text" placeholder="e.g. 18L or 85k" style="width:100%;padding:8px 11px;border:1.5px solid #e4e2db;border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;outline:none;box-sizing:border-box;color:#1a1917;">
+        </div>
+
+        <div>
+          <label style="font-size:10.5px;font-weight:700;color:#6b6963;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em;font-family:Outfit,sans-serif;">Currency</label>
+          <select id="salCurrency" style="width:100%;padding:8px 11px;border:1.5px solid #e4e2db;border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;outline:none;box-sizing:border-box;color:#1a1917;background:#fff;">
+            <option value="INR">🇮🇳 INR (₹)</option>
+            <option value="USD">🇺🇸 USD ($)</option>
+            <option value="AED">🇦🇪 AED</option>
+            <option value="EUR">🇪🇺 EUR (€)</option>
+            <option value="GBP">🇬🇧 GBP (£)</option>
+            <option value="SGD">🇸🇬 SGD</option>
+            <option value="CAD">🇨🇦 CAD</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div>
+          <label style="font-size:10.5px;font-weight:700;color:#6b6963;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em;font-family:Outfit,sans-serif;">Country</label>
+          <select id="salCountry" style="width:100%;padding:8px 11px;border:1.5px solid #e4e2db;border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;outline:none;box-sizing:border-box;color:#1a1917;background:#fff;">
+            <option value="">Select...</option>
+            <option value="India">🇮🇳 India</option>
+            <option value="USA">🇺🇸 United States</option>
+            <option value="UAE">🇦🇪 UAE</option>
+            <option value="UK">🇬🇧 United Kingdom</option>
+            <option value="Germany">🇩🇪 Germany</option>
+            <option value="Netherlands">🇳🇱 Netherlands</option>
+            <option value="France">🇫🇷 France</option>
+            <option value="Canada">🇨🇦 Canada</option>
+            <option value="Singapore">🇸🇬 Singapore</option>
+            <option value="Australia">🇦🇺 Australia</option>
+            <option value="Italy">🇮🇹 Italy</option>
+            <option value="Remote/Global">🌍 Remote / Global</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+
+      <p id="salErr" style="font-size:12px;color:#b91c1c;display:none;margin-bottom:8px;font-family:Outfit,sans-serif;"></p>
+      <button onclick="submitSalaryContrib()" style="width:100%;padding:12px;background:#0f766e;color:#fff;border:none;border-radius:10px;font-weight:700;font-family:Outfit,sans-serif;font-size:14px;cursor:pointer;margin-bottom:8px;">Share anonymously ✨</button>
+      <button id="salSkipBtn" onclick="skipSalaryContrib()" onmouseenter="setPandaMood('sad')" onmouseleave="setPandaMood('pace')"
+        style="width:100%;padding:9px;background:transparent;color:#6b6963;border:1.5px solid #e4e2db;border-radius:10px;font-weight:600;font-family:Outfit,sans-serif;font-size:13px;cursor:pointer;">
+        Skip for now
+      </button>
+      <p style="font-size:10.5px;color:#aaa;text-align:center;margin-top:10px;font-family:Outfit,sans-serif;">100% anonymous · no name, no email · just helps others</p>
+    </div>
+  </div>
+</div>
+
+<!-- Thank you modal -->
+<div id="salThanksModal" style="display:none;position:fixed;inset:0;z-index:99998;background:rgba(15,14,12,0.65);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:24px;width:100%;max-width:360px;box-shadow:0 32px 80px rgba(0,0,0,0.25);overflow:hidden;text-align:center;">
+    <div style="background:linear-gradient(160deg,#0f766e,#14b8a6);padding:24px 24px 0;">
+      <div style="animation:charFloat 2s ease-in-out infinite;display:inline-block;">
+        <svg width="130" height="125" viewBox="0 0 130 125" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="ptH" cx="35%" cy="28%" r="62%"><stop offset="0%" stop-color="#fff"/><stop offset="60%" stop-color="#f0f0f0"/><stop offset="100%" stop-color="#c8c8c8"/></radialGradient>
+            <radialGradient id="ptB" cx="32%" cy="22%" r="70%"><stop offset="0%" stop-color="#e5e5e5"/><stop offset="100%" stop-color="#999"/></radialGradient>
+            <filter id="ptS"><feDropShadow dx="2" dy="3" stdDeviation="3" flood-color="#333" flood-opacity="0.25"/></filter>
+          </defs>
+          <ellipse cx="65" cy="122" rx="38" ry="5" fill="#0a5048" opacity="0.2"/>
+          <circle cx="27" cy="28" r="16" fill="#222" filter="url(#ptS)"/>
+          <circle cx="103" cy="28" r="16" fill="#222" filter="url(#ptS)"/>
+          <circle cx="27" cy="28" r="9" fill="#444" opacity="0.4"/>
+          <circle cx="103" cy="28" r="9" fill="#444" opacity="0.4"/>
+          <ellipse cx="65" cy="57" rx="36" ry="34" fill="url(#ptH)" filter="url(#ptS)"/>
+          <ellipse cx="53" cy="40" rx="13" ry="8" fill="white" opacity="0.3" transform="rotate(-20 53 40)"/>
+          <ellipse cx="44" cy="50" rx="11" ry="10" fill="#222" filter="url(#ptS)"/>
+          <ellipse cx="86" cy="50" rx="11" ry="10" fill="#222" filter="url(#ptS)"/>
+          <!-- Happy closed eyes -->
+          <path d="M39 50 Q44 43 49 50" stroke="white" stroke-width="3" stroke-linecap="round" fill="none"/>
+          <path d="M81 50 Q86 43 91 50" stroke="white" stroke-width="3" stroke-linecap="round" fill="none"/>
+          <ellipse cx="65" cy="68" rx="14" ry="11" fill="#f0f0f0" filter="url(#ptS)"/>
+          <ellipse cx="65" cy="62" rx="7" ry="5" fill="#222"/>
+          <circle cx="62" cy="61" r="2" fill="white" opacity="0.5"/>
+          <path d="M56 74 Q65 83 74 74" stroke="#333" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <ellipse cx="40" cy="65" rx="9" ry="6" fill="#ffb3c1" opacity="0.65"/>
+          <ellipse cx="90" cy="65" rx="9" ry="6" fill="#ffb3c1" opacity="0.65"/>
+          <!-- Paws raised holding heart -->
+          <path d="M22 90 Q7 70 15 50" stroke="#333" stroke-width="18" stroke-linecap="round" filter="url(#ptS)"/>
+          <path d="M108 90 Q123 70 115 50" stroke="#333" stroke-width="18" stroke-linecap="round" filter="url(#ptS)"/>
+          <path d="M24 88 Q11 71 17 54" stroke="#666" stroke-width="6" stroke-linecap="round" opacity="0.4"/>
+          <path d="M106 88 Q119 71 113 54" stroke="#666" stroke-width="6" stroke-linecap="round" opacity="0.4"/>
+          <!-- Heart -->
+          <path d="M65 44 C65 44 50 34 50 25 C50 17 57 15 65 23 C73 15 80 17 80 25 C80 34 65 44 65 44Z" fill="#ff4d6d" filter="url(#ptS)"/>
+          <ellipse cx="58" cy="23" rx="4" ry="2.5" fill="white" opacity="0.5" transform="rotate(-25 58 23)"/>
+          <ellipse cx="65" cy="103" rx="30" ry="16" fill="url(#ptB)" filter="url(#ptS)"/>
+          <ellipse cx="42" cy="99" rx="12" ry="9" fill="#333" filter="url(#ptS)"/>
+          <ellipse cx="88" cy="99" rx="12" ry="9" fill="#333" filter="url(#ptS)"/>
+          <rect x="37" y="89" width="56" height="10" rx="5" fill="#0f766e" filter="url(#ptS)"/>
+          <rect x="37" y="89" width="56" height="4" rx="5" fill="white" opacity="0.15"/>
+          <circle cx="65" cy="99" r="5" fill="#fbbf24" filter="url(#ptS)"/>
+        </svg>
+      </div>
+      <div style="background:white;border-radius:18px 18px 0 0;margin-top:6px;padding:16px 20px 0;">
+        <div style="font-size:19px;font-weight:800;color:#0f172a;letter-spacing:-0.02em;margin-bottom:4px;font-family:Outfit,sans-serif;">Thank you! 🐼💚</div>
+      </div>
+    </div>
+    <div style="padding:14px 24px 24px;">
+      <div style="font-size:13.5px;color:#6b6963;line-height:1.6;font-family:Outfit,sans-serif;">You helped others understand their worth. All salary levels unlocked until June 2026 🎉</div>
+    </div>
+  </div>
+</div>
+
+<!-- Floating dog (shown after first skip) -->
+<div id="floatingPanda" style="display:none;position:fixed;bottom:20px;right:20px;z-index:99995;cursor:pointer;animation:charFloat 3s ease-in-out infinite;" onclick="showSalaryContrib(_floatingPandaBtn)" title="Help us with salary data!">
+  <div style="position:relative;">
+    <svg width="74" height="78" viewBox="0 0 74 78" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 4px 14px rgba(0,0,0,0.25));">
+      <defs>
+        <radialGradient id="fW" cx="38%" cy="28%" r="68%"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#ede8df"/></radialGradient>
+        <radialGradient id="fE" cx="32%" cy="22%" r="65%"><stop offset="0%" stop-color="#f5a832"/><stop offset="100%" stop-color="#c97010"/></radialGradient>
+        <radialGradient id="fI" cx="35%" cy="30%" r="65%"><stop offset="0%" stop-color="#a0611a"/><stop offset="100%" stop-color="#6b3a0a"/></radialGradient>
+      </defs>
+      <!-- Ears -->
+      <path d="M14 24 Q6 12 10 4 Q16 -2 23 5 Q30 14 24 30 Q19 32 14 24Z" fill="url(#fE)"/>
+      <path d="M60 24 Q68 12 64 4 Q58 -2 51 5 Q44 14 50 30 Q55 32 60 24Z" fill="url(#fE)"/>
+      <!-- Head -->
+      <circle cx="37" cy="30" r="26" fill="url(#fW)"/>
+      <!-- Eyebrow patches -->
+      <ellipse cx="26" cy="18" rx="7.5" ry="5" fill="#e8981a" opacity="0.85" transform="rotate(-12 26 18)"/>
+      <ellipse cx="48" cy="18" rx="7.5" ry="5" fill="#e8981a" opacity="0.85" transform="rotate(12 48 18)"/>
+      <!-- Eyes -->
+      <ellipse cx="26" cy="27" rx="8.5" ry="8" fill="white"/>
+      <ellipse cx="48" cy="27" rx="8.5" ry="8" fill="white"/>
+      <circle cx="26.5" cy="27.5" r="5.5" fill="url(#fI)"/>
+      <circle cx="48.5" cy="27.5" r="5.5" fill="url(#fI)"/>
+      <circle cx="27" cy="28" r="3.5" fill="#111"/>
+      <circle cx="49" cy="28" r="3.5" fill="#111"/>
+      <circle cx="24.5" cy="25" r="2.2" fill="white"/>
+      <circle cx="46.5" cy="25" r="2.2" fill="white"/>
+      <!-- Muzzle -->
+      <ellipse cx="37" cy="40" rx="14" ry="11" fill="#f5f0e6"/>
+      <!-- Nose -->
+      <ellipse cx="37" cy="34" rx="9" ry="7" fill="#1a1a1a"/>
+      <ellipse cx="34" cy="31.5" rx="3" ry="2" fill="white" opacity="0.4" transform="rotate(-15 34 31.5)"/>
+      <!-- Panting tongue -->
+      <path d="M30 44 Q37 50 44 44" stroke="#888" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+      <ellipse cx="37" cy="47" rx="7.5" ry="6" fill="#f87171"/>
+      <!-- Blush -->
+      <ellipse cx="14" cy="38" rx="6" ry="3.5" fill="#fca5a5" opacity="0.5"/>
+      <ellipse cx="60" cy="38" rx="6" ry="3.5" fill="#fca5a5" opacity="0.5"/>
+      <!-- Body -->
+      <ellipse cx="37" cy="66" rx="20" ry="14" fill="url(#fW)"/>
+      <ellipse cx="34" cy="60" rx="12" ry="10" fill="white" opacity="0.5"/>
+      <!-- Collar -->
+      <rect x="22" y="55" width="30" height="7" rx="3.5" fill="#0f766e"/>
+      <circle cx="37" cy="62" r="2.8" fill="#fbbf24"/>
+    </svg>
+    <div style="position:absolute;bottom:80px;right:0;background:#0f766e;color:white;font-size:11px;font-weight:700;padding:6px 10px;border-radius:10px 10px 0 10px;white-space:nowrap;font-family:Outfit,sans-serif;box-shadow:0 4px 12px rgba(0,0,0,0.2);">
+      Share your salary? 🐶
+    </div>
+  </div>
+</div>
+<style>
+/* ── Kawaii Panda animations — smooth Dreamworks-style easing ── */
+/* ── Lottie Panda entrance & mood animations ── */
+@keyframes pandaEnter {
+  0%   { transform: translateX(0px); }
+  100% { transform: translateX(160px); }
+}
+@keyframes pandaWalkRight {
+  0%   { transform: translateX(160px); }
+  100% { transform: translateX(280px); }
+}
+@keyframes pandaWalkLeft {
+  0%   { transform: translateX(280px); }
+  100% { transform: translateX(160px); }
+}
+@keyframes pandaPacePingPong {
+  0%,100% { transform: translateX(160px) scaleX(1); }
+  48%     { transform: translateX(260px) scaleX(1); }
+  50%     { transform: translateX(260px) scaleX(-1); }
+  98%     { transform: translateX(160px) scaleX(-1); }
+  99%     { transform: translateX(160px) scaleX(1); }
+}
+@keyframes shadowPulse {
+  0%,100% { transform: scaleX(1); opacity: 0.5; }
+  50% { transform: scaleX(0.82); opacity: 0.25; }
+}
+@keyframes pandaExitRight {
+  0%   { transform: translateX(160px); opacity: 1; }
+  100% { transform: translateX(500px); opacity: 0; }
+}
+@keyframes pandaEnterFromRight {
+  0%   { transform: translateX(500px) scaleX(-1); opacity: 0; }
+  10%  { opacity: 1; }
+  100% { transform: translateX(160px) scaleX(-1); opacity: 1; }
+}
+@keyframes charFloat {
+  0%,100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes pandaWalk {
+  0%,100% { transform: translateX(-50%) translateY(0px) rotate(0deg); }
+  25%     { transform: translateX(-50%) translateY(-6px) rotate(-2.5deg); }
+  75%     { transform: translateX(-50%) translateY(-6px) rotate(2.5deg); }
+}
+@keyframes pandaIdle {
+  0%,100% { transform: translateX(-50%) translateY(0px) rotate(0deg); }
+  35%     { transform: translateX(-50%) translateY(-4px) rotate(-1.5deg); }
+  70%     { transform: translateX(-50%) translateY(-4px) rotate(1.5deg); }
+}
+@keyframes pandaCry {
+  0%,100% { transform: translateX(-50%) translateY(0px) rotate(0deg); }
+  20%     { transform: translateX(-50%) translateY(3px) rotate(-5deg); }
+  60%     { transform: translateX(-50%) translateY(3px) rotate(5deg); }
+}
+@keyframes pandaImpatient {
+  0%,100% { transform: translateX(-50%) rotate(0deg); }
+  15%     { transform: translateX(-50%) rotate(-8deg) translateY(-3px); }
+  30%     { transform: translateX(-50%) rotate(8deg) translateY(-3px); }
+  45%     { transform: translateX(-50%) rotate(-8deg) translateY(-3px); }
+  60%     { transform: translateX(-50%) rotate(8deg) translateY(-3px); }
+  75%     { transform: translateX(-50%) rotate(0deg); }
+}
+@keyframes dogPant {
+  0%,100% { transform: translateY(0px) scaleY(1); }
+  50%     { transform: translateY(4px) scaleY(1.08); }
+}
+@keyframes groundPulse {
+  0%,100% { transform: translateX(-50%) scaleX(1); opacity: 0.6; }
+  50% { transform: translateX(-50%) scaleX(0.82); opacity: 0.3; }
+}
+@keyframes tearFall {
+  0% { transform: translateY(0) scaleY(1); opacity: 0; }
+  10% { opacity: 0.9; }
+  70% { transform: translateY(16px) scaleY(1.2); opacity: 0.7; }
+  100% { transform: translateY(22px) scaleY(0.8); opacity: 0; }
+}
+@keyframes blinkCycle {
+  0%,92%,100% { opacity: 0; }
+  95%,98% { opacity: 1; }
+}
+@keyframes earWiggle {
+  0%,75%,100% { transform: rotate(0deg); }
+  82% { transform: rotate(-6deg); }
+  90% { transform: rotate(6deg); }
+  97% { transform: rotate(-3deg); }
+}
+@keyframes legSwingL { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(22deg); } }
+@keyframes legSwingR { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(-22deg); } }
+@keyframes armSwingL { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(28deg); } }
+@keyframes armSwingR { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(-28deg); } }
+.sal-role-bubble{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:var(--teal-lt);border:1.5px solid var(--teal);border-radius:20px;font-size:12px;font-weight:600;color:var(--teal);font-family:Outfit,sans-serif;}
+  0%   { transform: translateY(0px) rotate(0deg); }
+  25%  { transform: translateY(-7px) rotate(-2.5deg); }
+  50%  { transform: translateY(0px) rotate(0deg); }
+  75%  { transform: translateY(-7px) rotate(2.5deg); }
+  100% { transform: translateY(0px) rotate(0deg); }
+.sal-role-bubble{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:var(--teal-lt);border:1.5px solid var(--teal);border-radius:20px;font-size:12px;font-weight:600;color:var(--teal);font-family:Outfit,sans-serif;}
+</style>
+
+<script>
+// Department → sub-function map
+const DEPT_SUBS = {
+  Engineering:['Backend','Frontend','Full Stack','Mobile (iOS)','Mobile (Android)','DevOps / Platform','QA / Testing','Embedded','Blockchain','Security','Site Reliability','ML Platform','Data Engineering'],
+  Data:['Data Science','Data Engineering','Analytics','Business Intelligence','ML / AI','NLP','Computer Vision','MLOps'],
+  Design:['Product Design','UX Research','UI Design','Brand / Visual','Motion Design','Content Design'],
+  Product:['Product Management','Growth Product','Platform Product','Technical PM','Program Management'],
+  Marketing:['Growth / Organic','Performance Marketing','Content','SEO','Social Media','Email Marketing','Brand','Product Marketing','Marketing Analytics'],
+  Sales:['Account Executive','SDR / BDR','Enterprise Sales','Channel Sales','Customer Success','Pre-Sales / Solutions'],
+  HR:['Talent Acquisition','HR Business Partner','People Operations','Compensation & Benefits','L&D','HR Analytics','DEI'],
+  Finance:['FP&A','Accounting','Investor Relations','Corporate Finance','Tax','Treasury','Revenue Operations'],
+  Operations:['Business Operations','Supply Chain','Program Management','Strategy & Operations','Chief of Staff'],
+  Legal:['General Counsel','Corporate Legal','Compliance','IP / Patents','Data Privacy'],
+  Gaming:['Game Design','Game Engineering','Art / Animation','Production','QA','Audio','Community'],
+};
+
+function onSalDeptChange(){
+  const dept = document.getElementById('salDept').value;
+  const subSel = document.getElementById('salSubDept');
+  const otherWrap = document.getElementById('salSubOtherWrap');
+  if(dept === 'Other' || dept === ''){
+    subSel.innerHTML = '<option value="">—</option>';
+    subSel.disabled = true;
+    otherWrap.style.display = dept === 'Other' ? 'block' : 'none';
+    setPandaMood('pace');
+    return;
+  }
+  subSel.disabled = false;
+  otherWrap.style.display = 'none';
+  const subs = DEPT_SUBS[dept] || [];
+  subSel.innerHTML = '<option value="">Select sub-function...</option>' + subs.map(s=>`<option value="${s}">${s}</option>`).join('') + '<option value="Other">Other...</option>';
+}
+
+function onSalSubDeptChange(){
+  const val = document.getElementById('salSubDept').value;
+  const otherWrap = document.getElementById('salSubOtherWrap');
+  if(val === 'Other'){
+    otherWrap.style.display = 'block';
+    document.getElementById('salSubOther').placeholder = 'Describe the sub-function...';
+    setPandaMood('wonder');
+  } else {
+    otherWrap.style.display = 'none';
+    const known = isKnownSubFunction(val);
+    if(!known && val) {
+      document.getElementById('salRoleDescWrap').style.display = 'block';
+      setPandaMood('wonder');
+    } else {
+      document.getElementById('salRoleDescWrap').style.display = 'none';
+      setPandaMood('pace');
+    }
+  }
+}
+
+function isKnownSubFunction(val){
+  if(!val || typeof ROLES === 'undefined') return true;
+  const v = val.toLowerCase();
+  return ROLES.some(r => r.title.toLowerCase().includes(v) || (r.keywords||[]).some(k=>k.toLowerCase().includes(v)));
+}
+
+function isKnownRole(val){
+  if(typeof ROLES === 'undefined') return true;
+  const v = val.toLowerCase().trim();
+  return ROLES.some(r => r.title.toLowerCase() === v || (r.keywords && r.keywords.some(k => k.toLowerCase() === v)));
+}
+
+function buildSalRoleList(){
+  const dl = document.getElementById('salRoleList');
+  if(!dl || typeof ROLES === 'undefined') return;
+  // not needed with new dropdown design
+}
+
+function onSalRoleInput(){ /* no-op — kept for safety */ }
+
+// Panda moods
+/* ── Panda animation controller ── */
+let _pandaTimer = null;
+let _pandaImpatientTimer = null;
+let _pandaCurrentMood = 'ask';
+
+function _pandaEl(id){ return document.getElementById(id); }
+
+function _showBubble(text){
+  const b = _pandaEl('pandaBubble');
+  if(!b) return;
+  b.textContent = text;
+  b.style.opacity = '1';
+  b.style.transform = 'translateX(-30%) scale(1)';
+}
+function _hideBubble(){
+  const b = _pandaEl('pandaBubble');
+  if(!b) return;
+  b.style.opacity = '0';
+  b.style.transform = 'translateX(-30%) scale(0.8)';
+}
+
+// Multiple Lottie sources for different moods
+
+function _getLottiePlayer(){
+  return document.getElementById('pandaLottie');
+}
+
+function setPandaMood(mood){
+  if(_pandaImpatientTimer){ clearTimeout(_pandaImpatientTimer); _pandaImpatientTimer=null; }
+  _pandaCurrentMood = mood;
+
+  var eyes   = _pandaEl('pandaEyes');
+  var mouth  = _pandaEl('pandaMouth');
+  var q      = _pandaEl('pandaQuestion');
+  var tears  = _pandaEl('pandaTears');
+  var blushL = _pandaEl('pandaBlushL');
+  var blushR = _pandaEl('pandaBlushR');
+  var body   = _pandaEl('pandaBody');
+  var legL   = _pandaEl('pandaLegL');
+  var legR   = _pandaEl('pandaLegR');
+  var armL   = _pandaEl('pandaArmL');
+  var armR   = _pandaEl('pandaArmR');
+  if(!eyes || !body) return;
+
+  function walkOn(s){ s=s||'1.1s';
+    body.style.animation='pandaWalk '+s+' cubic-bezier(.45,0,.55,1) infinite';
+    if(legL) legL.style.animation='legSwingL '+s+' cubic-bezier(.45,0,.55,1) infinite';
+    if(legR) legR.style.animation='legSwingR '+s+' cubic-bezier(.45,0,.55,1) infinite';
+    if(armL) armL.style.animation='armSwingL '+s+' cubic-bezier(.45,0,.55,1) infinite';
+    if(armR) armR.style.animation='armSwingR '+s+' cubic-bezier(.45,0,.55,1) infinite';
+  }
+  function walkOff(){
+    [legL,legR,armL,armR].forEach(function(el){ if(el){el.style.animation='none';el.style.transform='';} });
+  }
+
+  // Dog eye template — white sclera, brown iris, black pupil, large shine
+  // Eyes at cx=37/69, cy=38
+  var shinyEyes = [
+    '<ellipse cx="37" cy="38" rx="11.5" ry="11" fill="white"/>',
+    '<ellipse cx="69" cy="38" rx="11.5" ry="11" fill="white"/>',
+    '<circle cx="37.5" cy="38.5" r="7.5" fill="#a0611a"/>',
+    '<circle cx="69.5" cy="38.5" r="7.5" fill="#a0611a"/>',
+    '<circle cx="38" cy="39" r="4.8" fill="#111"/>',
+    '<circle cx="70" cy="39" r="4.8" fill="#111"/>',
+    '<circle cx="35" cy="35.5" r="3" fill="white"/>',
+    '<circle cx="67" cy="35.5" r="3" fill="white"/>',
+    '<circle cx="41" cy="42" r="1.5" fill="white" opacity="0.65"/>',
+    '<circle cx="73" cy="42" r="1.5" fill="white" opacity="0.65"/>'
+  ].join('');
+
+  // Happy closed mouth
+  var closedMouth = '<path d="M42 64 Q53 71 64 64" stroke="#777" stroke-width="2" stroke-linecap="round" fill="none"/>';
+
+  // Open panting mouth with animated tongue
+  var pantingMouth = [
+    '<path d="M38 62 Q53 72 68 62" stroke="#777" stroke-width="2" stroke-linecap="round" fill="none"/>',
+    '<ellipse cx="53" cy="66" rx="16" ry="10" fill="#ffe0de"/>',  // mouth interior
+    '<path d="M38 62 Q53 68 68 62" stroke="#e8a0a0" stroke-width="1" fill="none" opacity="0.5"/>',
+    // Teeth
+    '<rect x="44" y="62" width="7" height="5" rx="2" fill="white" opacity="0.9"/>',
+    '<rect x="52" y="62" width="7" height="5" rx="2" fill="white" opacity="0.9"/>',
+    // Tongue panting
+    '<g style="animation:dogPant 0.75s cubic-bezier(.45,0,.55,1) infinite;transform-origin:53px 70px;">',
+    '<ellipse cx="53" cy="73" rx="11" ry="9" fill="#f87171"/>',
+    '<ellipse cx="53" cy="70" rx="10" ry="5.5" fill="#ef4444" opacity="0.55"/>',
+    '<path d="M47 68 Q53 74 59 68" stroke="#dc2626" stroke-width="1.2" fill="none" opacity="0.4"/>',
+    '<ellipse cx="49" cy="71" rx="3.5" ry="2" fill="white" opacity="0.22"/>',
+    '</g>'
+  ].join('');
+
+  if(mood==='ask'){
+    walkOn('1.1s');
+    _hideBubble();
+    eyes.innerHTML = shinyEyes;
+    mouth.innerHTML = closedMouth;
+    if(q)      q.setAttribute('opacity','0');
+    if(tears)  tears.setAttribute('opacity','0');
+    if(blushL) blushL.setAttribute('opacity','0.5');
+    if(blushR) blushR.setAttribute('opacity','0.5');
+    _pandaImpatientTimer = setTimeout(function(){setPandaMood('waiting');}, 8000);
+
+  } else if(mood==='waiting'){
+    body.style.animation = 'pandaIdle 2.4s cubic-bezier(.45,0,.55,1) infinite';
+    walkOff();
+    _hideBubble();
+    // Eyes glance sideways — curious dog look
+    eyes.innerHTML = [
+      '<ellipse cx="37" cy="38" rx="11.5" ry="11" fill="white"/>',
+      '<ellipse cx="69" cy="38" rx="11.5" ry="11" fill="white"/>',
+      '<circle cx="37.5" cy="38.5" r="7.5" fill="#a0611a"/>',
+      '<circle cx="69.5" cy="38.5" r="7.5" fill="#a0611a"/>',
+      '<circle cx="38" cy="39" r="4.8" fill="#111"/>',
+      '<circle cx="70" cy="39" r="4.8" fill="#111"/>',
+      '<circle cx="34" cy="36" r="3" fill="white"/>',
+      '<circle cx="66" cy="36" r="3" fill="white"/>'
+    ].join('');
+    mouth.innerHTML = closedMouth;
+    if(q)      q.setAttribute('opacity','0');
+    if(tears)  tears.setAttribute('opacity','0');
+    if(blushL) blushL.setAttribute('opacity','0.45');
+    if(blushR) blushR.setAttribute('opacity','0.45');
+    _pandaImpatientTimer = setTimeout(function(){setPandaMood('impatient');}, 22000);
+
+  } else if(mood==='impatient'){
+    // Dog sits calmly, breathes with tongue out — no shaking
+    body.style.animation = 'pandaIdle 2s cubic-bezier(.45,0,.55,1) infinite';
+    walkOff();
+    _hideBubble();
+    // Relaxed eyes, slightly squinted — comfortable panting
+    eyes.innerHTML = [
+      '<ellipse cx="37" cy="39" rx="11.5" ry="9.5" fill="white"/>',
+      '<ellipse cx="69" cy="39" rx="11.5" ry="9.5" fill="white"/>',
+      '<circle cx="37.5" cy="39.5" r="7" fill="#a0611a"/>',
+      '<circle cx="69.5" cy="39.5" r="7" fill="#a0611a"/>',
+      '<circle cx="38" cy="40" r="4.5" fill="#111"/>',
+      '<circle cx="70" cy="40" r="4.5" fill="#111"/>',
+      '<circle cx="35.5" cy="37" r="2.8" fill="white"/>',
+      '<circle cx="67.5" cy="37" r="2.8" fill="white"/>'
+    ].join('');
+    mouth.innerHTML = pantingMouth;
+    if(q)      q.setAttribute('opacity','0');
+    if(tears)  tears.setAttribute('opacity','0');
+    if(blushL) blushL.setAttribute('opacity','0.6');
+    if(blushR) blushR.setAttribute('opacity','0.6');
+
+  } else if(mood==='sad'){
+    body.style.animation = 'pandaCry 0.55s cubic-bezier(.36,.07,.19,.97) infinite';
+    walkOff();
+    if(armL){armL.style.animation='none'; armL.style.transform='rotate(18deg)';}
+    if(armR){armR.style.animation='none'; armR.style.transform='rotate(-18deg)';}
+    _showBubble("Please don't go \uD83D\uDE22");
+    // Droopy puppy eyes — pupils shift down
+    eyes.innerHTML = [
+      '<ellipse cx="37" cy="38" rx="11.5" ry="11" fill="white"/>',
+      '<ellipse cx="69" cy="38" rx="11.5" ry="11" fill="white"/>',
+      '<circle cx="37.5" cy="38.5" r="7.5" fill="#a0611a"/>',
+      '<circle cx="69.5" cy="38.5" r="7.5" fill="#a0611a"/>',
+      '<circle cx="38" cy="40.5" r="4.8" fill="#111"/>',
+      '<circle cx="70" cy="40.5" r="4.8" fill="#111"/>',
+      '<circle cx="35" cy="37" r="2.8" fill="white"/>',
+      '<circle cx="67" cy="37" r="2.8" fill="white"/>',
+      // Sad brow lines
+      '<path d="M28 28 Q37 24 43 28" stroke="#c0812a" stroke-width="2.5" stroke-linecap="round" fill="none"/>',
+      '<path d="M63 28 Q69 24 78 28" stroke="#c0812a" stroke-width="2.5" stroke-linecap="round" fill="none"/>'
+    ].join('');
+    mouth.innerHTML = '<path d="M42 67 Q53 60 64 67" stroke="#777" stroke-width="2" stroke-linecap="round" fill="none"/>';
+    if(q)      q.setAttribute('opacity','0');
+    if(tears)  tears.setAttribute('opacity','1');
+    if(blushL) blushL.setAttribute('opacity','0.1');
+    if(blushR) blushR.setAttribute('opacity','0.1');
+
+  } else if(mood==='wonder'){
+    body.style.animation = 'pandaIdle 1s cubic-bezier(.45,0,.55,1) infinite';
+    walkOff();
+    _hideBubble();
+    // Wide open eyes — startled/curious
+    eyes.innerHTML = [
+      '<ellipse cx="37" cy="38" rx="13" ry="13" fill="white"/>',
+      '<ellipse cx="69" cy="38" rx="13" ry="13" fill="white"/>',
+      '<circle cx="37.5" cy="38.5" r="8.5" fill="#a0611a"/>',
+      '<circle cx="69.5" cy="38.5" r="8.5" fill="#a0611a"/>',
+      '<circle cx="38" cy="39" r="5.5" fill="#111"/>',
+      '<circle cx="70" cy="39" r="5.5" fill="#111"/>',
+      '<circle cx="34.5" cy="35" r="3.2" fill="white"/>',
+      '<circle cx="66.5" cy="35" r="3.2" fill="white"/>'
+    ].join('');
+    mouth.innerHTML = '<ellipse cx="53" cy="66" rx="6" ry="5" stroke="#777" stroke-width="1.8" fill="#ffe0de" opacity="0.7"/>';
+    if(q)      q.setAttribute('opacity','1');
+    if(tears)  tears.setAttribute('opacity','0');
+    if(blushL) blushL.setAttribute('opacity','0.3');
+    if(blushR) blushR.setAttribute('opacity','0.3');
+
+  } else if(mood==='happy'){
+    walkOn('0.55s');
+    _hideBubble();
+    // Crescent squinty happy eyes
+    eyes.innerHTML = [
+      '<path d="M26 38 Q37 28 48 38" stroke="#6b3a0a" stroke-width="3.2" stroke-linecap="round" fill="none"/>',
+      '<path d="M58 38 Q69 28 80 38" stroke="#6b3a0a" stroke-width="3.2" stroke-linecap="round" fill="none"/>'
+    ].join('');
+    mouth.innerHTML = pantingMouth;
+    if(q)      q.setAttribute('opacity','0');
+    if(tears)  tears.setAttribute('opacity','0');
+    if(blushL) blushL.setAttribute('opacity','0.9');
+    if(blushR) blushR.setAttribute('opacity','0.9');
+  }
+}
+let _pendingSalBtn = null;
+let _salIgnoredOnce = false;
+let _floatingPandaBtn = null;
+
+function showSalaryContrib(btn){
+  _pendingSalBtn = btn;
+  // Reset form
+  document.getElementById('salDept').value = '';
+  document.getElementById('salSubDept').innerHTML = '<option value="">Select dept first...</option>';
+  document.getElementById('salSubDept').disabled = true;
+  document.getElementById('salSubOtherWrap').style.display = 'none';
+  document.getElementById('salRoleDescWrap').style.display = 'none';
+  document.getElementById('salRole').value = '';
+  document.getElementById('salYrs').value = '';
+  document.getElementById('salCtc').value = '';
+  document.getElementById('salErr').style.display = 'none';
+  const locNames={IN:'India',US:'USA',AE:'UAE',EU:'Germany'};
+  const locCurs={IN:'INR',US:'USD',AE:'AED',EU:'EUR'};
+  document.getElementById('salCountry').value = locNames[USER_LOCATION]||'';
+  document.getElementById('salCurrency').value = locCurs[USER_LOCATION]||'INR';
+  const lvlMap={junior:'0-2',mid:'2-4',senior:'6-9',lead:'12+'};
+  document.getElementById('salYrs').value = btn && btn.dataset.lvl ? (lvlMap[btn.dataset.lvl]||'') : '';
+  document.getElementById('floatingPanda').style.display = 'none';
+
+  // Clear timers and reset panda state
+  if(_pandaTimer) clearTimeout(_pandaTimer);
+  if(_pandaImpatientTimer) clearTimeout(_pandaImpatientTimer);
+  _hideBubble();
+  document.getElementById('salModalTitle').textContent = 'Pretty please? 🥺';
+  document.getElementById('salModalSub').textContent = "Help others know what they're worth! Share your CTC anonymously — 20 seconds 💚";
+  document.getElementById('salContribModal').style.display = 'flex';
+  setPandaMood('ask');
+
+  // Panda walks in, then paces, then gets impatient at 30s
+  setPandaMood('ask');
+}
+
+function skipSalaryContrib(){
+  const modal = document.getElementById('salContribModal');
+  if(_pandaTimer) clearTimeout(_pandaTimer);
+  if(_pandaImpatientTimer) clearTimeout(_pandaImpatientTimer);
+  // Panda cries — show for 2s before closing
+  setPandaMood('sad');
+  setTimeout(()=>{
+    modal.style.display = 'none';
+    setPandaMood('pace');
+    if(_pendingSalBtn) applySelectLevel(_pendingSalBtn);
+    if(!_salIgnoredOnce){
+      _salIgnoredOnce = true;
+      _floatingPandaBtn = _pendingSalBtn;
+      setTimeout(()=>{ document.getElementById('floatingPanda').style.display = 'block'; }, 300);
+    }
+    _pendingSalBtn = null;
+  }, 2000);
+}
+
+function submitSalaryContrib(){
+  const ctc = document.getElementById('salCtc').value.trim();
+  const err = document.getElementById('salErr');
+  if(!ctc){ err.textContent='Please enter your CTC — even a rough number helps!'; err.style.display='block'; return; }
+  err.style.display='none';
+  const designation = document.getElementById('salRole').value.trim();
+  const dept        = document.getElementById('salDept').value;
+  const subDeptSel  = document.getElementById('salSubDept').value;
+  const customDept  = document.getElementById('salCustomDept')?.value.trim()||'';
+  const subDeptOther= document.getElementById('salSubOther')?.value.trim()||'';
+  const effectiveDept = dept === 'Other' ? (customDept || 'Other') : dept;
+  const subDept     = (dept==='Other'||subDeptSel==='Other') ? subDeptOther : subDeptSel;
+  const yrs         = document.getElementById('salYrs').value;
+  const cur         = document.getElementById('salCurrency').value;
+  const country     = document.getElementById('salCountry').value;
+  const roleDesc    = document.getElementById('salRoleDesc')?.value.trim()||'';
+  try {
+    fetch('/',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:'form-name=salary-contrib'
+        +'&designation='+encodeURIComponent(designation)
+        +'&dept='+encodeURIComponent(effectiveDept)
+        +'&sub_dept='+encodeURIComponent(subDept)
+        +'&experience='+encodeURIComponent(yrs)
+        +'&ctc='+encodeURIComponent(ctc)
+        +'&currency='+encodeURIComponent(cur)
+        +'&country='+encodeURIComponent(country)
+        +'&role_desc='+encodeURIComponent(roleDesc)
+        +'&loc_detected='+encodeURIComponent(USER_LOCATION)});
+  } catch(e){}
+  document.getElementById('salContribModal').style.display='none';
+  document.getElementById('floatingPanda').style.display='none';
+  document.getElementById('salThanksModal').style.display='flex';
+  unlockSalary();
+  if(_pendingSalBtn){ applySelectLevel(_pendingSalBtn); _pendingSalBtn=null; }
+  setTimeout(()=>{ document.getElementById('salThanksModal').style.display='none'; }, 3200);
+}
+</script>
 </body>
 </html>
