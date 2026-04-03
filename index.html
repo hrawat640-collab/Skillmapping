@@ -121,6 +121,9 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:10
 .sug-item:hover,.sug-item.focused{background:var(--teal-lt);}
 .sug-item em{font-style:normal;color:var(--teal);font-weight:600;}
 .sug-cat{font-size:11px;color:var(--ink3);font-family:var(--mono);}
+.sug-title-hint{background:var(--teal-lt,#f0faf8);border-bottom:1px solid var(--border,#e8eaec);}
+.sug-title-hint:hover{background:#ddf5f0;}
+.sug-title-hint .sug-cat{color:var(--teal,#0f766e);font-family:var(--sans);font-weight:600;}
 
 /* ── Dept filter ── */
 .dept-filter{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:20px;}
@@ -297,84 +300,115 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:10
 /* ══ MOBILE RESPONSIVE ══ */
 @media(max-width:768px){
   /* Topbar */
-  .topbar{padding:0 14px;}
+  .topbar{padding:0 12px;height:50px;}
   .brand-tag{display:none;}
+  .topbar-name{font-size:14px;}
+  .suite-steps{gap:4px;}
+  .suite-step{font-size:10px;padding:3px 8px;}
 
   /* Tab nav */
-  .tab-nav{padding:0 12px;}
-  .tab-btn{font-size:12.5px;padding:10px 12px;}
+  .tab-nav{padding:0 10px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .tab-btn{font-size:12px;padding:10px 11px;white-space:nowrap;}
 
   /* Main */
-  .main{padding:14px 12px;}
+  .main{padding:12px 10px 80px;}
 
   /* Hero */
-  .hero{padding:18px 16px;margin-bottom:14px;border-radius:14px;}
-  .hero h2{font-size:21px;}
-  .hero p{font-size:13px;}
+  .hero{padding:16px 14px;margin-bottom:12px;border-radius:12px;}
+  .hero h2{font-size:19px;line-height:1.25;}
+  .hero p{font-size:12.5px;}
 
   /* Input card */
-  .input-card{border-radius:12px;padding:14px 14px 16px;}
+  .input-card{border-radius:12px;margin-bottom:14px;}
   .mode-tabs{gap:0;}
-  .mode-tab{font-size:12px;padding:8px 10px;flex:1;text-align:center;}
+  .mode-tab{font-size:11.5px;padding:10px 6px;flex:1;text-align:center;line-height:1.3;}
+  .mode-pane{padding:14px 12px 16px;}
 
   /* Title search */
-  .title-search-input{font-size:13.5px;}
+  .title-search-input{font-size:14px;padding:12px 14px;}
 
   /* NL textarea */
-  .nl-textarea{font-size:13.5px;padding:10px 12px;}
+  .nl-textarea{font-size:14px;padding:12px 12px;min-height:90px;}
   .nl-examples{gap:5px;}
   .nl-example{font-size:11.5px;padding:5px 10px;}
 
   /* Skills mode */
-  .btn-find{width:100%;justify-content:center;font-size:14px;padding:13px 16px;}
+  .btn-find{width:100%;justify-content:center;font-size:14px;padding:14px 16px;height:auto;border-radius:10px;margin-top:10px;}
   .bubble-wrap{min-height:52px;}
-  .bubble-input{font-size:14px;}
+  .bubble-input{font-size:16px;min-width:120px;} /* 16px prevents iOS zoom */
   .bubble{font-size:12px;}
-  .sug-drop{font-size:13px;}
+  .sug-drop{font-size:13px;max-height:180px;}
+
+  /* Currency bar */
+  #currencyBar{border-radius:10px;padding:8px 12px;gap:6px;}
+  #currencyBar span{font-size:10px;}
+  .cur-chip{font-size:11px;padding:4px 9px;}
 
   /* Dept filter */
-  .dept-filter{gap:6px;overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px;}
-  .dept-btn{font-size:11.5px;padding:5px 11px;white-space:nowrap;flex-shrink:0;}
+  .dept-filter{gap:5px;overflow-x:auto;flex-wrap:nowrap;padding-bottom:6px;-webkit-overflow-scrolling:touch;}
+  .dept-filter::-webkit-scrollbar{display:none;}
+  .dept-btn{font-size:11px;padding:5px 10px;white-space:nowrap;flex-shrink:0;}
 
   /* Result cards */
   .result-card{border-radius:12px;}
-  .rc-top{flex-direction:column;gap:10px;}
-  .rc-score-wrap{flex-direction:row;align-items:center;gap:12px;}
-  .rc-score{font-size:26px;}
-  .rc-title{font-size:17px;}
+  .rc-top{flex-direction:column;gap:8px;padding:14px 14px 10px;}
+  .rc-score-wrap{flex-direction:row;align-items:center;gap:10px;}
+  .rc-score{font-size:24px;}
+  .rc-score-lbl{font-size:10px;}
+  .rc-title{font-size:16px;}
   .rc-desc{font-size:12.5px;}
-  .rc-hint{font-size:12px;}
-  .rc-bottom{padding:10px 16px 12px;}
+  .rc-hint{font-size:12px;padding:8px 10px;}
+  .rc-bottom{padding:10px 14px 12px;gap:8px;}
   .salary-selector{gap:5px;flex-wrap:wrap;}
-  .sal-btn{font-size:11px;padding:5px 10px;}
-  .sal-display{font-size:12.5px;}
+  .sal-btn{font-size:11px;padding:4px 9px;}
+  .sal-display{font-size:12px;}
   .skill-pill{font-size:11px;padding:2px 7px;}
-  .rc-actions{flex-direction:column;gap:6px;width:100%;}
-  .btn-copy-title,.btn-search{width:100%;justify-content:center;text-align:center;font-size:12.5px;}
+  .rc-actions{flex-direction:column;gap:6px;width:100%;margin-top:8px;}
+  .btn-copy-title,.btn-search{width:100%;justify-content:center;text-align:center;font-size:12.5px;padding:9px 12px;}
 
   /* Selected title chips */
   .selected-titles{gap:5px;}
   .title-chip{font-size:12px;}
 
   /* How to use */
-  .how-hero{padding:20px 18px;}
-  .how-hero h2{font-size:20px;}
-  .how-step{flex-direction:column;}
-  .how-step-num{width:28px;height:28px;font-size:13px;}
+  .how-hero{padding:18px 14px;}
+  .how-hero h2{font-size:18px;}
+  .how-step{flex-direction:column;padding:14px 14px;}
+  .how-step-num{width:26px;height:26px;font-size:12px;}
   .tip-grid{grid-template-columns:1fr;}
   .platform-table{font-size:12px;}
+  .pt-head,.pt-row{grid-template-columns:140px 1fr;}
+  .pt-head span:last-child,.pt-row span:last-child{display:none;}
 
   /* Footer */
-  .site-footer{font-size:11px;padding:16px 14px;text-align:center;line-height:1.9;}
+  .site-footer{font-size:11px;padding:14px 12px;line-height:1.9;}
+
+  /* Floating dog — nudge up above mobile nav bars */
+  #floatingPanda{bottom:16px;right:12px;}
+  #floatingPanda svg{width:58px;height:68px;}
+  #floatingPanda > div > div{font-size:10px;padding:5px 8px;bottom:72px;}
+
+  /* Modals */
+  .pw-modal{border-radius:14px;}
+  .pw-top{padding:20px 20px;}
+  .pw-body{padding:18px 20px;}
 }
 
 @media(max-width:480px){
-  .main{padding:10px 10px;}
-  .input-card{padding:12px 12px 14px;}
-  .hero h2{font-size:19px;}
+  .main{padding:8px 8px 80px;}
+  .hero{padding:14px 12px;}
+  .hero h2{font-size:17px;}
+  .mode-tab{font-size:11px;padding:9px 4px;}
+  .mode-pane{padding:12px 10px 14px;}
+  .topbar-right a,.topbar-right button{font-size:11px;padding:6px 9px;}
   .rc-title{font-size:15px;}
-  .mode-tab{font-size:11.5px;padding:7px 8px;}
-  .topbar-right a, .topbar-right button{font-size:11.5px;padding:6px 10px;}
+  .rc-top{padding:12px 12px 8px;}
+  .rc-bottom{padding:8px 12px 10px;}
+  .suite-step span.suite-step-num{display:none;}
+  .suite-step{font-size:10px;}
+  /* Stack salary level buttons on very small screens */
+  .salary-selector{gap:4px;}
+  .sal-btn{font-size:10.5px;padding:4px 8px;}
 }
 
 
@@ -4261,10 +4295,44 @@ function resolveAlias(raw){
 // Check if raw input (before alias resolution) is a job title or title keyword
 function findTitleMatch(raw){
   const lower = raw.toLowerCase().trim();
-  return ROLES.find(r =>
+  if(lower.length < 2) return null;
+
+  // 1. Exact match on title or any keyword
+  const exact = ROLES.find(r =>
     r.title.toLowerCase() === lower ||
     (r.keywords && r.keywords.some(k => k.toLowerCase() === lower))
-  ) || null;
+  );
+  if(exact) return exact;
+
+  // 2. Partial: user typed something contained in a title/keyword (min 4 chars)
+  if(lower.length >= 4){
+    const partial = ROLES.find(r =>
+      r.title.toLowerCase().includes(lower) ||
+      (r.keywords && r.keywords.some(k => k.toLowerCase().includes(lower)))
+    );
+    if(partial) return partial;
+  }
+
+  // 3. Role-word signal — if input has a generic role word, find best title by word overlap
+  const roleWords = [
+    'developer','engineer','manager','designer','analyst','architect','consultant',
+    'specialist','coordinator','director','lead','head of','vp ','chief','officer',
+    'associate','executive','intern','recruiter','scientist','researcher','strategist',
+    'advisor','administrator','programmer','dev '
+  ];
+  const hasRoleWord = roleWords.some(p => lower.includes(p));
+  if(hasRoleWord){
+    const words = lower.split(/\s+/).filter(w => w.length > 2);
+    let best = null, bestScore = 0;
+    ROLES.forEach(r => {
+      const tl = r.title.toLowerCase();
+      const score = words.filter(w => tl.includes(w)).length;
+      if(score > bestScore){ bestScore = score; best = r; }
+    });
+    if(best && bestScore >= 1) return best;
+  }
+
+  return null;
 }
 
 function handleKey(e){
@@ -4301,7 +4369,12 @@ function handleKey(e){
   // Comma only triggers if there's already text — prevents splitting mid-word
   if(e.key===','){
     const val = input.value.trim();
-    if(val){ e.preventDefault(); addSkill(resolveAlias(val)); input.value=''; hideSug(); }
+    if(val){
+      e.preventDefault();
+      const titleMatch = findTitleMatch(val);
+      if(titleMatch){ input.value=''; hideSug(); showTitleHint(val, titleMatch.title); return; }
+      addSkill(resolveAlias(val)); input.value=''; hideSug();
+    }
     return;
   }
 
@@ -4339,27 +4412,32 @@ function addTyped(){
 }
 
 function showTitleHint(typed, roleTitle){
-  const area = document.getElementById('resultsArea');
-  area.innerHTML = `
-    <div style="background:#fef3c7;border:1.5px solid #f59e0b;border-radius:12px;padding:18px 20px;display:flex;align-items:flex-start;gap:14px;">
-      <svg width="20" height="20" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-top:1px;"><path d="M8 2L14.9 14H1.1L8 2z" stroke="#f59e0b" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 7v3M8 11.5v.5" stroke="#f59e0b" stroke-width="1.4" stroke-linecap="round"/></svg>
-      <div>
-        <div style="font-size:14px;font-weight:700;color:#92400e;margin-bottom:4px;">"${typed}" looks like a job title, not a skill</div>
-        <div style="font-size:13px;color:#78350f;line-height:1.6;margin-bottom:12px;">Try <strong>Browse by title</strong> to search for "${roleTitle}" and get its full skill map and salary data.</div>
-        <button onclick="switchToTitleSearch('${roleTitle.replace(/'/g,"\\'")}'); document.getElementById('mainInput').value='';" style="padding:8px 16px;background:#f59e0b;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;font-family:Outfit,sans-serif;">Browse by title → "${roleTitle}"</button>
-      </div>
-    </div>`;
+  // Clear the skill input
+  const inp = document.getElementById('mainInput');
+  if(inp) inp.value = '';
+  hideSug();
+  // Auto-switch to Browse by title and pre-fill
+  switchToTitleSearch(roleTitle);
+  // Brief toast so user knows what happened
+  showToast('Looks like a title — switched to Browse by Title 🔍', 'ok');
 }
 
 function switchToTitleSearch(title){
   // Switch to Browse by title tab
   const titleTab = document.querySelector('.mode-tab:nth-child(2)');
   if(titleTab) switchMode('title', titleTab);
-  // Populate the title input and trigger search
+  // Populate the title input, trigger dropdown, focus
   setTimeout(()=>{
     const inp = document.getElementById('titleModeInput');
-    if(inp){ inp.value = title; inp.dispatchEvent(new Event('input')); }
-  }, 50);
+    if(inp){
+      inp.value = title;
+      inp.dispatchEvent(new Event('input'));
+      inp.focus();
+      // Show clear button
+      const clearBtn = document.getElementById('titleClearBtn');
+      if(clearBtn) clearBtn.style.display = 'block';
+    }
+  }, 60);
 }
 
 // Also called from "Find roles" button in skills tab
@@ -4435,11 +4513,21 @@ function renderSug(q){
     items=ALL_SKILLS.filter(({s})=>!already.includes(s.toLowerCase())).slice(0,14).map(({s,cat})=>({s,cat,hi:s}));
   } else {
     const ql=q.toLowerCase();
+    // If typed query matches a title or title keyword (e.g. "HRBP", "PM", "SDE"),
+    // show a dedicated "Browse by Title" hint item — don't silently alias to a skill
+    const titleHint = findTitleMatch(q);
+    if(titleHint){
+      const safeQ = q.replace(/'/g,"\'");
+      const safeTitle = titleHint.title.replace(/'/g,"\'");
+      drop.innerHTML=`<div class="sug-item sug-title-hint" onclick="pickSugTitle('${safeQ}','${safeTitle}')"><div>&#x1F50D; <strong>${q}</strong> &mdash; looks like a job title</div><span class="sug-cat">Browse by Title &rarr;</span></div>`;
+      drop.classList.add('open');
+      return;
+    }
     // Starts-with matches first, then contains
     const startsWith=ALL_SKILLS.filter(({s})=>s.toLowerCase().startsWith(ql)&&!already.includes(s.toLowerCase()));
     const contains=ALL_SKILLS.filter(({s})=>!s.toLowerCase().startsWith(ql)&&s.toLowerCase().includes(ql)&&!already.includes(s.toLowerCase()));
-    items=[...startsWith,...contains].slice(0,14).map(({s,group})=>({
-      s, cat:group,
+    items=[...startsWith,...contains].slice(0,14).map(({s,cat})=>({
+      s, cat,
       hi:s.replace(new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'),'<strong>$1</strong>')
     }));
   }
@@ -4453,6 +4541,12 @@ function renderSug(q){
     list.forEach(({s,hi})=>{ html+=`<div class="sug-item" onclick="pickSug('${s.replace(/'/g,"\'")}')"><div>${hi}</div><span class="sug-cat">${cat}</span></div>`; });
   });
   drop.innerHTML=html; drop.classList.add('open');
+}
+
+function pickSugTitle(typed, roleTitle){
+  document.getElementById('mainInput').value='';
+  hideSug();
+  showTitleHint(typed, roleTitle);
 }
 
 function pickSug(s){
