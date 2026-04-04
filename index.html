@@ -4292,39 +4292,66 @@ function findTitleMatch(raw){
   const lower = raw.toLowerCase().trim();
   if(lower.length < 2) return null;
 
-  // 1. Exact match on title or any keyword
+  // ── 1. EXACT match on title or keyword only ──
   const exact = ROLES.find(r =>
     r.title.toLowerCase() === lower ||
     (r.keywords && r.keywords.some(k => k.toLowerCase() === lower))
   );
   if(exact) return exact;
 
-  // 2. Partial: user typed something contained in a title/keyword (min 4 chars)
-  if(lower.length >= 4){
-    const partial = ROLES.find(r =>
-      r.title.toLowerCase().includes(lower) ||
-      (r.keywords && r.keywords.some(k => k.toLowerCase().includes(lower)))
+  // ── 2. Known abbreviations only (whitelist — skill names never go here) ──
+  const TITLE_ABBREVS = [
+    'sde','sde1','sde2','sde3','swe','swe1','swe2','sse','mts','smts','pmts',
+    'ic3','ic4','ic5','tpm','pmm','cra','sdet','csm','ae','sdr','bdr',
+    'hrbp','chro','cpo','vp hr','vp engineering','vp product','vp sales',
+    'cto','cfo','coo','ciso','cmo','cos',
+    'em','apm','spm','gpm','tl','pm','po','pmo',
+    'ux','uid','uxd','sre','tam','kam','qe','qae',
+    'mle','nlp engineer','cv engineer',
+    'sfdc','sf admin','sf developer','sf dev','sf architect',
+    'ib analyst','ca','cpa','cfa','cs qualified',
+    'devrel','devex'
+  ];
+
+  if(TITLE_ABBREVS.includes(lower)){
+    // Try SKILL_ALIASES first
+    const fromAlias = SKILL_ALIASES[lower];
+    if(fromAlias){
+      const r = ROLES.find(ro =>
+        ro.required.includes(fromAlias) ||
+        ro.title.toLowerCase().includes(lower)
+      );
+      if(r) return r;
+    }
+    // Fallback: scan keywords
+    const byKeyword = ROLES.find(r =>
+      r.keywords && r.keywords.some(k => k.toLowerCase() === lower)
     );
-    if(partial) return partial;
+    if(byKeyword) return byKeyword;
   }
 
-  // 3. Role-word signal — if input has a generic role word, find best title by word overlap
-  const roleWords = [
+  // ── 3. Multi-word input with a job-title signal word ──
+  // Single words (python, react, figma, sql...) will NEVER reach here
+  const ROLE_WORDS = [
     'developer','engineer','manager','designer','analyst','architect','consultant',
-    'specialist','coordinator','director','lead','head of','vp ','chief','officer',
-    'associate','executive','intern','recruiter','scientist','researcher','strategist',
-    'advisor','administrator','programmer','dev '
+    'specialist','coordinator','director','lead','associate','executive','intern',
+    'recruiter','scientist','researcher','strategist','administrator','programmer',
+    'officer','partner','advisor','counsel','secretary','actuary','producer',
+    'animator','artist','tester','writer','marketer','operator'
   ];
-  const hasRoleWord = roleWords.some(p => lower.includes(p));
-  if(hasRoleWord){
-    const words = lower.split(/\s+/).filter(w => w.length > 2);
+
+  const words = lower.split(/\s+/).filter(w => w.length > 1);
+
+  // Must be 2+ words AND contain at least one title-signal word
+  const hasTitleWord = words.some(w => ROLE_WORDS.includes(w));
+  if(words.length >= 2 && hasTitleWord){
     let best = null, bestScore = 0;
     ROLES.forEach(r => {
       const tl = r.title.toLowerCase();
       const score = words.filter(w => tl.includes(w)).length;
-      if(score > bestScore){ bestScore = score; best = r; }
+      if(score > bestScore && score >= 2){ bestScore = score; best = r; }
     });
-    if(best && bestScore >= 1) return best;
+    if(best) return best;
   }
 
   return null;
