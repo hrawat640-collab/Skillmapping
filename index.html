@@ -585,12 +585,7 @@ let smOtpCode = '';
 
 /* ── Page load: check login ── */
 (function(){
-  // ── TEST MODE: bypass login (remove before go-live) ──
-  if(!localStorage.getItem('sm_user_email')){
-    localStorage.setItem('sm_user_email', 'test@preview.local');
-    localStorage.setItem('sm_login_date', Date.now().toString());
-  }
-  // ── END TEST MODE ──
+ 
   // Auto-login via URL param (passed from TalentXRay)
   const urlParams = new URLSearchParams(window.location.search);
   const urlEmail = urlParams.get('au');
@@ -4715,76 +4710,6 @@ window.addEventListener('load', function(){
 </script>
 
 <!-- Paywall Modal -->
-
-#!/usr/bin/env python3
-"""
-SkillMapper Netlify Forms Patcher
-==================================
-Adds the two missing hidden Netlify form declarations to SkillMapper's index.html.
-
-Usage:
-    python3 patch_skillmapper.py skillmapper_index.html
-
-Output:
-    skillmapper_index_patched.html   (complete updated file, ready to deploy)
-"""
-
-import sys, os
-
-def patch(path):
-    with open(path, "r", encoding="utf-8") as f:
-        html = f.read()
-
-    has_sm_users = 'name="sm-users"' in html
-    has_upgrade  = 'name="upgrade-requests"' in html
-    has_salary   = 'name="salary-contrib"' in html
-
-    print(f"  salary-contrib:   {'OK - already present' if has_salary else 'MISSING'}")
-    print(f"  sm-users:         {'OK - already present, skipping' if has_sm_users else 'MISSING - will add'}")
-    print(f"  upgrade-requests: {'OK - already present, skipping' if has_upgrade else 'MISSING - will add'}")
-
-    if has_sm_users and has_upgrade:
-        print("\nAll forms already present. No changes needed.")
-        return
-
-    forms_to_add = "\n"
-    if not has_sm_users:
-        forms_to_add += """<!-- Hidden Netlify form for sm-users (login/signup) -->
-<form name="sm-users" data-netlify="true" hidden>
-  <input name="email"><input name="name"><input name="consent">
-</form>
-
-"""
-    if not has_upgrade:
-        forms_to_add += """<!-- Hidden Netlify form for upgrade-requests -->
-<form name="upgrade-requests" data-netlify="true" hidden>
-  <input name="email"><input name="tool"><input name="date">
-</form>
-
-"""
-
-    if '</body>' not in html:
-        print("ERROR: </body> not found. Wrong file?")
-        sys.exit(1)
-
-    html = html.replace('</body>', forms_to_add + '</body>', 1)
-
-    out = path.rsplit('.html', 1)[0] + '_patched.html'
-    with open(out, "w", encoding="utf-8") as f:
-        f.write(html)
-
-    print(f"\nSaved: {out}")
-    print("Deploy to Netlify. Check Netlify Dashboard -> Forms after deploy.")
-
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python3 patch_skillmapper.py <skillmapper_index.html>")
-        sys.exit(1)
-    p = sys.argv[1]
-    if not os.path.exists(p):
-        print(f"File not found: {p}"); sys.exit(1)
-    print(f"Patching: {p}\n")
-    patch(p)
 
 <!-- Hidden Netlify form for salary submissions -->
 <form name="salary-contrib" data-netlify="true" netlify-honeypot="bot-field" hidden>
