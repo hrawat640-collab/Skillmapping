@@ -505,7 +505,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:10
 <div id="loginModal" style="position:fixed;inset:0;z-index:99999;background:rgba(15,14,12,0.85);display:none;align-items:center;justify-content:center;padding:20px;">
   <div style="background:#fff;border-radius:18px;padding:36px 32px;width:100%;max-width:420px;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,0.22);">
     <h2 style="margin-bottom:6px;font-size:22px;letter-spacing:-0.02em;font-family:Outfit,sans-serif;">Welcome to SkillMapper</h2>
-    <p style="color:#6b6963;margin-bottom:20px;font-size:13px;line-height:1.6;font-family:Outfit,sans-serif;">30-day free trial</p>
+    <p style="color:#6b6963;margin-bottom:20px;font-size:13px;line-height:1.6;font-family:Outfit,sans-serif;">Free to use</p>
 
     <!-- Google Sign-In -->
     <div id="smGoogleBtn" style="margin-bottom:14px;">
@@ -552,7 +552,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:10
       <input type="checkbox" id="smConsent" checked style="margin-top:3px;flex-shrink:0;accent-color:#0f766e;">
       <span style="font-size:11.5px;color:#8a8780;line-height:1.5;font-family:Outfit,sans-serif;">Send me helpful hiring tools and insights. Unsubscribe anytime.</span>
     </label>
-    <p style="font-size:11px;color:#bbb;margin-top:12px;font-family:Outfit,sans-serif;">30-day free trial · Unlimited searches</p>
+    <p style="font-size:11px;color:#bbb;margin-top:12px;font-family:Outfit,sans-serif;">Free · Unlimited searches</p>
   </div>
 </div>
 <script>
@@ -585,7 +585,16 @@ let smOtpCode = '';
 
 /* ── Page load: check login ── */
 (function(){
- 
+  // Show dog in bottom right always, unless salary already submitted
+  window.addEventListener('load', function(){
+    setTimeout(function(){
+      if(!isSalaryUnlocked()){
+        const fp = document.getElementById('floatingPanda');
+        if(fp) fp.style.display = 'block';
+      }
+    }, 1500);
+  });
+
   // Auto-login via URL param (passed from TalentXRay)
   const urlParams = new URLSearchParams(window.location.search);
   const urlEmail = urlParams.get('au');
@@ -699,14 +708,20 @@ function smUpdateNavLinks(){
   const label = document.getElementById('smTopbarLabel');
   const btn   = document.getElementById('smTopbarBtn');
   if(label && btn){
-    const name = localStorage.getItem('sm_user_name');
-    const display = name ? name.split(' ')[0] : email.split('@')[0];
-    label.textContent = display;
-    btn.style.background = 'rgba(255,255,255,0.15)';
-    btn.style.color = 'white';
-    btn.style.border = '1.5px solid rgba(255,255,255,0.3)';
-    btn.onclick = null; // logged in — clicking does nothing (or could show account)
-    btn.style.cursor = 'default';
+    label.textContent = '';
+    btn.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+    btn.style.background = 'var(--teal)';
+    btn.style.color = '#fff';
+    btn.style.border = 'none';
+    btn.style.borderRadius = '50%';
+    btn.style.width = '36px';
+    btn.style.height = '36px';
+    btn.style.padding = '0';
+    btn.style.display = 'flex';
+    btn.style.alignItems = 'center';
+    btn.style.justifyContent = 'center';
+    btn.onclick = function(){ toggleProfileMenu(); };
+    btn.style.cursor = 'pointer';
   }
 }
 
@@ -720,10 +735,16 @@ function smCompleteLogin(email, name){
   localStorage.setItem('tr_shared_email', email);
   localStorage.setItem('tr_shared_name', name);
   if(!localStorage.getItem('sm_login_date')) localStorage.setItem('sm_login_date', Date.now().toString());
-  document.getElementById('loginModal').style.display='none';
+ document.getElementById('loginModal').style.display='none';
   renderTrialBadgeSM();
   smUpdateNavLinks();
-  
+  setTimeout(function(){
+    if(!isSalaryUnlocked()){
+      const fp=document.getElementById('floatingPanda');
+      if(fp) fp.style.display='block';
+    }
+  }, 2000);
+
   try{
     fetch('/', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
       body:'form-name=sm-users&email='+encodeURIComponent(email)+'&name='+encodeURIComponent(name)+'&consent='+(consent?'yes':'no')
@@ -733,6 +754,30 @@ function smCompleteLogin(email, name){
 
 /* ── Legacy txrDoLogin / smDoLogin alias (kept for safety) ── */
 function smDoLogin(){ document.getElementById('smEmailInput').focus(); }
+function toggleProfileMenu(){
+  const menu=document.getElementById('smProfileMenu');
+  const email=localStorage.getItem('sm_user_email');
+  if(!email){document.getElementById('loginModal').style.display='flex';return;}
+  const emailRow=document.getElementById('smProfileEmailRow');
+  if(emailRow)emailRow.textContent=email;
+  if(menu)menu.style.display=menu.style.display==='none'?'block':'none';
+}
+document.addEventListener('click',function(e){
+  const wrap=document.getElementById('smProfileWrap');
+  const menu=document.getElementById('smProfileMenu');
+  if(wrap&&menu&&!wrap.contains(e.target))menu.style.display='none';
+});
+function smShowAccount(){
+  const email=localStorage.getItem('sm_user_email')||'Not logged in';
+  alert('Logged in as: '+email);
+  document.getElementById('smProfileMenu').style.display='none';
+}
+function smSignOut(){
+  if(!confirm('Sign out of SkillMapper?'))return;
+  ['sm_user_email','sm_user_name','sm_login_date','sm_consent','sm_sal_unlocked_until','tr_shared_email','tr_shared_name'].forEach(k=>localStorage.removeItem(k));
+  document.getElementById('smProfileMenu').style.display='none';
+  location.reload();
+}
 </script>
 
 
@@ -756,11 +801,17 @@ function smDoLogin(){ document.getElementById('smEmailInput').focus(); }
     </a>
   </div>
   <div class="topbar-right">
-    <span id="trialBadge" style="display:none;" class="trial-badge"></span>
-    <button class="btn-contact" id="smTopbarBtn" onclick="document.getElementById('loginModal').style.display='flex'">
-      <svg viewBox="0 0 16 16" fill="none"><path d="M8 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM3 13a5 5 0 0 1 10 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-      <span class="btn-contact-text" id="smTopbarLabel">Sign in</span>
-    </button>
+    <span id="trialBadge" style="display:none!important;"></span>
+    <div style="position:relative;" id="smProfileWrap">
+      <button class="btn-contact" id="smTopbarBtn" onclick="toggleProfileMenu()">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M8 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM3 13a5 5 0 0 1 10 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        <span class="btn-contact-text" id="smTopbarLabel">Sign in</span>
+      </button>
+      <div id="smProfileMenu" style="display:none;position:absolute;right:0;top:calc(100% + 8px);background:#fff;border:1px solid #e5e7eb;border-radius:10px;box-shadow:0 4px 24px rgba(0,0,0,0.10);min-width:200px;z-index:500;overflow:hidden;font-family:var(--sans);">
+        <div id="smProfileEmailRow" style="padding:12px 16px;font-size:13px;color:#374151;word-break:break-all;border-bottom:1px solid #f3f4f6;"></div>
+        <button onclick="smSignOut()" style="width:100%;padding:11px 16px;text-align:left;background:none;border:none;font-size:13px;color:#6b7280;cursor:pointer;font-family:var(--sans);" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='none'">Sign out</button>
+      </div>
+    </div>
   </div>
 </header>
 
@@ -1059,11 +1110,22 @@ function renderTitleDropdown(query){
   const groups = getTitleGroups(query);
   const depts = Object.keys(groups).sort();
   if(!depts.length){ drop.innerHTML='<div style="padding:12px 16px;color:var(--ink3);font-size:13px;">No roles found</div>'; drop.classList.add('open'); return; }
+  const q = (query||'').toLowerCase();
   drop.innerHTML = depts.map(dept=>{
     const items = groups[dept].map(r=>{
       const isSel = selectedTitleModeRoles.some(s=>s.title===r.title);
-      return `<div class="td-item${isSel?' selected':''}" data-title="${r.title}" onmousedown="toggleTitleMode('${r.title.replace(/'/g,"\'")}')">
-        ${r.title} <span class="td-check">✓</span>
+      // Check if user typed an alias (keyword) rather than the canonical title
+      const titleMatch = r.title.toLowerCase().includes(q);
+      const kwHit = !titleMatch ? (r.keywords||[]).find(k=>k.toLowerCase().includes(q)) : null;
+      // What to show in the dropdown
+      const displayLabel = kwHit
+        ? `<strong style="color:var(--teal)">${kwHit}</strong> <span style="font-size:11px;color:var(--ink3);">— ${r.title}</span>`
+        : r.title;
+      // Pass searchedAs so the card can show the alias as title
+      const searchedAs = kwHit ? kwHit.replace(/'/g,"\\'") : r.title.replace(/'/g,"\\'");
+      const canonTitle = r.title.replace(/'/g,"\\'");
+      return `<div class="td-item${isSel?' selected':''}" data-title="${r.title}" onmousedown="toggleTitleMode('${canonTitle}','${searchedAs}')">
+        ${displayLabel} <span class="td-check">✓</span>
       </div>`;
     }).join('');
     return `<div class="td-dept">${dept}</div>${items}`;
@@ -1124,16 +1186,22 @@ function onTitleModeKeydown(e){
   if(e.key==='Escape') closeTitleDrop();
 }
 
-function toggleTitleMode(titleStr){
-  const role = ROLES.find(r=>r.title===titleStr);
+function toggleTitleMode(titleStr, searchedAs){
+  // Find by exact title OR by keyword match
+  let role = ROLES.find(r=>r.title===titleStr);
+  if(!role) role = ROLES.find(r=>(r.keywords||[]).includes(titleStr));
   if(!role) return;
-  const existIdx = selectedTitleModeRoles.findIndex(r=>r.title===titleStr);
+  const existIdx = selectedTitleModeRoles.findIndex(r=>r.title===role.title);
   if(existIdx>=0){
     selectedTitleModeRoles.splice(existIdx,1);
   } else {
-    selectedTitleModeRoles.push(role);
+    // Store both the role AND what the user actually typed
+    const roleWithAlias = Object.assign({}, role);
+    if(searchedAs && searchedAs.toLowerCase()!==role.title.toLowerCase()){
+      roleWithAlias._searchedAs = searchedAs;
+    }
+    selectedTitleModeRoles.push(roleWithAlias);
   }
-  // Clear the search input after selecting so user doesn't have to manually delete
   const inp = document.getElementById('titleModeInput');
   if(inp){ inp.value = ''; }
   closeTitleDrop();
@@ -1204,7 +1272,12 @@ function runTitleMode(){
     const reqSkills = (r.required||[]).map(s=>`<span class="skill-pill skill-matched">${s}</span>`).join('');
     const niceSkills = (r.nice||[]).slice(0,6).map(s=>`<span class="skill-pill skill-missing">${s}</span>`).join('');
     // Designation suggestions — all keywords except the first (canonical title)
-    const altNames = (r.keywords||[]).slice(1).slice(0,5);
+    // If user searched by alias, show canonical title first in Also called
+    let altNames = (r.keywords||[]).slice(1).slice(0,5);
+    if(r._searchedAs && r._searchedAs !== r.title){
+      // Put canonical title at front, remove it from keywords to avoid duplicate
+      altNames = [r.title, ...altNames.filter(k=>k!==r._searchedAs)].slice(0,5);
+    }
     const alsoKnownAs = altNames.length ? `<div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:2px;">
       <span style="font-size:10.5px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-right:2px;white-space:nowrap;">Also called</span>
       ${altNames.map(k=>`<span style="font-size:11px;color:var(--ink2);background:var(--bg);border:1px solid var(--border);padding:2px 8px;border-radius:20px;font-family:var(--mono);">${k}</span>`).join('')}
@@ -1216,7 +1289,7 @@ function runTitleMode(){
       <div class="rc-top">
         <div class="rc-left">
           <div class="rc-dept"><span style="background:${dcolor.bg};color:${dcolor.color};padding:2px 8px;border-radius:20px;font-size:11px;">${r.dept}</span></div>
-          <div class="rc-title">${r.title}</div>
+          <div class="rc-title">${r._searchedAs || r.title}</div>
           <div class="rc-desc">${r.desc||''}</div>
           ${r.hint?`<div class="rc-hint"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.4"/><path d="M8 7v4M8 5.5v.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg><span>${r.hint}</span></div>`:''}
         </div>
@@ -1250,8 +1323,7 @@ function runTitleMode(){
   area.innerHTML = cardHtml || '<div class="empty-state">No roles selected</div>';
   document.getElementById('deptFilter').style.display='none';
   const _cb=document.getElementById('currencyBar'); if(_cb) _cb.style.display='flex';
-  // Show floating dog if salary not yet submitted
-  if(!isSalaryUnlocked()){ const fp=document.getElementById('floatingPanda'); if(fp) fp.style.display='block'; }
+ // Dog stays visible always (handled on page load)
   // Scroll to results
   setTimeout(()=>area.scrollIntoView({behavior:'smooth',block:'nearest'}),200);
 }
@@ -1573,12 +1645,19 @@ const ROLES = [
    exp:{junior:[1,3,'₹7–14L|$78–108k'],mid:[3,6,'₹16–32L|$115–162k'],senior:[6,10,'₹32–60L|$165–222k'],lead:[9,14,'₹60–98L|$222–285k']},
    keywords:['Security Engineer','Application Security Engineer','Cybersecurity Engineer','AppSec Engineer']},
 
-  {title:'QA Engineer / SDET',dept:'Engineering',
-   required:['Automation Testing','Manual Testing'],nice:['Selenium','Cypress','Playwright','Jest','API Testing','Performance Testing','Python','Java','SDET','TDD','BDD','JMeter','K6','Locust','Gatling','LoadRunner','JUnit','Pytest','Mocha','Chai','Cucumber','Appium','Espresso','XCUITest','REST Assured','Load Testing','Mobile Testing','Functional Testing','QA Automation','Test Automation','Contract Testing','Accessibility Testing','Vitest','Testing Library'],
-   desc:'Ensures software quality. SDETs build automation frameworks; QA Engineers cover manual and exploratory testing.',
-   hint:'SDET = automation-first, needs coding skills. QA = mix of manual + automation. Add "automation only" if you don\'t need manual testers.',
-   exp:{junior:[0,2,'₹4–8L|$52–75k'],mid:[2,5,'₹9–20L|$78–118k'],senior:[5,8,'₹20–38L|$120–165k'],lead:[7,12,'₹38–62L|$168–218k']},
-   keywords:['QA Engineer','SDET','Software Development Engineer in Test','Test Automation Engineer','QA Automation Engineer','QE','QAE','QA Automation','Test Automation','Automation Engineer']},
+  {title:'QA Engineer',dept:'Engineering',
+   required:['Manual Testing','Test Planning'],nice:['Selenium','Cypress','Playwright','API Testing','Performance Testing','Regression Testing','Functional Testing','JMeter','Appium','Mobile Testing','Accessibility Testing','BDD','Cucumber','Postman','JIRA','Smoke Testing','UAT','Exploratory Testing'],
+   desc:'Ensures software quality through manual and automated testing. Covers functional, regression, and exploratory testing across web and mobile products.',
+   hint:'QA Engineers are a mix of manual + automation. For pure automation with coding skills, post separately for SDET. Specify your stack (web/mobile/API) to attract the right profile.',
+   exp:{junior:[0,2,'₹3–7L|$45–68k'],mid:[2,5,'₹8–18L|$72–108k'],senior:[5,8,'₹18–35L|$112–155k'],lead:[7,12,'₹35–58L|$158–205k']},
+   keywords:['QA Engineer','Quality Assurance Engineer','QAE','QE','Test Engineer','Software Tester','Manual QA','QA Analyst','Quality Engineer']},
+
+  {title:'SDET',dept:'Engineering',
+   required:['Automation Testing','Python'],nice:['Selenium','Cypress','Playwright','Jest','Pytest','JUnit','Mocha','Chai','TDD','BDD','K6','Locust','Gatling','LoadRunner','REST Assured','Contract Testing','Vitest','Testing Library','Load Testing','Performance Testing','CI/CD','Docker','Java','TypeScript','Appium','Espresso','XCUITest'],
+   desc:'Software Development Engineer in Test — builds automated test frameworks and tooling. Codes test infrastructure rather than just running tests.',
+   hint:'SDETs need strong coding skills — treat them like backend engineers who specialise in testing. They build the automation platform that QA Engineers use. Expect 1–2 years of software engineering background.',
+   exp:{junior:[1,3,'₹5–10L|$58–82k'],mid:[3,6,'₹12–24L|$88–132k'],senior:[6,9,'₹24–45L|$135–178k'],lead:[8,13,'₹45–70L|$182–228k']},
+   keywords:['SDET','Software Development Engineer in Test','Test Automation Engineer','QA Automation Engineer','QA Automation','Test Automation','Automation Engineer','Senior SDET','Lead SDET']},
 
   // ── Data ──
   {title:'Data Engineer',dept:'Data',
@@ -4539,12 +4618,15 @@ function renderSug(q){
     // show a dedicated "Browse by Title" hint item — don't silently alias to a skill
     const titleHint = findTitleMatch(q);
     if(titleHint){
-      const safeQ = q.replace(/'/g,"\'");
-      const safeTitle = titleHint.title.replace(/'/g,"\'");
+      const safeQ = q.replace(/'/g,"\\'");
+      const safeTitle = titleHint.title.replace(/'/g,"\\'");
       drop.innerHTML=`<div class="sug-item sug-title-hint" onclick="pickSugTitle('${safeQ}','${safeTitle}')"><div>&#x1F50D; <strong>${q}</strong> &mdash; looks like a job title</div><span class="sug-cat">Browse by Title &rarr;</span></div>`;
       drop.classList.add('open');
       return;
     }
+    const roleKwMatches=[];
+    if(typeof ROLES!=='undefined'){ROLES.forEach(r=>{if(!r.keywords)return;const hit=r.keywords.slice(1).find(k=>{const kl=k.toLowerCase();return kl.includes(ql)||ql.includes(kl);});if(hit&&!roleKwMatches.find(x=>x.title===r.title))roleKwMatches.push({title:r.title,kw:hit});});}
+    if(roleKwMatches.length){const safeQ=q.replace(/'/g,"\\'");drop.innerHTML=roleKwMatches.slice(0,4).map(m=>{const st=m.title.replace(/'/g,"\\'");return`<div class="sug-item sug-title-hint" onclick="pickSugTitle('${safeQ}','${st}')"><div>&#x1F50D; <strong>${q}</strong> &mdash; also called: <em>${m.title}</em></div><span class="sug-cat">Browse by Title &rarr;</span></div>`;}).join('');drop.classList.add('open');return;}
     // Starts-with matches first, then contains
     const startsWith=ALL_SKILLS.filter(({s})=>s.toLowerCase().startsWith(ql)&&!already.includes(s.toLowerCase()));
     const contains=ALL_SKILLS.filter(({s})=>!s.toLowerCase().startsWith(ql)&&s.toLowerCase().includes(ql)&&!already.includes(s.toLowerCase()));
@@ -4740,7 +4822,7 @@ window.addEventListener('load', function(){
 
 <!-- Hidden Netlify form for salary submissions -->
 <form name="salary-contrib" data-netlify="true" netlify-honeypot="bot-field" hidden>
-  <input name="designation"><input name="sub_dept"><input name="dept"><input name="experience"><input name="ctc"><input name="currency"><input name="country"><input name="role_desc"><input name="loc_detected">
+  <input name="designation"><input name="sub_dept"><input name="dept"><input name="experience"><input name="ctc"><input name="currency"><input name="country"><input name="role_desc"><input name="loc_detected"><input name="company">
 </form>
 
 <!-- Salary Contribution Modal -->
@@ -4923,6 +5005,11 @@ window.addEventListener('load', function(){
           </select>
         </div>
 
+        <!-- Company Name -->
+        <div style="grid-column:1/-1;">
+          <label style="font-size:10px;font-weight:700;color:#888;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;font-family:Outfit,sans-serif;">Company Name <span style="font-weight:400;text-transform:none;color:#aaa;font-size:10px;">— optional</span></label>
+          <input id="salCompany" type="text" placeholder="e.g. Google, Infosys, early-stage startup" style="width:100%;padding:9px 11px;border:1.5px solid #e4e2db;border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;outline:none;box-sizing:border-box;color:#1a1917;">
+        </div>
         <!-- Country -->
         <div>
           <label style="font-size:10px;font-weight:700;color:#888;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;font-family:Outfit,sans-serif;">Country</label>
@@ -5365,6 +5452,7 @@ function submitSalaryContrib(){
   const cur         = document.getElementById('salCurrency').value;
   const country     = document.getElementById('salCountry').value;
   const roleDesc    = document.getElementById('salRoleDesc')?.value.trim()||'';
+  const company     = document.getElementById('salCompany')?.value.trim()||'';
   try {
     fetch('/',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
       body:'form-name=salary-contrib'
@@ -5376,6 +5464,7 @@ function submitSalaryContrib(){
         +'&currency='+encodeURIComponent(cur)
         +'&country='+encodeURIComponent(country)
         +'&role_desc='+encodeURIComponent(roleDesc)
+        +'&company='+encodeURIComponent(company)
         +'&loc_detected='+encodeURIComponent(USER_LOCATION)});
   } catch(e){}
   document.getElementById('salContribModal').style.display='none';
