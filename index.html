@@ -9,11 +9,7 @@
   gtag('js', new Date());
   gtag('config', 'G-59QDBJYDPN');
 </script>
-<!--
-  Supabase: Project URL and anon/publishable key live in supabase-config.js (not in this file).
-  They are still visible to anyone who loads the app — that is normal for client-side Supabase.
-  Protect data with Row Level Security (RLS); never put the service_role key in the browser.
--->
+</style>
 <script src="supabase-config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
@@ -26,12 +22,6 @@
     : null;
 })();
 var _sb = window._sb;
-var GOOGLE_CSE_KEY = '';
-var GOOGLE_CSE_ID  = '';
-var DB_ROLES  = [];
-var DB_SKILLS = {};
-var DB_DEPTS  = {};
-var DB_LOADED = false;
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -87,7 +77,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:10
 .hero p{font-size:14px;opacity:.85;line-height:1.65;}
 
 /* ── Input card ── */
-.input-card{background:var(--white);border:1px solid var(--border);border-radius:14px;margin-bottom:20px;box-shadow:var(--shadow);overflow:visible;position:relative;z-index:40;}
+.input-card{background:var(--white);border:1px solid var(--border);border-radius:14px;margin-bottom:20px;box-shadow:var(--shadow);overflow:visible;}
 .mode-tabs{display:flex;border-bottom:1px solid var(--border);border-radius:13px 13px 0 0;overflow:hidden;}
 .mode-tab{flex:1;padding:12px 16px;font-size:13px;font-weight:600;color:var(--ink3);border:none;background:transparent;cursor:pointer;transition:all .15s;border-bottom:2px solid transparent;margin-bottom:-1px;}
 .mode-tab.active{color:var(--teal);border-bottom-color:var(--teal);background:var(--teal-lt);}
@@ -160,7 +150,6 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:10
 .results-title{font-size:14px;font-weight:700;color:var(--ink2);}
 .results-count{font-size:12px;color:var(--ink3);font-family:var(--mono);}
 .empty-state{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:48px 32px;text-align:center;box-shadow:var(--shadow);}
-#resultsArea{position:relative;z-index:0;}
 .empty-icon{font-size:40px;margin-bottom:14px;}
 .empty-title{font-size:16px;font-weight:700;color:var(--ink2);margin-bottom:6px;}
 .empty-sub{font-size:13.5px;color:var(--ink3);line-height:1.6;}
@@ -469,7 +458,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:10
 .title-search-wrap{position:relative;margin-bottom:14px;}
 .title-search-input{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:var(--sans);color:var(--ink);background:var(--white);box-sizing:border-box;outline:none;transition:border-color .15s;}
 .title-search-input:focus{border-color:var(--teal);}
-.title-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:5000;background:var(--white);border:1.5px solid var(--teal);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.14);max-height:320px;overflow-y:auto;display:none;}
+.title-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:400;background:var(--white);border:1.5px solid var(--teal);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.14);max-height:320px;overflow-y:auto;display:none;}
 .title-dropdown.open{display:block;}
 .td-dept{padding:6px 14px 4px;font-size:10.5px;font-weight:700;color:var(--ink3);letter-spacing:.06em;text-transform:uppercase;background:var(--bg);border-bottom:1px solid var(--border);position:sticky;top:0;}
 .td-item{padding:9px 16px;font-size:13.5px;color:var(--ink2);cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:background .1s;}
@@ -843,7 +832,6 @@ function smSignOut(){
 <!-- Tab nav -->
 <nav class="tab-nav">
   <button class="tab-btn active" onclick="switchTab('tool',this)">Tool</button>
-  <button class="tab-btn" id="cvTabBtn" onclick="switchTab('cv',this)">📄 Evaluate My CV</button>
   <button class="tab-btn" onclick="switchTab('howto',this)">📖 How to Use</button>
 </nav>
 
@@ -916,13 +904,12 @@ function smSignOut(){
         <div class="bubble-wrap" id="mainWrap" onclick="document.getElementById('mainInput').focus()"
           style="min-height:72px;padding:10px 12px;align-content:flex-start;">
           <input class="bubble-input" id="mainInput" autocomplete="off"
-    placeholder="Python, React, SQL, Figma, Salesforce, Financial Modelling, Talent Acquisition…"
-    onkeydown="handleKey(event)" oninput="onInput(event)" onblur="setTimeout(()=>hideSug(),150)"
+            placeholder="e.g. Python, React, Figma, Salesforce, Financial Modelling…"
+            onkeydown="handleKey(event)" oninput="onInput(event)" onfocus="onFocus()" onblur="setTimeout(()=>hideSug(),150)"
             style="min-width:240px;font-size:14px;">
           <div class="sug-drop" id="sugDrop" onmousedown="event.preventDefault()"></div>
         </div>
       </div>
-
       <button class="btn-find" onclick="addTyped()" style="width:100%;justify-content:center;">
         <svg viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.6"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
         Find matching roles
@@ -1047,307 +1034,11 @@ function smSignOut(){
 </main>
 </div><!-- end page-howto -->
 
-<!-- CV EVALUATOR PAGE -->
-<div id="page-cv" class="page">
-<main class="main">
-  <div class="hero">
-    <h2>CV Skill Gap Evaluator</h2>
-    <p>Select a role, upload your CV — we check every must-have and good-to-have skill and tell you exactly what to add.</p>
-  </div>
-
-  <div class="input-card" style="padding:20px;margin-bottom:14px;position:relative;z-index:50;overflow:visible;">
-    <div style="font-size:12px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;font-family:Outfit,sans-serif;">Step 1 — Target role</div>
-    <div class="title-search-wrap" style="position:relative;">
-      <input class="title-search-input" id="cvRoleInput"
-    placeholder="Type a role — e.g. Data Engineer, HR Business Partner, Product Manager…"
-    oninput="onCvRoleInput(event)"
-    onblur="setTimeout(closeCvDrop,400)"
-    onkeydown="onCvRoleKeydown(event)"
-    autocomplete="off">
-      <div class="title-dropdown" id="cvRoleDropdown"></div>
-    </div>
-    <div id="cvSelectedRole" style="display:none;margin-top:10px;"></div>
-    <div id="cvRoleNotFound" style="display:none;margin-top:12px;background:#fff8ed;border:1px solid rgba(180,83,9,0.2);border-radius:10px;padding:14px 16px;">
-      <div style="font-size:13px;font-weight:700;color:#b45309;margin-bottom:6px;font-family:Outfit,sans-serif;">😕 We don't have this role yet</div>
-      <div style="font-size:12.5px;color:#6b6963;margin-bottom:10px;font-family:Outfit,sans-serif;">Tell us about it and we'll add it.</div>
-      <input id="cvMissingRoleName" type="text" placeholder="Role name"
-        style="width:100%;padding:9px 12px;margin-bottom:7px;border:1.5px solid #e4e2db;border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;outline:none;box-sizing:border-box;">
-      <input id="cvMissingSkills" type="text" placeholder="Skills this role needs — e.g. Python, SQL, Tableau"
-        style="width:100%;padding:9px 12px;margin-bottom:7px;border:1.5px solid #e4e2db;border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;outline:none;box-sizing:border-box;">
-      <textarea id="cvMissingJd" placeholder="Paste a job description (optional)"
-        style="width:100%;padding:9px 12px;margin-bottom:10px;border:1.5px solid #e4e2db;border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;outline:none;box-sizing:border-box;resize:vertical;min-height:70px;"></textarea>
-      <button onclick="submitMissingRoleForm()"
-        style="padding:9px 18px;background:#0f766e;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:Outfit,sans-serif;">
-        Submit →
-      </button>
-      <div id="cvMissingRoleSent" style="display:none;margin-top:8px;font-size:12.5px;color:#0d7a4e;font-weight:600;font-family:Outfit,sans-serif;">✓ Submitted — thank you!</div>
-    </div>
-  </div>
-
-  <div class="input-card" style="padding:20px;margin-bottom:14px;">
-    <div style="font-size:12px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;font-family:Outfit,sans-serif;">Step 2 — Your experience</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <div>
-        <label style="font-size:11px;font-weight:700;color:#6b7280;display:block;margin-bottom:5px;font-family:Outfit,sans-serif;">Total years of experience</label>
-        <select id="cvYearsExp" style="width:100%;padding:10px 12px;border:1.5px solid #e4e2db;border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;outline:none;background:#fff;color:#374151;">
-          <option value="">Select…</option>
-          <option value="0">Fresher / 0 years</option>
-          <option value="1">1 year</option>
-          <option value="2">2 years</option>
-          <option value="3">3 years</option>
-          <option value="4">4 years</option>
-          <option value="5">5 years</option>
-          <option value="6">6 years</option>
-          <option value="7">7 years</option>
-          <option value="8">8 years</option>
-          <option value="9">9 years</option>
-          <option value="10">10 years</option>
-          <option value="12">12+ years</option>
-          <option value="15">15+ years</option>
-        </select>
-      </div>
-      <div>
-        <label style="font-size:11px;font-weight:700;color:#6b7280;display:block;margin-bottom:5px;font-family:Outfit,sans-serif;">Current / most recent role</label>
-        <input id="cvCurrentRole" type="text" placeholder="e.g. Junior Data Analyst"
-          style="width:100%;padding:10px 12px;border:1.5px solid #e4e2db;border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;outline:none;box-sizing:border-box;color:#374151;">
-      </div>
-    </div>
-  </div>
-
-  <div class="input-card" style="padding:20px;margin-bottom:14px;">
-    <div style="font-size:12px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;font-family:Outfit,sans-serif;">Step 3 — Your CV</div>
-    <div style="display:flex;gap:8px;margin-bottom:14px;">
-      <button id="cvTabUpload" onclick="switchCvInput('upload')"
-        style="padding:7px 16px;border-radius:20px;border:1.5px solid #0f766e;background:#f0fdfa;color:#0f766e;font-family:Outfit,sans-serif;font-size:12.5px;font-weight:600;cursor:pointer;">
-        📎 Upload PDF / DOCX
-      </button>
-      <button id="cvTabPaste" onclick="switchCvInput('paste')"
-        style="padding:7px 16px;border-radius:20px;border:1.5px solid #e4e2db;background:#fff;color:#6b6963;font-family:Outfit,sans-serif;font-size:12.5px;font-weight:600;cursor:pointer;">
-        📋 Paste CV text
-      </button>
-    </div>
-    <div id="cvUploadZone"
-      style="border:2px dashed #e4e2db;border-radius:12px;padding:28px;text-align:center;cursor:pointer;background:#fafaf8;"
-      ondragover="event.preventDefault();this.style.borderColor='#0f766e'"
-      ondragleave="this.style.borderColor='#e4e2db'"
-      ondrop="handleCvDrop(event)"
-      onclick="document.getElementById('cvFileInput').click()">
-      <div style="font-size:28px;margin-bottom:8px;">📄</div>
-      <div style="font-size:14px;font-weight:600;color:#374151;font-family:Outfit,sans-serif;">Drop your CV here or click to browse</div>
-      <div style="font-size:12px;color:#9ca3af;margin-top:4px;font-family:Outfit,sans-serif;">PDF · DOCX · TXT · Max 5MB</div>
-      <input type="file" id="cvFileInput" accept=".pdf,.docx,.doc,.txt" style="display:none" onchange="handleCvFile(event)">
-    </div>
-    <div id="cvPasteZone" style="display:none;">
-      <textarea id="cvPasteInput" placeholder="Paste your full CV text here…"
-        style="width:100%;min-height:200px;padding:14px 16px;border:1.5px solid #e4e2db;border-radius:10px;font-family:Outfit,sans-serif;font-size:13.5px;color:#374151;resize:vertical;outline:none;box-sizing:border-box;line-height:1.6;"
-        onfocus="this.style.borderColor='#0f766e'" onblur="this.style.borderColor='#e4e2db'"></textarea>
-    </div>
-    <div id="cvFileStatus" style="display:none;margin-top:10px;font-size:13px;color:#0f766e;font-weight:600;font-family:Outfit,sans-serif;"></div>
-    <button onclick="runSmartCvEvaluation()"
-      style="margin-top:14px;width:100%;padding:14px;background:#0f766e;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:Outfit,sans-serif;">
-      ✓ Evaluate My CV
-    </button>
-    <div style="margin-top:10px;padding:10px 14px;background:#f8f9fa;border-radius:8px;font-size:11.5px;color:#6b7280;line-height:1.55;font-family:Outfit,sans-serif;">
-      🔒 Your CV text is processed locally in your browser. We only store anonymised skill match scores — never your CV content. <a href="#" onclick="switchToPrivacyPage(event);return false;" style="color:#0f766e;font-weight:600;">See our privacy policy →</a>
-    </div>
-  </div>
-
-  <div id="cvLoadingState" style="display:none;text-align:center;padding:40px 20px;">
-    <div style="display:flex;justify-content:center;gap:6px;margin-bottom:16px;">
-      <div style="width:8px;height:8px;border-radius:50%;background:#0f766e;animation:ldot 1.2s ease-in-out infinite;"></div>
-      <div style="width:8px;height:8px;border-radius:50%;background:#0f766e;animation:ldot 1.2s ease-in-out .2s infinite;"></div>
-      <div style="width:8px;height:8px;border-radius:50%;background:#0f766e;animation:ldot 1.2s ease-in-out .4s infinite;"></div>
-    </div>
-    <div id="cvLoadingText" style="font-size:14px;color:#6b7280;font-family:Outfit,sans-serif;">Analysing your CV…</div>
-  </div>
-
-  <div id="cvResults" style="margin-top:4px;"></div>
-</main>
-</div>
-
-<!-- PRIVACY & DATA PAGE -->
-<div id="page-privacy" class="page">
-<main class="main">
-
-  <div class="hero">
-    <h2>Privacy & Data Policy</h2>
-    <p>Plain English. No legal jargon. Here is exactly what we collect, why, and what you can do about it.</p>
-  </div>
-
-  <!-- Last updated + jurisdiction notice -->
-  <div style="background:#fff;border:1px solid #e4e2db;border-radius:12px;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
-    <div style="font-size:22px;">📋</div>
-    <div>
-      <div style="font-size:13px;font-weight:700;color:#374151;font-family:Outfit,sans-serif;">Last updated: April 2026</div>
-      <div style="font-size:12.5px;color:#6b7280;font-family:Outfit,sans-serif;line-height:1.5;">This policy applies to users in India, the United States, the United Kingdom, Ireland, Poland, and all other countries. Where laws differ, we follow the stricter standard.</div>
-    </div>
-  </div>
-
-  <!-- Who we are -->
-  <div style="background:#fff;border:1px solid #e4e2db;border-radius:12px;padding:20px 22px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
-    <div style="font-size:14px;font-weight:700;color:#111;margin-bottom:10px;font-family:Outfit,sans-serif;">Who we are</div>
-    <div style="font-size:13.5px;color:#374151;line-height:1.75;font-family:Outfit,sans-serif;">
-      SkillMapper is a free tool built and operated by <strong>Himani Rawat</strong> under the brand <strong>Talents Radar</strong>, based in Pune, India. You can reach us at <a href="mailto:contactus@talentsradar.com" style="color:#0f766e;font-weight:600;">contactus@talentsradar.com</a> for any privacy-related request.<br><br>
-      We are not a company registered under GDPR as a formal data controller — we are an independent tool operator. However, we voluntarily follow GDPR principles because our users include people from the UK, EU, and US, and we believe it is the right thing to do.
-    </div>
-  </div>
-
-  <!-- What we collect -->
-  <div style="background:#fff;border:1px solid #e4e2db;border-radius:12px;padding:20px 22px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
-    <div style="font-size:14px;font-weight:700;color:#111;margin-bottom:12px;font-family:Outfit,sans-serif;">What we collect and why</div>
-    <div style="display:flex;flex-direction:column;gap:10px;">
-
-      <div style="border:1px solid #f0fdf4;border-radius:10px;padding:14px 16px;background:#f9fefb;">
-        <div style="font-size:12.5px;font-weight:700;color:#0d7a4e;margin-bottom:4px;font-family:Outfit,sans-serif;">✓ Email address</div>
-        <div style="font-size:12.5px;color:#374151;line-height:1.6;font-family:Outfit,sans-serif;"><strong>Why:</strong> To give you access to the tool and send verification codes. We do not sell your email or share it with third parties. If you opted in, we may send occasional product updates — you can unsubscribe any time.</div>
-      </div>
-
-      <div style="border:1px solid #f0fdf4;border-radius:10px;padding:14px 16px;background:#f9fefb;">
-        <div style="font-size:12.5px;font-weight:700;color:#0d7a4e;margin-bottom:4px;font-family:Outfit,sans-serif;">✓ Name and profession type</div>
-        <div style="font-size:12.5px;color:#374151;line-height:1.6;font-family:Outfit,sans-serif;"><strong>Why:</strong> To personalise your experience (e.g. showing "Find professionals" vs "Search candidates" based on whether you are a fresher or HR). We do not use this for advertising.</div>
-      </div>
-
-      <div style="border:1px solid #f0fdf4;border-radius:10px;padding:14px 16px;background:#f9fefb;">
-        <div style="font-size:12.5px;font-weight:700;color:#0d7a4e;margin-bottom:4px;font-family:Outfit,sans-serif;">✓ Salary data (if you choose to share)</div>
-        <div style="font-size:12.5px;color:#374151;line-height:1.6;font-family:Outfit,sans-serif;"><strong>Why:</strong> To improve salary benchmarks for everyone. This is entirely voluntary. We store it without your name attached — only role, experience band, CTC, currency, and country. You cannot be identified from this data.</div>
-      </div>
-
-      <div style="border:1px solid #f0fdf4;border-radius:10px;padding:14px 16px;background:#f9fefb;">
-        <div style="font-size:12.5px;font-weight:700;color:#0d7a4e;margin-bottom:4px;font-family:Outfit,sans-serif;">✓ CV evaluation results (anonymised)</div>
-        <div style="font-size:12.5px;color:#374151;line-height:1.6;font-family:Outfit,sans-serif;"><strong>Why:</strong> To understand which roles people evaluate most and improve our skill database. We store only the match score and role title — never your CV text, never your name linked to results.</div>
-      </div>
-
-      <div style="border:1px solid #fef2f2;border-radius:10px;padding:14px 16px;background:#fffbfb;">
-        <div style="font-size:12.5px;font-weight:700;color:#b91c1c;margin-bottom:4px;font-family:Outfit,sans-serif;">✗ What we never collect</div>
-        <div style="font-size:12.5px;color:#374151;line-height:1.6;font-family:Outfit,sans-serif;">We never collect payment information, government IDs, passport numbers, health data, or any sensitive personal data. We never run advertising on this tool. We never sell any data to anyone.</div>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- CV data specifically -->
-  <div style="background:#fff;border:1px solid #e4e2db;border-radius:12px;padding:20px 22px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
-    <div style="font-size:14px;font-weight:700;color:#111;margin-bottom:10px;font-family:Outfit,sans-serif;">Your CV — what actually happens to it</div>
-    <div style="font-size:13.5px;color:#374151;line-height:1.75;font-family:Outfit,sans-serif;">
-      When you upload or paste your CV, the text is processed <strong>entirely within your browser</strong>. Your CV content never leaves your device and is never sent to our servers or any third party.<br><br>
-      The only thing we log is: which role you evaluated against, your match score (e.g. 72%), how many skills were found, and how many were missing. This is completely anonymous — there is no way to trace it back to you.<br><br>
-      We occasionally extract skill names that appear in CVs but are not yet in our database — for example a new tool or framework — so we can add them. We never read your personal details (name, address, employer, salary in your CV).
-    </div>
-  </div>
-
-  <!-- Cookies and local storage -->
-  <div style="background:#fff;border:1px solid #e4e2db;border-radius:12px;padding:20px 22px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
-    <div style="font-size:14px;font-weight:700;color:#111;margin-bottom:10px;font-family:Outfit,sans-serif;">Cookies and local storage</div>
-    <div style="font-size:13.5px;color:#374151;line-height:1.75;font-family:Outfit,sans-serif;">
-      We do not use tracking cookies. We do not use advertising cookies.<br><br>
-      We use <strong>local storage</strong> (stored on your device, not sent anywhere) to remember that you are logged in so you do not have to verify your email every time. This includes your name and email address, stored locally on your browser. You can clear this at any time by signing out or clearing your browser data.<br><br>
-      We use <strong>Google Analytics</strong> to count page visits and understand which features are used most. Google Analytics collects anonymised usage data (pages visited, time on page, country). It does not identify you personally. You can opt out using the <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" style="color:#0f766e;">Google Analytics Opt-out browser add-on</a>.
-    </div>
-  </div>
-
-  <!-- Where data is stored -->
-  <div style="background:#fff;border:1px solid #e4e2db;border-radius:12px;padding:20px 22px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
-    <div style="font-size:14px;font-weight:700;color:#111;margin-bottom:10px;font-family:Outfit,sans-serif;">Where your data is stored</div>
-    <div style="font-size:13.5px;color:#374151;line-height:1.75;font-family:Outfit,sans-serif;">
-      Our database runs on <strong>Supabase</strong>, hosted on AWS infrastructure in Singapore. Supabase is SOC 2 Type II certified and follows industry-standard security practices. You can read Supabase's own data processing agreement at <a href="https://supabase.com/privacy" target="_blank" style="color:#0f766e;">supabase.com/privacy</a>.<br><br>
-      For users in the UK and EU: we acknowledge that this means your data is stored outside the UK/EU (in Singapore). We take steps to ensure adequate protection consistent with UK GDPR and EU GDPR principles, including using providers with appropriate certifications.
-    </div>
-  </div>
-
-  <!-- Your rights -->
-  <div style="background:#fff;border:1px solid #e4e2db;border-radius:12px;padding:20px 22px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
-    <div style="font-size:14px;font-weight:700;color:#111;margin-bottom:12px;font-family:Outfit,sans-serif;">Your rights — wherever you are</div>
-    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
-      <div style="display:flex;gap:10px;align-items:flex-start;">
-        <span style="font-size:12px;font-weight:700;padding:2px 9px;background:#f0fdfa;border:1px solid rgba(15,118,110,0.2);border-radius:20px;color:#0f766e;white-space:nowrap;font-family:Outfit,sans-serif;">Access</span>
-        <span style="font-size:13px;color:#374151;line-height:1.6;font-family:Outfit,sans-serif;">Ask us what data we hold about you. We will reply within 30 days.</span>
-      </div>
-      <div style="display:flex;gap:10px;align-items:flex-start;">
-        <span style="font-size:12px;font-weight:700;padding:2px 9px;background:#f0fdfa;border:1px solid rgba(15,118,110,0.2);border-radius:20px;color:#0f766e;white-space:nowrap;font-family:Outfit,sans-serif;">Deletion</span>
-        <span style="font-size:13px;color:#374151;line-height:1.6;font-family:Outfit,sans-serif;">Ask us to delete your account and all associated data. We will action it within 14 days.</span>
-      </div>
-      <div style="display:flex;gap:10px;align-items:flex-start;">
-        <span style="font-size:12px;font-weight:700;padding:2px 9px;background:#f0fdfa;border:1px solid rgba(15,118,110,0.2);border-radius:20px;color:#0f766e;white-space:nowrap;font-family:Outfit,sans-serif;">Correction</span>
-        <span style="font-size:13px;color:#374151;line-height:1.6;font-family:Outfit,sans-serif;">Ask us to correct inaccurate data we hold about you.</span>
-      </div>
-      <div style="display:flex;gap:10px;align-items:flex-start;">
-        <span style="font-size:12px;font-weight:700;padding:2px 9px;background:#f0fdfa;border:1px solid rgba(15,118,110,0.2);border-radius:20px;color:#0f766e;white-space:nowrap;font-family:Outfit,sans-serif;">Portability</span>
-        <span style="font-size:13px;color:#374151;line-height:1.6;font-family:Outfit,sans-serif;">Ask us for a copy of your data in a machine-readable format (CSV).</span>
-      </div>
-      <div style="display:flex;gap:10px;align-items:flex-start;">
-        <span style="font-size:12px;font-weight:700;padding:2px 9px;background:#f0fdfa;border:1px solid rgba(15,118,110,0.2);border-radius:20px;color:#0f766e;white-space:nowrap;font-family:Outfit,sans-serif;">Opt out</span>
-        <span style="font-size:13px;color:#374151;line-height:1.6;font-family:Outfit,sans-serif;">Unsubscribe from any emails at any time using the link in each email, or by emailing us directly.</span>
-      </div>
-    </div>
-
-    <!-- Data request form -->
-    <div style="background:#f8f9fa;border-radius:10px;padding:16px;">
-      <div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:10px;font-family:Outfit,sans-serif;">Submit a data request</div>
-      <input id="privacyReqEmail" type="email" placeholder="Your email address"
-        style="width:100%;padding:10px 12px;margin-bottom:8px;border:1.5px solid #e4e2db;border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;outline:none;box-sizing:border-box;">
-      <select id="privacyReqType"
-        style="width:100%;padding:10px 12px;margin-bottom:10px;border:1.5px solid #e4e2db;border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;outline:none;background:#fff;color:#374151;">
-        <option value="access">I want to know what data you hold about me</option>
-        <option value="deletion">I want my account and data deleted</option>
-        <option value="correction">I want to correct my data</option>
-        <option value="portability">I want a copy of my data (CSV)</option>
-        <option value="opt_out">I want to opt out of all emails</option>
-      </select>
-      <button onclick="submitPrivacyRequest()"
-        style="padding:10px 20px;background:#0f766e;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:Outfit,sans-serif;">
-        Submit request →
-      </button>
-      <div id="privacyReqSent" style="display:none;margin-top:8px;font-size:12.5px;color:#0d7a4e;font-weight:600;font-family:Outfit,sans-serif;">✓ Request received. We will respond within 14 days to the email address provided.</div>
-      <div id="privacyReqErr" style="display:none;margin-top:8px;font-size:12.5px;color:#b91c1c;font-weight:600;font-family:Outfit,sans-serif;">Please enter a valid email address.</div>
-    </div>
-  </div>
-
-  <!-- Country-specific rights -->
-  <div style="background:#fff;border:1px solid #e4e2db;border-radius:12px;padding:20px 22px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
-    <div style="font-size:14px;font-weight:700;color:#111;margin-bottom:12px;font-family:Outfit,sans-serif;">Additional rights by country</div>
-    <div style="display:flex;flex-direction:column;gap:10px;">
-      <div style="border-left:3px solid #003078;padding:10px 14px;background:#f8faff;border-radius:0 8px 8px 0;">
-        <div style="font-size:12.5px;font-weight:700;color:#003078;margin-bottom:3px;font-family:Outfit,sans-serif;">🇬🇧 UK (UK GDPR)</div>
-        <div style="font-size:12.5px;color:#374151;line-height:1.6;font-family:Outfit,sans-serif;">You have all GDPR rights as adapted by the UK Data Protection Act 2018. You may lodge a complaint with the <a href="https://ico.org.uk/make-a-complaint/" target="_blank" style="color:#0f766e;">ICO (Information Commissioner's Office)</a> if you believe your rights have been violated.</div>
-      </div>
-      <div style="border-left:3px solid #003399;padding:10px 14px;background:#f8f8ff;border-radius:0 8px 8px 0;">
-        <div style="font-size:12.5px;font-weight:700;color:#003399;margin-bottom:3px;font-family:Outfit,sans-serif;">🇪🇺 EU / Ireland / Poland (GDPR)</div>
-        <div style="font-size:12.5px;color:#374151;line-height:1.6;font-family:Outfit,sans-serif;">You have full rights under EU GDPR (Regulation 2016/679). You may lodge a complaint with your national Data Protection Authority — <a href="https://www.dataprotection.ie" target="_blank" style="color:#0f766e;">Data Protection Commission (Ireland)</a> or <a href="https://uodo.gov.pl" target="_blank" style="color:#0f766e;">UODO (Poland)</a>.</div>
-      </div>
-      <div style="border-left:3px solid #b22234;padding:10px 14px;background:#fff8f8;border-radius:0 8px 8px 0;">
-        <div style="font-size:12.5px;font-weight:700;color:#b22234;margin-bottom:3px;font-family:Outfit,sans-serif;">🇺🇸 United States</div>
-        <div style="font-size:12.5px;color:#374151;line-height:1.6;font-family:Outfit,sans-serif;">If you are a California resident, you have rights under CCPA — including the right to know, delete, and opt out of sale of personal information. We do not sell personal information. Residents of other states with active privacy laws (Virginia, Colorado, Connecticut) have similar rights which we honour on request.</div>
-      </div>
-      <div style="border-left:3px solid #FF9933;padding:10px 14px;background:#fffbf5;border-radius:0 8px 8px 0;">
-        <div style="font-size:12.5px;font-weight:700;color:#b45309;margin-bottom:3px;font-family:Outfit,sans-serif;">🇮🇳 India (DPDP Act 2023)</div>
-        <div style="font-size:12.5px;color:#374151;line-height:1.6;font-family:Outfit,sans-serif;">Under the Digital Personal Data Protection Act 2023, you have the right to access, correct, and erase your personal data. You may raise a complaint with the Data Protection Board of India once it is constituted. In the meantime, contact us directly at contactus@talentsradar.com.</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Contact -->
-  <div style="background:linear-gradient(135deg,#0f766e,#14b8a6);border-radius:12px;padding:22px;margin-bottom:16px;color:#fff;">
-    <div style="font-size:15px;font-weight:700;margin-bottom:6px;font-family:Outfit,sans-serif;">Questions? Contact us directly.</div>
-    <div style="font-size:13.5px;opacity:.9;line-height:1.65;font-family:Outfit,sans-serif;">
-      Email: <a href="mailto:contactus@talentsradar.com" style="color:#fff;font-weight:700;">contactus@talentsradar.com</a><br>
-      We aim to respond to all privacy requests within 14 days.<br>
-      For urgent data deletion requests, include "URGENT DATA DELETION" in the subject line.
-    </div>
-  </div>
-
-</main>
-</div>
-
 <!-- Footer -->
 <footer class="site-footer">
   <strong>SkillMapper</strong> · Built by an HR Industry Expert · Data updated Q1 2026
   <span style="display:block;font-size:10.5px;color:rgba(255,255,255,0.45);margin-top:5px;">Salary ranges are market estimates sourced from open sources and crowdsourcing from professionals. Indicative only — verify before making offers.</span>
   <span style="display:block;font-size:10px;color:rgba(255,255,255,0.35);margin-top:4px;">© 2026 Himani Rawat</span>
-  <span style="display:block;font-size:10px;color:rgba(255,255,255,0.38);margin-top:8px;line-height:1.5;">
-    <a href="#" onclick="switchToPrivacyPage(event);return false;" style="color:rgba(255,255,255,0.5);text-decoration:underline;text-underline-offset:2px;">Privacy &amp; Data</a>
-    <span style="opacity:0.5;margin:0 6px;">·</span>
-    <a href="mailto:contactus@talentsradar.com" style="color:rgba(255,255,255,0.5);text-decoration:none;">contactus@talentsradar.com</a>
-  </span>
 </footer>
 
 <div class="toast" id="toast"></div>
@@ -1671,6 +1362,122 @@ function renderResultsWithMode(roles){
 }
 
 
+const SKILLS_DB = {
+  /* ── Software Engineering ── */
+  'Programming Languages':['Python','Java','JavaScript','TypeScript','Go','Rust','C++','C','C#','Ruby','PHP','Kotlin','Swift','Scala','R','Dart','Perl','Elixir','Clojure','Haskell','Julia','MATLAB','Groovy','Lua','Bash','PowerShell','Assembly','COBOL','Fortran','Pascal','Prolog','Erlang','F#','Objective-C','Visual Basic','ABAP','PL/SQL','T-SQL','VBA'],
+  'Web Backend':['Node.js','Spring Boot','Django','FastAPI','Flask','Express','Laravel','Ruby on Rails','ASP.NET','ASP.NET Core','.NET','.NET Core','Entity Framework','WPF','WinForms','LINQ','Blazor','MAUI','NUnit','xUnit','NestJS','Fastify','Gin','Echo','gRPC','GraphQL','REST APIs','Microservices','WebSockets','tRPC','Hono','Actix','Rocket','SAP ABAP','ABAP OO','SAP Fiori'],
+  'Web Frontend':['React','Vue.js','Angular','Next.js','Nuxt.js','Svelte','SvelteKit','Remix','Astro','Qwik','HTML','CSS','Tailwind CSS','SASS','LESS','Webpack','Vite','Rollup','Redux','Zustand','MobX','Recoil','Jotai','Tanstack Query','Framer Motion','Three.js','D3.js','Chart.js','GSAP'],
+  'Mobile':['React Native','Flutter','iOS','Android','Swift UI','Jetpack Compose','Expo','Ionic','Capacitor','Xamarin','Cordova','NativeScript'],
+  'Cloud Platforms':['AWS','Azure','GCP','Oracle Cloud','IBM Cloud','DigitalOcean','Cloudflare','Vercel','Netlify','Heroku','Render','Railway','Fly.io'],
+  'Cloud Services':['S3','EC2','Lambda','RDS','DynamoDB','ECS','EKS','CloudFront','Route53','IAM','SQS','SNS','API Gateway','CloudWatch','Fargate','App Engine','Cloud Functions','Cloud Run','BigQuery','Pub/Sub'],
+  'DevOps & Infrastructure':['Docker','Kubernetes','Terraform','Ansible','Pulumi','Chef','Puppet','Vagrant','CI/CD','Jenkins','GitHub Actions','GitLab CI','CircleCI','Bitbucket Pipelines','ArgoCD','Flux','Helm','Kustomize','Nginx','Caddy','HAProxy','Istio','Linkerd','Envoy','ITIL','Active Directory','VMware','SIEM','Splunk','QRadar','Kali Linux'],
+  'Observability':['Prometheus','Grafana','Datadog','New Relic','Dynatrace','Jaeger','Zipkin','OpenTelemetry','ELK Stack','Loki','Splunk','PagerDuty','OpsGenie','VictorOps','Sentry','Rollbar','Honeycomb'],
+  'Operating Systems':['Linux','Ubuntu','CentOS','Red Hat','Debian','macOS','Windows Server','Alpine Linux','CoreOS','Kubernetes','VMware','Hyper-V','KVM'],
+  'Databases - Relational':['PostgreSQL','MySQL','MariaDB','SQLite','Oracle DB','SQL Server','CockroachDB','PlanetScale','Neon','Supabase','Aurora'],
+  'Databases - NoSQL':['MongoDB','Redis','Cassandra','DynamoDB','Firestore','Couchbase','HBase','RethinkDB','ArangoDB','FaunaDB','Upstash'],
+  'Databases - Specialty':['Elasticsearch','Neo4j','ClickHouse','TimescaleDB','InfluxDB','Pinecone','Weaviate','Qdrant','Milvus','ChromaDB','SingleStore'],
+  'Data Engineering':['Apache Spark','Hadoop','Kafka','Airflow','dbt','Databricks','Snowflake','BigQuery','Redshift','Hive','Flink','Apache Beam','NiFi','Fivetran','Stitch','Airbyte','Dagster','Prefect','Mage','dlt','Trino','Presto','Delta Lake','Iceberg','Hudi'],
+  'Data Science & Analytics':['Machine Learning','Deep Learning','Statistical Analysis','Regression','Classification','Clustering','Time Series','A/B Testing','Bayesian Methods','TensorFlow','PyTorch','Scikit-learn','Keras','Pandas','NumPy','SciPy','Matplotlib','Seaborn','Plotly','Jupyter','XGBoost','LightGBM','CatBoost','SHAP','Feature Engineering'],
+  'AI & LLMs':['LLMs','LangChain','LlamaIndex','RAG','OpenAI API','Anthropic API','Hugging Face','Transformers','Fine-tuning','Prompt Engineering','MLOps','Vector Databases','Embeddings','Agent Frameworks','Computer Vision','NLP','Speech Recognition','Reinforcement Learning','Stable Diffusion','Midjourney API','ONNX','TensorRT','Triton'],
+  'Security':['Cybersecurity','Penetration Testing','SIEM','OWASP','Zero Trust','OAuth','SAML','JWT','SAST','DAST','Threat Modelling','SOC','Incident Response','Vulnerability Assessment','Network Security','Firewall','IDS/IPS','PKI','Cryptography','GDPR Compliance','ISO 27001','SOC 2','HIPAA','PCI DSS','Bug Bounty','Red Team','Blue Team','Cloud Security','Identity Management'],
+  'Quality Assurance':['Selenium','Cypress','Playwright','Jest','Pytest','JUnit','Mocha','Chai','Testing Library','Vitest','K6','Gatling','JMeter','Locust','Postman','REST Assured','Contract Testing','TDD','BDD','Cucumber','Appium','XCUITest','Espresso','LoadRunner','SonarQube','SDET','QA Automation','Test Automation','Automation Testing','Manual Testing','API Testing','Performance Testing','Load Testing','Regression Testing','Functional Testing','UI Automation','Mobile Testing','Accessibility Testing'],
+  'Blockchain & Web3':['Solidity','Ethereum','Web3.js','Ethers.js','Hardhat','Foundry','Truffle','IPFS','Smart Contracts','DeFi','NFT','Polkadot','Solana','Rust (Blockchain)','Chainlink','The Graph','OpenZeppelin','MetaMask','WalletConnect'],
+  'Embedded & IoT':['Embedded C','RTOS','Arduino','Raspberry Pi','ESP32','FPGA','Verilog','VHDL','PCB Design','UART','SPI','I2C','CAN Bus','MQTT','Zigbee','LoRaWAN','BLE','Modbus','OPC-UA','PLC Programming'],
+  'Game Development':['Unity','Unreal Engine','Godot','C# (Unity)','C++ (Unreal)','GDScript','OpenGL','Vulkan','DirectX','WebGL','Three.js','Phaser','LÖVE 2D','Blender','Maya','3ds Max','ZBrush','Game Physics','Shader Programming','Multiplayer Networking','Level Design','Narrative Design','Game Design','Mobile Gaming','AR Design','VR Design','Blueprint','Spine','Lottie'],
+  'Legal & Compliance Skills':['Corporate Law','Contract Drafting','M&A','IP Law','SEBI Regulations','Company Law','RBI Guidelines','Due Diligence','GDPR','Employment Law','Audit','Statutory Compliance','Transfer Pricing','Tax Planning'],
+
+  /* ── Data & Analytics ── */
+  'BI & Visualisation':['Tableau','Power BI','Looker','Metabase','Superset','Redash','Grafana','Qlik','MicroStrategy','Google Data Studio','Domo','Sisense','Mode','Hex','Observable'],
+  'Spreadsheets & Databases':['Excel','Google Sheets','Airtable','Notion (DB)','SQL','Advanced Excel','Power Query','Power Pivot','Excel VBA','VLOOKUP','Pivot Tables'],
+
+  /* ── Design ── */
+  'Design Tools':['Figma','Sketch','Adobe XD','InVision','Zeplin','Abstract','Framer','Webflow','Spline','Principle','ProtoPie','Marvel','Origami Studio','Maze','UserTesting'],
+  'Adobe Suite':['Photoshop','Illustrator','After Effects','Premiere Pro','InDesign','Lightroom','Audition','Animate','Dreamweaver','Bridge','Acrobat Pro','Substance Painter','Dimension'],
+  'UX & Research':['User Research','Usability Testing','User Interviews','Card Sorting','Tree Testing','Eye Tracking','Heatmaps','Journey Mapping','Personas','Service Design','Jobs to Be Done','Design Thinking','Design Sprints','Information Architecture','Accessibility (WCAG)','Inclusive Design'],
+  'Visual & Brand Design':['Brand Identity','Logo Design','Typography','Color Theory','Visual Hierarchy','Packaging Design','Print Design','Icon Design','Illustration','Infographic Design','Social Media Design','Email Design','Style Guides','Brand Guidelines'],
+  '3D & Motion':['Blender','Cinema 4D','Maya','3ds Max','ZBrush','Houdini','After Effects','Lottie','Rive','Spine','Motion Design','VFX','3D Modelling','Texturing','Rigging','Animation','AR Design','VR Design'],
+  'Video Production':['Adobe Premiere Pro','Final Cut Pro','DaVinci Resolve','Avid','After Effects','Video Editing','Color Grading','Motion Graphics','Storyboarding','Cinematography','Drone Filming','Live Streaming','OBS','Screen Recording'],
+
+  /* ── Product ── */
+  'Product Management':['Product Strategy','Product Roadmap','PRD Writing','User Stories','OKRs','KPIs','Prioritisation','Go-to-Market','Competitive Analysis','Market Research','Product Analytics','Feature Flagging','Roadmapping','Customer Development','Jobs to Be Done','North Star Metric','Retention','Churn Analysis','LTV','CAC'],
+  'Agile & Delivery':['Agile','Scrum','Kanban','SAFe','Lean','Sprint Planning','Retrospectives','Backlog Grooming','Stakeholder Management','JIRA','Confluence','Linear','Notion','Trello','Asana','Monday.com','ClickUp','Basecamp','Productboard','Aha!'],
+
+  /* ── Marketing ── */
+  'Digital Marketing':['SEO','SEM','Google Ads','Facebook Ads','Instagram Ads','TikTok Ads','LinkedIn Ads','Programmatic Advertising','Retargeting','Display Advertising','Native Advertising','Affiliate Marketing','Influencer Marketing','Podcast Advertising','YouTube Ads'],
+  'Content & Social':['Content Marketing','Copywriting','Blog Writing','Email Marketing','Social Media Management','Community Management','Video Marketing','Podcast Production','Webinar Hosting','Content Strategy','Editorial Calendar','Brand Voice','Newsletter','LinkedIn Content','Twitter/X Marketing'],
+  'Growth & Analytics':['Growth Hacking','Conversion Rate Optimisation','Funnel Analysis','Cohort Analysis','Attribution Modelling','Customer Segmentation','Personalisation','Push Notifications','In-app Messaging','Referral Programmes','Viral Loops','Lifetime Value','Net Promoter Score','Mixpanel','Amplitude','Segment','Google Analytics','Hotjar','Heap'],
+  'Brand & PR':['Brand Strategy','Brand Positioning','Public Relations','Media Relations','Crisis Communications','Thought Leadership','Event Marketing','Trade Shows','Sponsorships','Awards Strategy','Executive Communications','Corporate Communications'],
+  'E-commerce & CRO':['Shopify','WooCommerce','Magento','Amazon Seller','Marketplace Management','Product Listing Optimisation','Price Strategy','Inventory Management','Customer Retention','Loyalty Programmes','Upsell/Cross-sell','Cart Abandonment','Landing Page Optimisation','A/B Testing'],
+
+  /* ── Sales ── */
+  'Sales':['B2B Sales','B2C Sales','SaaS Sales','Enterprise Sales','SMB Sales','Inside Sales','Field Sales','Account Management','Business Development','Partnership Development','Channel Sales','Sales Strategy','Pipeline Management','Quota Setting','Territory Management','Sales Operations'],
+  'Sales Tools & Skills':['Salesforce','HubSpot','Outreach','Salesloft','ZoomInfo','Apollo.io','Gong','Chorus','LinkedIn Sales Navigator','Cold Calling','Cold Email','Demo Skills','Negotiation','Contract Management','Proposal Writing','RFP Response','Value Selling','MEDDIC','SPIN Selling','Challenger Sale'],
+  'Salesforce Platform':['Salesforce','Apex','Lightning Web Components','LWC','Visualforce','SOQL','SOSL','Salesforce CRM','Salesforce CPQ','Salesforce Sales Cloud','Salesforce Service Cloud','Salesforce Marketing Cloud','Salesforce Experience Cloud','Salesforce Commerce Cloud','Salesforce Health Cloud','Salesforce Financial Services Cloud','Salesforce Pardot','Salesforce Einstein','Flow Builder','Process Builder','Salesforce Integration','Salesforce REST API','Salesforce SOAP API','Bulk API','Streaming API','Salesforce DX','SFDX','Salesforce DevOps','Copado','Gearset','Salesforce Data Cloud','MuleSoft','Salesforce Connect','NPSP','Salesforce Nonprofit'],
+  'Salesforce Data Cloud & AI':['Salesforce Data Cloud','Salesforce CDP','Customer 360','Identity Resolution','Data Segmentation','Salesforce Einstein','Agentforce','Einstein Copilot','Einstein Analytics','Tableau CRM','Einstein Discovery','Salesforce AI','AMPscript','SSJS','Journey Builder','Email Studio','Automation Studio','Data Extensions','Marketing Cloud Connect','Salesforce CPQ','Salesforce Billing','Revenue Cloud','CPQ Pricing Rules','Salesforce Revenue Intelligence'],
+  'CRM & No-Code Platforms':['HubSpot CRM','HubSpot Development','Zoho CRM','Zoho Developer','Dynamics 365','Power Apps','Power Automate','Power Platform','ServiceNow Development','ServiceNow ITSM','SAP CRM','Oracle CX','Freshsales','Pipedrive','Monday.com Development','Airtable Development','Notion Workspace','Zapier','Make (Integromat)','n8n','Retool','Bubble','Webflow Development','Glide'],
+  'Customer Success':['Customer Success','Onboarding','Account Health','Churn Prevention','Expansion Revenue','QBRs','Customer Training','Escalation Management','SLA Management','NPS','CSAT','Voice of Customer','Gainsight','Totango','ChurnZero'],
+
+  /* ── Finance ── */
+  'Corporate Finance':['Financial Modelling','Excel','Financial Analysis','FP&A','Budgeting','Forecasting','Variance Analysis','P&L Management','Balance Sheet','Cash Flow Management','Scenario Analysis','Sensitivity Analysis','DCF Valuation','LBO Modelling','M&A','Due Diligence','GAAP','IFRS','Financial Reporting','Audit'],
+  'Startup Finance':['Cap Table Management','Equity Modelling','Investor Relations','Fundraising','Term Sheet Negotiation','Unit Economics','CAC/LTV','Runway Analysis','409A Valuation','SAFEs','Convertible Notes','Series Funding','VC Relations','Board Reporting','ESOP Management'],
+  'Investment & Trading':['Portfolio Management','Asset Management','Equity Research','Fixed Income','Derivatives','Options','Futures','Risk Management','VaR','Bloomberg Terminal','Reuters Eikon','Technical Analysis','Fundamental Analysis','Quantitative Finance','Algorithmic Trading','Hedge Fund','Private Equity','Venture Capital'],
+  'Banking & Insurance':['Credit Analysis','Lending','Underwriting','Mortgage','Trade Finance','Treasury','Risk Assessment','Compliance','KYC/AML','Basel III','ICAAP','Actuarial Science','Claims Management','Reinsurance','Insurance Products','Policy Administration'],
+  'Accounting & Tax':['Accounting','Bookkeeping','Tax Planning','Corporate Tax','GST/VAT','Transfer Pricing','Statutory Compliance','Internal Audit','External Audit','Reconciliation','Payroll','Accounts Payable','Accounts Receivable','Cost Accounting','Management Accounting','TALLY','QuickBooks','Xero','SAP FI'],
+
+  /* ── HR & People ── */
+  'Talent Acquisition':['Talent Acquisition','Sourcing','Boolean Search','LinkedIn Recruiter','Direct Sourcing','Campus Recruitment','Lateral Hiring','Executive Search','Headhunting','Employer Branding','Job Description Writing','Candidate Experience','Offer Management','Background Verification','Reference Checks','Recruitment Analytics','Greenhouse','Lever','SmartRecruiters','Workday Recruiting','iCIMS','Taleo','ATS','Naukri','Bulk Hiring','Technical Recruiting','RPO'],
+  'HR Operations':['HRIS','Workday','BambooHR','Rippling','SAP HR','Oracle HCM','Darwinbox','Keka','HiBob','Onboarding','Offboarding','HR Compliance','Labour Law','Employment Contracts','HR Policies','Payroll Processing','Leave Management','Benefits Administration','Visa & Immigration','Statutory Compliance','PF/ESI','HR Audits','Labour Laws','Labor Laws','Statutory Compliance','PF / ESI','Gratuity','Labour Welfare Fund','Industrial Relations','Employment Law','Works Committee','Standing Orders','Factories Act','Contract Labour','POSH Compliance','Background Verification','Exit Management'],
+  'People Strategy':['HR Business Partnering','Organisational Development','Change Management','Culture Building','Employee Engagement','Employee Relations','Grievance Handling','Performance Management','Goal Setting','360 Feedback','Succession Planning','Workforce Planning','Headcount Planning','Compensation Benchmarking','Job Architecture','HR Analytics','People Analytics','Tableau (HR)','R (HR Analytics)'],
+  'Learning & Development':['L&D Strategy','Training Design','Instructional Design','LMS Administration','E-learning','Classroom Training','Coaching','Mentoring','Leadership Development','Management Development','Onboarding Programmes','Skills Assessment','Competency Frameworks','Kirkpatrick Model','Learning Analytics'],
+
+  /* ── Operations ── */
+  'Supply Chain & Logistics':['Supply Chain Management','Procurement','Vendor Management','Contract Negotiation','Inventory Management','Demand Planning','S&OP','Warehouse Management','Last-Mile Delivery','Freight Management','Import/Export','Customs Clearance','3PL Management','SAP MM','SAP WM','SAP TM','Oracle SCM','Coupa','Ariba'],
+  'Manufacturing & Quality':['Lean Manufacturing','Six Sigma','Kaizen','5S','TPM','SPC','Quality Management','ISO 9001','IATF 16949','GMP','FMEA','Root Cause Analysis','Value Stream Mapping','Production Planning','MRP','ERP','SAP PP','SAP QM','AutoCAD','CATIA','SolidWorks'],
+  'Project & Programme Management':['Project Management','Programme Management','PMP','PRINCE2','PMO','Project Planning','Risk Management','Stakeholder Engagement','Change Management','Benefits Realisation','Resource Management','MS Project','Smartsheet','Primavera','Waterfall','Agile PM','Hybrid Delivery','Portfolio Management'],
+
+  /* ── Healthcare & Life Sciences ── */
+  'Healthcare':['Clinical Research','Clinical Trials','GCP','ICH Guidelines','Protocol Writing','CRF Design','Data Management','Medical Writing','Pharmacovigilance','Drug Safety','Regulatory Affairs','FDA Submissions','CE Marking','MDR','IVDR','Medical Device','Biostatistics','SAS (Clinical)','CDISC','SDTM','ADaM','eCTD','Health Economics','HEOR'],
+  'Pharmaceuticals':['Drug Discovery','Medicinal Chemistry','Formulation Development','Analytical Chemistry','HPLC','Mass Spectrometry','NMR','GMP Manufacturing','Validation','QA Pharma','Pharmacokinetics','Pharmacodynamics','Toxicology','Pre-clinical Studies','CMC','API Development','Gene Therapy','Biologics','Biosimilars'],
+  'Medical / Clinical':['Medicine','Surgery','Nursing','Physiotherapy','Occupational Therapy','Radiology','Pathology','Oncology','Cardiology','Neurology','Psychiatry','Paediatrics','Gynaecology','Emergency Medicine','ICU','Anaesthesia','Telemedicine','EMR Systems','Epic','Cerner','HL7','FHIR'],
+  'Public Health & Research':['Epidemiology','Biostatistics','Global Health','Health Policy','Health Economics','SPSS','SAS','R (Statistics)','Stata','Qualitative Research','Systematic Reviews','Meta-analysis','Grant Writing','IRB/Ethics','Community Health','Mental Health','Nutrition Science'],
+
+  /* ── Education ── */
+  'Education & Training':['Curriculum Development','Instructional Design','E-learning Development','Articulate Storyline','Adobe Captivate','LMS (Moodle/Canvas)','Classroom Teaching','Online Teaching','Assessment Design','STEM Education','Special Education','Early Childhood Education','Higher Education','Academic Research','Grant Writing','Pedagogy','Bloom\'s Taxonomy'],
+  'EdTech':['Learning Management Systems','Gamification','Adaptive Learning','Video Lecture Production','SCORM','xAPI','Virtual Classrooms','Zoom','Google Classroom','Khan Academy','Coursera','Educational Data Analytics','Student Information Systems'],
+
+  /* ── Legal & Compliance ── */
+  'Legal':['Corporate Law','Contract Drafting','Contract Review','M&A','IP Law','Patent Filing','Trademark','Litigation','Arbitration','Labour Law','Real Estate Law','Tax Law','Regulatory Compliance','Data Privacy','GDPR','CCPA','Legal Research','Legal Writing','Due Diligence','SEBI Regulations','Company Law','RBI Guidelines'],
+  'Compliance & Risk':['Risk Management','Compliance Management','AML','KYC','FATCA','Basel III','Solvency II','COSO Framework','Internal Controls','SOX Compliance','Regulatory Reporting','ISO 31000','Operational Risk','Credit Risk','Market Risk','Enterprise Risk','Fraud Detection','Financial Crime'],
+
+  /* ── Architecture & Real Estate ── */
+  'Architecture & Construction':['AutoCAD','Revit','SketchUp','Rhino','Grasshopper','ArchiCAD','Civil 3D','Navisworks','BIM','LEED','Structural Engineering','MEP Engineering','Interior Design','Landscape Architecture','Urban Planning','Project Management (Construction)','Quantity Surveying','RERA','Building Codes','Green Building'],
+
+  /* ── Engineering (Non-Software) ── */
+  'Mechanical Engineering':['SolidWorks','CATIA','AutoCAD','ANSYS','FEA','CFD','Product Design','Manufacturing Engineering','Thermodynamics','Fluid Mechanics','Machine Design','GD&T','Metrology','Injection Moulding','Sheet Metal','CNC Programming','3D Printing','Robotics','Mechatronics'],
+  'Electrical & Electronics':['Circuit Design','PCB Design','Altium Designer','KiCad','Eagle','MATLAB/Simulink','Power Electronics','Motor Drives','PLC Programming','SCADA','HMI','Control Systems','Signal Processing','RF Engineering','Antenna Design','EMC/EMI','Embedded Systems','FPGA','VLSI','Semiconductor','Power Systems'],
+  'Civil & Structural':['Structural Analysis','STAAD Pro','ETABS','SAP2000','Foundation Design','Concrete Design','Steel Design','Geotechnical Engineering','Surveying','Highway Design','Traffic Engineering','Water Supply','Wastewater Treatment','Hydrology','AutoCAD Civil 3D','GIS','ArcGIS','QGIS'],
+  'Chemical Engineering':['Process Design','Aspen HYSYS','PRO/II','HAZOP','PHA','Process Safety','Heat Transfer','Mass Transfer','Reaction Engineering','Distillation','Polymer Science','Petrochemicals','Refinery Operations','Environmental Engineering','Waste Management','Water Treatment','FMEA (Process)'],
+  'Energy & Sustainability':['Renewable Energy','Solar PV Design','Wind Energy','Energy Auditing','LEED','BREEAM','Carbon Footprint','ESG Reporting','GHG Protocol','CDP','Sustainability Strategy','Circular Economy','Life Cycle Assessment','Energy Management','ISO 50001','EPC Projects','Power Plant Operations','Grid Management'],
+
+  /* ── Media & Entertainment ── */
+  'Journalism & Writing':['Journalism','Investigative Reporting','Feature Writing','News Editing','Fact-checking','AP Style','SEO Writing','Technical Writing','Grant Writing','Ghostwriting','Screenwriting','Script Writing','Podcast Writing','Academic Writing','Proposal Writing'],
+  'Photography':['Photography','Lightroom','Photoshop','Portrait Photography','Commercial Photography','Product Photography','Photojournalism','Wedding Photography','Studio Lighting','Drone Photography','Photo Editing','Colour Grading'],
+  'Music & Audio':['Music Production','Ableton Live','Logic Pro','FL Studio','Pro Tools','Mixing','Mastering','Sound Design','Foley','Audio Engineering','Voice Over','Podcast Production','Music Theory','Composition','Orchestration','Live Sound','DJ','Music Licensing'],
+  'Performing Arts':['Acting','Directing','Stage Management','Choreography','Dance','Theatre Production','Casting','Talent Management','Event Production','Live Events','Concerts','Festivals','Set Design','Costume Design','Lighting Design'],
+
+  /* ── Consulting & Strategy ── */
+  'Management Consulting':['Strategy Consulting','Business Transformation','Operational Excellence','Digital Transformation','Change Management','Management Consulting','Benchmarking','Business Case Development','Frameworks (McKinsey/BCG)','Structured Problem Solving','Executive Communication','Workshop Facilitation','Hypothesis-driven Analysis'],
+  'Business Analysis':['Business Analysis','Requirements Gathering','Process Mapping','Gap Analysis','Use Cases','BRD Writing','Solution Design','UAT','Stakeholder Workshops','Data Mapping','As-Is/To-Be Analysis','Business Process Re-engineering'],
+  'Research & Insights':['Market Research','Consumer Insights','Quantitative Research','Qualitative Research','Focus Groups','Surveys','Ethnography','Competitive Intelligence','Industry Analysis','SWOT','PESTLE','Porter\'s Five Forces','Primary Research','Secondary Research','Panel Management'],
+
+  /* ── Customer Experience ── */
+  'Customer Support':['Customer Support','Help Desk','Ticketing Systems','Zendesk','Freshdesk','Intercom','ServiceNow','ITIL','SLA Management','Escalation Handling','Chat Support','Phone Support','Email Support','Knowledge Base','Self-service','VOC','CSAT','FCR'],
+  'CX & Experience Design':['Customer Experience','Journey Mapping','Voice of Customer','Experience Design','Service Design','CRM','Salesforce','HubSpot','Zoho CRM','Loyalty Programmes','Community Management','Customer Lifecycle','Retention Strategy','Personalisation'],
+
+  /* ── Entrepreneurship & Startups ── */
+  'Entrepreneurship':['Entrepreneurship','Startup Operations','Fundraising','Pitch Decks','Investor Relations','Board Management','Cap Table','Equity','Bootstrapping','MVP Development','Customer Discovery','Lean Startup','Business Model Design','Monetisation Strategy','Scaling','Startup Legal','Company Formation','ESOP'],
+};
+let ALL_SKILLS = Object.entries(SKILLS_DB).flatMap(([cat,list])=>list.map(s=>({s,cat})));
 
 /* ══════════════════════════════════════
    ROLES DATABASE — JD-accurate, all industries
@@ -1739,7 +1546,7 @@ function unlockSalary(){
   document.querySelectorAll('.sal-btn.active').forEach(btn => applySelectLevel(btn));
 }
 
-
+let ROLES = [];
 
 /* ─── Email Capture ─── */
 /* email capture handled by inline script in modal */
@@ -1752,24 +1559,6 @@ function switchTab(tab, btn){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+tab).classList.add('active');
   btn.classList.add('active');
-  window.scrollTo({top:0,behavior:'smooth'});
-  if(tab==='cv'){
-    setTimeout(function(){
-      const c=document.getElementById('cvRoleInput');
-      if(c && document.getElementById('page-cv').classList.contains('active')){
-        c.focus();
-        onCvRoleFocus();
-      }
-    },120);
-  }
-}
-
-function switchToPrivacyPage(ev){
-  if(ev) ev.preventDefault();
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  const pg = document.getElementById('page-privacy');
-  if(pg) pg.classList.add('active');
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -1807,13 +1596,7 @@ function switchMode(mode, btn){
   btn.classList.add('active');
   document.getElementById('pane-'+mode).classList.add('active');
   if(mode==='nl') document.getElementById('nlInput').focus();
-  else if(mode==='title'){
-    window._aiTopRoles = [];
-    setTimeout(function(){
-      const ti=document.getElementById('titleModeInput');
-      if(ti) ti.focus();
-    },0);
-  } else {
+  else {
     window._aiTopRoles = [];
     document.getElementById('mainInput').focus();
   }
@@ -2555,7 +2338,8 @@ function runNL(){
    ══════════════════════════════════════════════════════ */
 function extractSkillsFromText(text){
   if(!text) return [];
-  const skillStrings = ALL_SKILLS.map(({s}) => s);
+  // Build flat string array from SKILLS_DB (ALL_SKILLS stores objects {s,cat})
+  const skillStrings = Object.values(SKILLS_DB).flat();
   if(!skillStrings.length) return [];
   const lower = text.toLowerCase();
   const found = [];
@@ -2615,8 +2399,6 @@ function extractSkillsFromText(text){
 /* ══════════════
    APP STATE
    ══════════════ */
-let ROLES = [];
-let ALL_SKILLS = [];
 let skills = [];
 let activeDept = 'all';
 let sugFocused = -1;
@@ -2690,7 +2472,7 @@ function scoreRole(role, inputSkills){
 /* ══════════════
    RENDER
    ══════════════ */
-const _DEFAULT_DEPT_COLORS = {
+const DEPT_COLORS = {
   Engineering:{bg:'var(--accent-lt)',color:'var(--accent)'},
   Data:{bg:'var(--purple-lt)',color:'var(--purple)'},
   Design:{bg:'var(--rose-lt)',color:'var(--rose)'},
@@ -2704,7 +2486,6 @@ const _DEFAULT_DEPT_COLORS = {
   Legal:{bg:'#f3f4f6',color:'#374151'},
   Learning:{bg:'#ecfdf5',color:'#059669'},
 };
-let DEPT_COLORS = _DEFAULT_DEPT_COLORS;
 
 function render(){
   const area = document.getElementById('resultsArea');
@@ -3155,11 +2936,21 @@ function handleKey(e){
     e.preventDefault();
     // If a specific item is arrow-key focused, pick it
     if(sugFocused>=0&&items[sugFocused]){ items[sugFocused].click(); return; }
-    // If suggestions are showing, auto-pick the first one
-    if(items.length&&drop.classList.contains('open')){ items[0].click(); return; }
+    // If suggestions are showing, auto-pick the first one — but check title first
+    if(items.length&&drop.classList.contains('open')){
+      const firstText = items[0].querySelector('div') ? items[0].querySelector('div').textContent : items[0].textContent;
+      const rawFirst = firstText.trim();
+      const titleMatch = findTitleMatch(rawFirst);
+      if(titleMatch){ input.value=''; hideSug(); showTitleHint(rawFirst, titleMatch.title); return; }
+      items[0].click(); return;
+    }
     // Otherwise add whatever was typed
     const val = input.value.trim();
-    if(val){ addSkill(val); input.value=''; hideSug(); }
+    if(val){
+      const titleMatch = findTitleMatch(val);
+      if(titleMatch){ showTitleHint(val, titleMatch.title); return; }
+      addSkill(resolveAlias(val)); input.value=''; hideSug();
+    }
     return;
   }
 
@@ -3168,7 +2959,9 @@ function handleKey(e){
     const val = input.value.trim();
     if(val){
       e.preventDefault();
-      addSkill(val); input.value=''; hideSug();
+      const titleMatch = findTitleMatch(val);
+      if(titleMatch){ input.value=''; hideSug(); showTitleHint(val, titleMatch.title); return; }
+      addSkill(resolveAlias(val)); input.value=''; hideSug();
     }
     return;
   }
@@ -3181,7 +2974,16 @@ function addTyped(){
   const input = document.getElementById('mainInput');
   const val   = input.value.trim();
 
-  if(val){ addSkill(val); input.value=''; hideSug(); }
+  // Detect if user typed a job title instead of a skill
+  if(val){
+    const titleMatch = findTitleMatch(val);
+    if(titleMatch){
+      showTitleHint(val, titleMatch.title);
+      return;
+    }
+  }
+
+  if(val){ addSkill(resolveAlias(val)); input.value=''; hideSug(); }
   if(!skills.length){ input.focus(); return; }
 
   // Pre-validate: test if any roles match before consuming
@@ -3251,9 +3053,21 @@ function addSkill(skill){
   window._aiTopRoles = [];
   const clean = skill.trim();
   if(!clean) return;
-  const cleanLower = clean.toLowerCase();
-  if(skills.find(s=>s.toLowerCase()===cleanLower)) return;
-  skills.push(clean);
+
+  // Title detection on RAW input — before alias resolution
+  // Catches: "HRBP", "frontend developer", "PM", "SDE", etc.
+  const titleMatch = findTitleMatch(clean);
+  if(titleMatch){
+    showTitleHint(clean, titleMatch.title);
+    return;
+  }
+
+  // Now resolve alias (e.g. "hrbp" → "Employee Relations" won't reach here)
+  const resolved = resolveAlias(clean);
+  const resolvedLower = resolved.toLowerCase();
+
+  if(skills.find(s=>s.toLowerCase()===resolvedLower)) return;
+  skills.push(resolved);
   renderBubbles();
   render();
   document.getElementById('skillCountLbl').textContent = skills.length ? `${skills.length} skill${skills.length!==1?'s':''} added` : '';
@@ -3287,7 +3101,16 @@ function renderSug(q){
     items=ALL_SKILLS.filter(({s})=>!already.includes(s.toLowerCase())).slice(0,14).map(({s,cat})=>({s,cat,hi:s}));
   } else {
     const ql=q.toLowerCase();
-
+    // If typed query matches a title or title keyword (e.g. "HRBP", "PM", "SDE"),
+    // show a dedicated "Browse by Title" hint item — don't silently alias to a skill
+    const titleHint = findTitleMatch(q);
+    if(titleHint){
+      const safeQ = q.replace(/'/g,"\\'");
+      const safeTitle = titleHint.title.replace(/'/g,"\\'");
+      drop.innerHTML=`<div class="sug-item sug-title-hint" onclick="pickSugTitle('${safeQ}','${safeTitle}')"><div>&#x1F50D; <strong>${q}</strong> &mdash; looks like a job title</div><span class="sug-cat">Browse by Title &rarr;</span></div>`;
+      drop.classList.add('open');
+      return;
+    }
     const roleKwMatches=[];
     if(typeof ROLES!=='undefined'){ROLES.forEach(r=>{if(!r.keywords)return;const hit=r.keywords.slice(1).find(k=>{const kl=k.toLowerCase();return kl.includes(ql)||ql.includes(kl);});if(hit&&!roleKwMatches.find(x=>x.title===r.title))roleKwMatches.push({title:r.title,kw:hit});});}
     if(roleKwMatches.length){const safeQ=q.replace(/'/g,"\\'");drop.innerHTML=roleKwMatches.slice(0,4).map(m=>{const st=m.title.replace(/'/g,"\\'");return`<div class="sug-item sug-title-hint" onclick="pickSugTitle('${safeQ}','${st}')"><div>&#x1F50D; <strong>${q}</strong> &mdash; also called: <em>${m.title}</em></div><span class="sug-cat">Browse by Title &rarr;</span></div>`;}).join('');drop.classList.add('open');return;}
@@ -3318,11 +3141,17 @@ function pickSugTitle(typed, roleTitle){
 }
 
 function pickSug(s){
+  const titleMatch = findTitleMatch(s);
   document.getElementById('mainInput').value = '';
   hideSug();
-  addSkill(s);
+  if(titleMatch){
+    showTitleHint(s, titleMatch.title);
+    return;
+  }
+  addSkill(resolveAlias(s));
   document.getElementById('mainInput').focus();
 }
+
 function filterDept(dept){
   // Handle both string (from dynamic buttons) and DOM element (legacy)
   if(dept && typeof dept === 'object' && dept.dataset) dept = dept.dataset.dept || 'all';
@@ -3360,12 +3189,23 @@ function showToast(msg,type){
 }
 
 /* ── Quick picks ── */
-function initQuickPicks(){ /* skills shown as placeholder watermark instead */ }
+function initQuickPicks(){
+  const wrap=document.getElementById('quickPicks');
+  QUICK_SKILLS.forEach(s=>{
+    const btn=document.createElement('button');
+    btn.style.cssText='padding:4px 12px;border-radius:20px;border:1px solid var(--border);background:var(--white);color:var(--ink2);font-family:var(--sans);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;';
+    btn.textContent='+ '+s;
+    btn.onclick=()=>{ addSkill(s); btn.style.opacity='.4'; btn.style.pointerEvents='none'; };
+    wrap.appendChild(btn);
+  });
+}
+
+
 
 /* ─── Sorry Dog State ─── */
 function showSorryState(query){
   const area = document.getElementById('resultsArea');
-  const reportEmail = 'contactus@talentsradar.com';
+  const reportEmail = 'Hrawat640@gmail.com';
   const subject = encodeURIComponent('SkillMapper: Missing role for "' + query + '"');
   const body = encodeURIComponent('Hi,\n\nSkillMapper did not return results for:\n\n"' + query + '"\n\nPlease add this role/skills to the database.\n\nThank you!');
   area.innerHTML = `
@@ -3448,59 +3288,23 @@ function toggleCurrency(cur){
   document.querySelectorAll('.sal-btn.active').forEach(btn => applySelectLevel(btn));
 }
 
-/* ══════════════════════════════════════
-   DATA LOADER
-   ══════════════════════════════════════ */
-async function loadAppData(){
-  if(!_sb){
-    console.warn('SkillMapper: Supabase not initialised. Check supabase-config.js (see supabase-config.example.js).');
-    ROLES=[];ALL_SKILLS=[];window.SKILLS_DB={};DEPT_COLORS=_DEFAULT_DEPT_COLORS;DB_LOADED=false;
-    return;
-  }
-  try {
-    const [rolesRes, skillsRes, deptsRes] = await Promise.all([
-      _sb.from('roles').select('*').eq('active',true).order('title'),
-      _sb.from('skills').select('*').eq('active',true),
-      _sb.from('departments').select('*').order('sort_order')
-    ]);
-    if(rolesRes.data){
-      ROLES = rolesRes.data.map(normaliseRole);
-      DB_ROLES = rolesRes.data;
-    }
-    if(skillsRes.data){
-      window.SKILLS_DB = buildSkillsDb(skillsRes.data);
-      DB_SKILLS = window.SKILLS_DB;
-      ALL_SKILLS = Object.entries(window.SKILLS_DB||{})
-        .flatMap(([cat,list])=>list.map(s=>({s,cat})));
-    }
-    if(deptsRes.data){
-      DEPT_COLORS = buildDeptsMap(deptsRes.data);
-      DB_DEPTS = deptsRes.data;
-    }
-    buildImpliesMap(skillsRes.data||[]);
-    DB_LOADED = true;
-    console.log('Loaded',ROLES.length,'roles,',ALL_SKILLS.length,'skills');
-  } catch(e){
-    console.error('Data load failed:',e);
-    ROLES=[];ALL_SKILLS=[];window.SKILLS_DB={};
-    DEPT_COLORS = _DEFAULT_DEPT_COLORS;
-    DB_LOADED = false;
-  }
-}
 
+initQuickPicks();
+
+// Clear all search inputs on page load — search is session-based only
 function normaliseRole(r){
   function expArr(e){ return e?[e.min,e.max,(e.inr||'')+'|'+(e.usd||'')]:[null,null,null]; }
   return {
-    title:r.title, dept:r.dept, desc:r.description, hint:r.hint,
-    cvTip:r.cv_tip, keywords:r.keywords||[], required:r.required||[], nice:r.nice||[],
+    title:r.title, dept:r.dept, desc:r.description||r.desc||'', hint:r.hint,
+    keywords:r.keywords||[], required:r.required||[], nice:r.nice||[],
     exp:{ junior:expArr(r.exp_junior), mid:expArr(r.exp_mid),
           senior:expArr(r.exp_senior), lead:expArr(r.exp_lead) }
   };
 }
 
-function buildSkillsDb(skills){
+function buildSkillsDb(skillsData){
   const db={};
-  (skills||[]).forEach(s=>{
+  (skillsData||[]).forEach(s=>{
     if(!db[s.category])db[s.category]=[];
     if(!db[s.category].includes(s.name))db[s.category].push(s.name);
     (s.aliases||[]).forEach(a=>{ if(!db[s.category].includes(a))db[s.category].push(a); });
@@ -3508,319 +3312,42 @@ function buildSkillsDb(skills){
   return db;
 }
 
-function buildDeptsMap(depts){
-  const map={};
-  (depts||[]).forEach(d=>{ map[d.name]={bg:d.bg_color,color:d.text_color}; });
-  return map;
-}
-
-function buildImpliesMap(skills){
-  window.SKILL_IMPLIES={};
-  (skills||[]).forEach(s=>{
-    if(s.implies&&s.implies.length) window.SKILL_IMPLIES[s.name]=s.implies;
-  });
-}
-
-function showAppLoading(){
-  document.getElementById('resultsArea').innerHTML=`
-    <div class="empty-state">
-      <div style="display:flex;justify-content:center;gap:6px;margin-bottom:14px;">
-        <div style="width:8px;height:8px;border-radius:50%;background:var(--teal);animation:ldot 1.2s ease-in-out infinite;"></div>
-        <div style="width:8px;height:8px;border-radius:50%;background:var(--teal);animation:ldot 1.2s ease-in-out .2s infinite;"></div>
-        <div style="width:8px;height:8px;border-radius:50%;background:var(--teal);animation:ldot 1.2s ease-in-out .4s infinite;"></div>
-      </div>
-      <div class="empty-title" style="font-size:14px;">Loading role database…</div>
-      <div class="empty-sub">Fetching latest roles and skills</div>
-    </div>`;
-}
-
-/* ══════════════════════════════════════
-   CV EVALUATOR
-   ══════════════════════════════════════ */
-let cvSelectedRole=null, cvInputMode='upload', cvExtractedText='';
-
-function escapeHtml(str){
-  if(str==null) return '';
-  return String(str)
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;')
-    .replace(/'/g,'&#039;');
-}
-
-function switchCvInput(mode){
-  cvInputMode=mode;
-  document.getElementById('cvUploadZone').style.display=mode==='upload'?'block':'none';
-  document.getElementById('cvPasteZone').style.display=mode==='paste'?'block':'none';
-  const u=document.getElementById('cvTabUpload'),p=document.getElementById('cvTabPaste');
-  u.style.borderColor=mode==='upload'?'#0f766e':'#e4e2db';u.style.background=mode==='upload'?'#f0fdfa':'#fff';u.style.color=mode==='upload'?'#0f766e':'#6b6963';
-  p.style.borderColor=mode==='paste'?'#0f766e':'#e4e2db';p.style.background=mode==='paste'?'#f0fdfa':'#fff';p.style.color=mode==='paste'?'#0f766e':'#6b6963';
-}
-
-function onCvRoleFocus(){
-  onCvRoleInput({target:document.getElementById('cvRoleInput')});
-}
-
-function onCvRoleInput(e){
-  const q=e.target.value.trim();
-  document.getElementById('cvRoleNotFound').style.display='none';
-  const drop=document.getElementById('cvRoleDropdown');
-  if(!q){
-    const all=(ROLES||[]).slice().sort((a,b)=>a.title.localeCompare(b.title)).slice(0,80);
-    if(!all.length){ drop.classList.remove('open'); return; }
-   drop.innerHTML=all.map(r=>`<div class="td-item" onmousedown="event.preventDefault();selectCvRole(${JSON.stringify(r.title)})"><span>${escapeHtml(r.title)}</span><span style="font-size:11px;color:var(--ink3);">${escapeHtml(r.dept)}</span></div>`).join('');
-    drop.classList.add('open');
-    return;
-  }
-  const ql=q.toLowerCase();
-  const matches=(ROLES||[]).filter(r=>
-    r.title.toLowerCase().includes(ql)||(r.keywords||[]).some(k=>k.toLowerCase().includes(ql))
-  ).slice(0,12);
-  if(!matches.length){
-    drop.classList.remove('open');
-    setTimeout(()=>{ if(document.getElementById('cvRoleInput').value.trim()===q){
-      document.getElementById('cvRoleNotFound').style.display='block';
-      document.getElementById('cvMissingRoleName').value=q;
-    }},800);
-    return;
-  }
-  drop.innerHTML=matches.map(r=>`<div class="td-item" onmousedown="event.preventDefault();selectCvRole(${JSON.stringify(r.title)})"></span><span style="font-size:11px;color:var(--ink3);">${escapeHtml(r.dept)}</span></div>`).join('');
-  drop.classList.add('open');
-}
-
-function onCvRoleKeydown(e){
-  if(e.key==='Escape')document.getElementById('cvRoleDropdown').classList.remove('open');
-  if(e.key==='Enter'){const items=document.querySelectorAll('#cvRoleDropdown .td-item');if(items.length)items[0].dispatchEvent(new MouseEvent('mousedown'));}
-}
-
-function closeCvDrop(){ document.getElementById('cvRoleDropdown').classList.remove('open'); }
-
-function selectCvRole(title){
-  cvSelectedRole=(ROLES||[]).find(r=>r.title===title);
-  if(!cvSelectedRole){
-    // try keyword match
-    cvSelectedRole=(ROLES||[]).find(r=>(r.keywords||[]).some(k=>k.toLowerCase()===title.toLowerCase()));
-  }
-  const resolvedTitle = cvSelectedRole ? cvSelectedRole.title : title;
-  document.getElementById('cvRoleInput').value='';
-  document.getElementById('cvRoleInput').placeholder='Role selected ✓ — change below if needed';
-  document.getElementById('cvRoleDropdown').classList.remove('open');
-  document.getElementById('cvRoleNotFound').style.display='none';
-  const chip=document.getElementById('cvSelectedRole');
-  chip.style.display='flex';
-  chip.innerHTML=`<span style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;background:#f0fdfa;border:1.5px solid rgba(15,118,110,0.3);border-radius:20px;font-size:12.5px;font-weight:600;color:#0f766e;font-family:Outfit,sans-serif;">✓ ${escapeHtml(resolvedTitle)} <button onclick="clearCvRole()" style="background:none;border:none;cursor:pointer;color:#0f766e;font-size:14px;padding:0;line-height:1;">×</button></span>`;
-  chip.scrollIntoView({behavior:'smooth',block:'nearest'});
-}
-
-function clearCvRole(){
-  cvSelectedRole=null;
-  document.getElementById('cvRoleInput').value='';
-  document.getElementById('cvRoleInput').placeholder='Type a role — e.g. Data Engineer, HR Business Partner, Product Manager…';
-  document.getElementById('cvSelectedRole').style.display='none';
-}
-
-function handleCvFile(e){ const f=e.target.files[0]; if(f)processCvFile(f); }
-function handleCvDrop(e){ e.preventDefault(); document.getElementById('cvUploadZone').style.borderColor='#e4e2db'; const f=e.dataTransfer.files[0]; if(f)processCvFile(f); }
-
-function processCvFile(file){
-  const status=document.getElementById('cvFileStatus');
-  status.style.display='block'; status.textContent='⏳ Reading '+file.name+'…';
-  const reader=new FileReader();
-  reader.onload=function(ev){
-    cvExtractedText=ev.target.result;
-    status.textContent='✓ '+file.name+' loaded — ready to evaluate.';
-    document.getElementById('cvUploadZone').style.borderColor='#0f766e';
-  };
-  reader.readAsText(file);
-}
-
-function smartSkillMatch(skill,cvLower){
-  if(cvLower.includes(skill.toLowerCase()))return true;
-  const implies=(window.SKILL_IMPLIES||{})[skill]||[];
-  return implies.some(imp=>cvLower.includes(imp.toLowerCase()));
-}
-
-function runSmartCvEvaluation(){
-  if(!cvSelectedRole){showToast('Please select a target role first','err');return;}
-  const cvText=cvInputMode==='paste'?document.getElementById('cvPasteInput').value.trim():cvExtractedText;
-  if(!cvText){showToast('Please upload your CV or paste your CV text','err');return;}
-
-  const role=cvSelectedRole, cvLower=cvText.toLowerCase();
-  const wordCount=cvText.split(/\s+/).filter(Boolean).length;
-  const userYears=document.getElementById('cvYearsExp').value;
-
-  document.getElementById('cvResults').innerHTML='';
-  document.getElementById('cvLoadingState').style.display='block';
-  document.getElementById('cvLoadingText').textContent='Analysing your CV…';
-
-  const matchedReq=(role.required||[]).filter(s=>smartSkillMatch(s,cvLower));
-  const missingReq=(role.required||[]).filter(s=>!smartSkillMatch(s,cvLower));
-  const matchedNice=(role.nice||[]).filter(s=>smartSkillMatch(s,cvLower));
-  const missingNice=(role.nice||[]).filter(s=>!smartSkillMatch(s,cvLower)).slice(0,8);
-
-  const reqScore=role.required.length>0?(matchedReq.length/role.required.length)*70:70;
-  const niceScore=role.nice.length>0?(matchedNice.length/Math.min(role.nice.length,10))*20:0;
-  const sparseBonus=wordCount>=400?10:wordCount>=200?5:0;
-  let score=Math.round(reqScore+niceScore+sparseBonus);
-
-  // Experience adjustment
-  let expMsg='', expWarning=false;
-  if(userYears!==''){
-    const yrs=parseInt(userYears);
-    const levels=Object.entries(role.exp||{}).filter(([,d])=>d&&d[0]!==null).map(([lvl,d])=>({lvl,min:d[0],max:d[1]}));
-    if(levels.length){
-      const lowest=levels[0], highest=levels[levels.length-1];
-      if(yrs<lowest.min){ score=Math.max(0,score-25); expWarning=true; expMsg=`Your ${yrs} year(s) is below the typical ${lowest.min}–${highest.max} years for this role. Consider targeting more junior versions first.`; }
-      else if(yrs>highest.max){ expMsg=`Your ${yrs} years exceeds this role's typical range. You may want to consider more senior titles.`; }
-      else { expMsg=`Your experience level is a good match for this role.`; }
+async function loadFromSupabase(){
+  if(!window._sb) return false;
+  try{
+    const [rolesRes, skillsRes] = await Promise.all([
+      window._sb.from('roles').select('*').eq('active',true).order('title'),
+      window._sb.from('skills').select('*').eq('active',true)
+    ]);
+    if(rolesRes.data && rolesRes.data.length){
+      ROLES = rolesRes.data.map(normaliseRole);
     }
+    if(skillsRes.data && skillsRes.data.length){
+      const built = buildSkillsDb(skillsRes.data);
+      ALL_SKILLS = Object.entries(built).flatMap(([cat,list])=>list.map(s=>({s,cat})));
+    }
+    console.log('Supabase loaded',ROLES.length,'roles,',ALL_SKILLS.length,'skills');
+    return true;
+  }catch(e){
+    console.warn('Supabase load failed, using built-in data',e);
+    return false;
   }
-  score=Math.max(0,Math.min(99,score));
-
-  // ATS checks
-  const atsFlags=[];
-  if(cvText.trim().length<250) atsFlags.push({msg:'Very little text extracted. If you uploaded a PDF, it may be image-based. Try pasting the text instead.',sev:'high'});
-  if((cvText.match(/\|/g)||[]).length>5) atsFlags.push({msg:'Tables detected — many ATS systems cannot parse these. Use plain bullet points.',sev:'high'});
-  if(!/(skills|expertise|competencies|technologies)/i.test(cvText)) atsFlags.push({msg:'No dedicated skills section found. Adding one improves ATS match rates significantly.',sev:'medium'});
-  if((cvText.match(/\d+%|\d+\s*(years|yrs|lakh|lakhs|cr|crore|\bk\b|team|people)/gi)||[]).length<2) atsFlags.push({msg:'Very few measurable achievements. Adding numbers (%, team size, revenue) strengthens any CV.',sev:'medium'});
-  if(/(career objective|my objective)/i.test(cvText)) atsFlags.push({msg:'"Career Objective" is outdated. Replace with a 3-line Professional Summary.',sev:'low'});
-  if(/(references available|reference on request)/i.test(cvText)) atsFlags.push({msg:'"References available" wastes space — remove it.',sev:'low'});
-  if(/(team player|self.motivated|passionate about|results.driven)/i.test(cvText)) atsFlags.push({msg:'Generic buzzwords detected. Replace with specific achievements.',sev:'low'});
-
-  const roleTips={'Data Engineer':'Mention specific tools by name (Airflow, dbt, Kafka) and data volumes handled.','Data Scientist':'Quantify model performance and name the business problem solved.','Product Manager':'Show metrics: DAU growth %, churn reduction %, revenue impact.','HR Business Partner':'Quantify: headcount managed, attrition % reduced, programmes launched.','Talent Acquisition Specialist':'Show funnel metrics: time-to-hire, offer acceptance rate. Name ATS tools used.','Financial Analyst':'Show modelling depth: DCF, LBO, scenario analysis. Name the industry.','Frontend Engineer':'Name frameworks and versions. Add portfolio or GitHub link.','Backend Engineer':'Mention scale: RPS, DB size, team size supported.','default':'Use exact keywords from the job description verbatim — ATS matches strings, not meanings.'};
-  const roleTip=roleTips[role.title]||roleTips['default'];
-
-  if(_sb) void _sb.from('cv_evaluations').insert({role_title:role.title,total_skills:(role.required.length+role.nice.length),matched_skills:(matchedReq.length+matchedNice.length),missing_required:missingReq.length,missing_nice:missingNice.length,final_score:score,word_count:wordCount,user_years_exp:userYears||null}).then(()=>{}).catch(()=>{});
-
-  document.getElementById('cvLoadingState').style.display='none';
-
-  const sc=score>=75?'#0d7a4e':score>=45?'#0f766e':'#b45309';
-  const allMissing=[...missingReq,...missingNice];
-  window._cvLastMissingSkills = allMissing;
-
-  const rt = escapeHtml(role.title);
-  const eTip = escapeHtml(roleTip);
-  const eExp = escapeHtml(expMsg);
-  const smartBlurb = score>=75
-    ? 'Your CV is well-aligned for a '+rt+' role. The keywords recruiters and ATS systems look for are present.'
-    : score>=45
-      ? 'Your CV has a solid foundation for '+rt+' but is missing some keywords ATS systems specifically scan for.'
-      : 'Your CV needs focused work before applying for '+rt+' roles. The must-have skills section shows several gaps.';
-  const missingReqBlurb = missingReq.length<=2 ? '' : escapeHtml(String(missingReq.length))+' required skills are missing. These are non-negotiable in most '+rt+' job descriptions.';
-
-  document.getElementById('cvResults').innerHTML=`
-    <div style="background:#fff;border:1.5px solid #e4e2db;border-radius:14px;padding:20px 22px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #f3f4f6;">
-        <div>
-          <div style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;font-family:Outfit,sans-serif;">CV Evaluation</div>
-          <div style="font-size:17px;font-weight:800;color:#111;font-family:Outfit,sans-serif;">${rt}</div>
-          <div style="font-size:12px;color:#6b7280;margin-top:3px;font-family:Outfit,sans-serif;">${wordCount} words · ${matchedReq.length}/${role.required.length} required skills found</div>
-        </div>
-        <div style="text-align:right;">
-          <div style="font-size:40px;font-weight:800;color:${sc};line-height:1;font-family:Outfit,sans-serif;">${score}%</div>
-          <div style="font-size:11px;font-weight:600;color:${sc};margin-top:3px;font-family:Outfit,sans-serif;">${score>=75?'Strong match':score>=45?'Partial match':'Needs work'}</div>
-        </div>
-      </div>
-      <div style="background:#f3f4f6;border-radius:20px;height:7px;margin-bottom:16px;overflow:hidden;"><div style="height:100%;border-radius:20px;background:${sc};width:${score}%;"></div></div>
-
-      ${expMsg?`<div style="background:${expWarning?'#fffbeb':'#f0fdf4'};border:1px solid ${expWarning?'rgba(180,83,9,0.2)':'rgba(13,122,78,0.2)'};border-radius:9px;padding:11px 14px;margin-bottom:12px;font-size:13px;color:${expWarning?'#b45309':'#0d7a4e'};font-family:Outfit,sans-serif;">${expWarning?'⚠️':'✓'} ${eExp}</div>`:''}
-
-      <div style="background:linear-gradient(135deg,#f8fafc,#f0fdfa);border:1px solid rgba(15,118,110,0.12);border-radius:10px;padding:14px 16px;margin-bottom:12px;">
-        <div style="font-size:11px;font-weight:700;color:#0f766e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;font-family:Outfit,sans-serif;">💡 Smart Feedback</div>
-        <p style="font-size:13px;color:#374151;line-height:1.7;margin:0 0 8px;font-family:Outfit,sans-serif;">${smartBlurb}</p>
-        ${missingReq.length===0?`<p style="font-size:13px;color:#0d7a4e;line-height:1.7;margin:0 0 8px;font-family:Outfit,sans-serif;font-weight:600;">All must-have skills found — you pass the first ATS filter.</p>`:missingReq.length<=2?`<p style="font-size:13px;color:#374151;line-height:1.7;margin:0 0 8px;font-family:Outfit,sans-serif;">Almost there — just ${missingReq.length} required skill(s) missing. If you have this experience, add the exact keyword.</p>`:`<p style="font-size:13px;color:#374151;line-height:1.7;margin:0 0 8px;font-family:Outfit,sans-serif;">${missingReqBlurb}</p>`}
-        <div style="border-top:1px solid rgba(15,118,110,0.1);padding-top:10px;margin-top:4px;">
-          <div style="font-size:10px;font-weight:700;color:#0f766e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;font-family:Outfit,sans-serif;">Role-specific tip</div>
-          <p style="font-size:12.5px;color:#374151;line-height:1.65;margin:0;font-family:Outfit,sans-serif;">${eTip}</p>
-        </div>
-      </div>
-
-      ${atsFlags.length?`<div style="background:#fff8ed;border:1px solid rgba(180,83,9,0.2);border-radius:10px;padding:14px 16px;margin-bottom:12px;"><div style="font-size:11px;font-weight:700;color:#b45309;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;font-family:Outfit,sans-serif;">🔍 ATS Compatibility (${atsFlags.length} issue${atsFlags.length>1?'s':''})</div>${atsFlags.map(f=>`<div style="display:flex;gap:8px;margin-bottom:8px;align-items:flex-start;"><span style="flex-shrink:0;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:${f.sev==='high'?'#fef2f2':f.sev==='medium'?'#fffbeb':'#f3f4f6'};color:${f.sev==='high'?'#b91c1c':f.sev==='medium'?'#b45309':'#6b7280'};font-family:Outfit,sans-serif;">${f.sev==='high'?'High':f.sev==='medium'?'Medium':'Tip'}</span><span style="font-size:12.5px;color:#374151;line-height:1.55;font-family:Outfit,sans-serif;">${escapeHtml(f.msg)}</span></div>`).join('')}</div>`:
-      `<div style="background:#f0fdf4;border:1px solid rgba(13,122,78,0.2);border-radius:9px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:#0d7a4e;font-weight:600;font-family:Outfit,sans-serif;">✓ No major ATS compatibility issues found</div>`}
-
-      ${missingReq.length?`<div style="background:#fef2f2;border:1px solid rgba(185,28,28,0.15);border-radius:10px;padding:14px 16px;margin-bottom:12px;"><div style="font-size:11px;font-weight:700;color:#b91c1c;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;font-family:Outfit,sans-serif;">⚠️ Must-have skills not found (${missingReq.length})</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">${missingReq.map(s=>`<span style="padding:4px 10px;background:#fff;border:1.5px solid rgba(185,28,28,0.3);border-radius:20px;font-size:12px;font-weight:600;color:#b91c1c;font-family:Outfit,sans-serif;">${escapeHtml(s)}</span>`).join('')}</div><div style="font-size:12px;color:#6b6963;font-family:Outfit,sans-serif;">Add these exact keywords to your Skills section and relevant job descriptions.</div></div>`:
-      `<div style="background:#f0fdf4;border:1px solid rgba(13,122,78,0.2);border-radius:9px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#0d7a4e;font-weight:600;font-family:Outfit,sans-serif;">✓ All must-have skills found in your CV</div>`}
-
-      ${missingNice.length?`<div style="background:#fffbeb;border:1px solid rgba(180,83,9,0.15);border-radius:10px;padding:14px 16px;margin-bottom:12px;"><div style="font-size:11px;font-weight:700;color:#b45309;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;font-family:Outfit,sans-serif;">💛 Good-to-have skills to add (${missingNice.length})</div><div style="display:flex;flex-wrap:wrap;gap:6px;">${missingNice.map(s=>`<span style="padding:4px 10px;background:#fff;border:1.5px solid rgba(180,83,9,0.25);border-radius:20px;font-size:12px;font-weight:500;color:#b45309;font-family:Outfit,sans-serif;">${escapeHtml(s)}</span>`).join('')}</div></div>`:''}
-
-      ${(matchedReq.length+matchedNice.length)>0?`<div style="background:#f0fdfa;border:1px solid rgba(15,118,110,0.2);border-radius:10px;padding:14px 16px;margin-bottom:12px;"><div style="font-size:11px;font-weight:700;color:#0f766e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;font-family:Outfit,sans-serif;">✅ Skills found (${matchedReq.length+matchedNice.length})</div><div style="display:flex;flex-wrap:wrap;gap:6px;">${[...matchedReq,...matchedNice].map(s=>`<span style="padding:4px 10px;background:#fff;border:1.5px solid rgba(15,118,110,0.25);border-radius:20px;font-size:12px;font-weight:500;color:#0f766e;font-family:Outfit,sans-serif;">${escapeHtml(s)}</span>`).join('')}</div></div>`:''}
-
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">
-        <button onclick="resetCvEvaluator()" style="flex:1;min-width:120px;padding:11px;background:#f3f4f6;color:#374151;border:none;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:Outfit,sans-serif;">↺ Try another role</button>
-        <button onclick="copyCvMissing()" style="flex:1;min-width:120px;padding:11px;background:#0f766e;color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:Outfit,sans-serif;">📋 Copy missing skills</button>
-      </div>
-    </div>`;
-
-  setTimeout(()=>document.getElementById('cvResults').scrollIntoView({behavior:'smooth',block:'nearest'}),100);
 }
 
-function resetCvEvaluator(){
-  document.getElementById('cvResults').innerHTML='';
-  window._cvLastMissingSkills = [];
-  clearCvRole();
-  document.getElementById('cvRoleInput').value='';
-  const s=document.getElementById('cvFileStatus');if(s)s.style.display='none';
-  cvExtractedText='';
-  document.getElementById('cvUploadZone').style.borderColor='#e4e2db';
-  const p=document.getElementById('cvPasteInput');if(p)p.value='';
-  document.getElementById('cvYearsExp').value='';
-  document.getElementById('cvCurrentRole').value='';
-}
-
-function copyCvMissing(){
-  const skills = window._cvLastMissingSkills;
-  if(!skills||!skills.length){showToast('No missing skills — your CV looks great!','ok');return;}
-  copyToClipboard(skills.join(', ')).then(()=>showToast('Copied to clipboard','ok'));
-}
-
-async function submitMissingRoleForm(){
-  const name=document.getElementById('cvMissingRoleName').value.trim();
-  const skills=document.getElementById('cvMissingSkills').value.trim();
-  const jd=document.getElementById('cvMissingJd').value.trim();
-  if(!name){showToast('Please enter the role name','err');return;}
-  if(!_sb){ showToast('Database not configured','err'); return; }
-  try{ await _sb.from('missing_roles').insert({role_name:name,skills_mentioned:skills,jd_notes:jd}); }catch(e){}
-  document.getElementById('cvMissingRoleSent').style.display='block';
-  setTimeout(()=>{document.getElementById('cvRoleNotFound').style.display='none';document.getElementById('cvMissingRoleSent').style.display='none';},3000);
-}
-
-/* ══════════════════════════════════════
-   PRIVACY REQUEST
-   ══════════════════════════════════════ */
-async function submitPrivacyRequest(){
-  const email=document.getElementById('privacyReqEmail').value.trim();
-  const type=document.getElementById('privacyReqType').value;
-  const err=document.getElementById('privacyReqErr');
-  const sent=document.getElementById('privacyReqSent');
-  const emailRe=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-  if(!email||!emailRe.test(email)){err.style.display='block';sent.style.display='none';return;}
-  err.style.display='none';
-  if(!_sb){ showToast('Database not configured','err'); return; }
-  try{ await _sb.from('deletion_requests').insert({email:email,request_type:type,status:'pending'}); }catch(e){}
-  try{ await _sb.from('consent_log').insert({email:email,consent_type:type,consent_given:false,tool_name:'SkillMapper'}); }catch(e){}
-  sent.style.display='block';
-  document.getElementById('privacyReqEmail').value='';
-}
-
-// Clear all search inputs on page load — search is session-based only
 window.addEventListener('load', async function(){
-  ['mainInput','nlInput','titleModeInput'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.value='';
-  });
-  showAppLoading();
-  await loadAppData();
-  skills=[];
-  window._aiTopRoles=[];
-  activeDept='all';
+  const ids = ['mainInput','nlInput','titleModeInput'];
+  ids.forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+
+  // Show loading state
+  document.getElementById('resultsArea').innerHTML = `<div class="empty-state"><div style="display:flex;justify-content:center;gap:6px;margin-bottom:14px;"><div style="width:8px;height:8px;border-radius:50%;background:var(--teal);animation:ldot 1.2s ease-in-out infinite;"></div><div style="width:8px;height:8px;border-radius:50%;background:var(--teal);animation:ldot 1.2s ease-in-out .2s infinite;"></div><div style="width:8px;height:8px;border-radius:50%;background:var(--teal);animation:ldot 1.2s ease-in-out .4s infinite;"></div></div><div class="empty-title" style="font-size:14px;">Loading role database…</div></div>`;
+
+  await loadFromSupabase();
+
+  skills = [];
+  window._aiTopRoles = [];
+  activeDept = 'all';
   renderBubbles();
-  initQuickPicks();
-  document.getElementById('resultsArea').innerHTML=`
-    <div class="empty-state">
-      <div class="empty-icon" style="font-size:36px;margin-bottom:10px;">🎯</div>
-      <div class="empty-title">Start above to see role matches</div>
-      <div class="empty-sub">Type skills, search by title, or describe what you need — results appear instantly.</div>
-    </div>`;
+  document.getElementById('resultsArea').innerHTML = `<div class="empty-state"><div class="empty-icon" style="font-size:36px;margin-bottom:10px;">🎯</div><div class="empty-title">Start above to see role matches</div><div class="empty-sub">Type skills, search by title, or describe what you need.</div></div>`;
   document.getElementById('deptFilter').style.display='none';
   const _cb=document.getElementById('currencyBar'); if(_cb) _cb.style.display='none';
 });
@@ -3856,30 +3383,57 @@ window.addEventListener('load', async function(){
           <div id="pandaBubble" style="position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%) scale(0.85);background:white;border-radius:10px 10px 10px 2px;padding:4px 9px;font-size:10.5px;font-weight:700;color:#0f766e;white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,0.15);opacity:0;transition:opacity .4s cubic-bezier(.34,1.56,.64,1),transform .4s cubic-bezier(.34,1.56,.64,1);pointer-events:none;font-family:Outfit,sans-serif;z-index:10;"></div>
           <!-- Dog body (animated) -->
           <div id="pandaBody" style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);animation:pandaWalk 1.1s cubic-bezier(.45,0,.55,1) infinite;">
-            <span class="panda-mood-emoji" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;">🐶</span>
-            <svg width="74" height="78" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <svg width="74" height="87" viewBox="0 0 106 124" fill="none" xmlns="http://www.w3.org/2000/svg">
               <defs>
-                <linearGradient id="cdogFur" x1="20" y1="10" x2="76" y2="92"><stop offset="0%" stop-color="#FFF7ED"/><stop offset="100%" stop-color="#F3D5B5"/></linearGradient>
-                <linearGradient id="cdogEar" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#E8B87A"/><stop offset="100%" stop-color="#C08457"/></linearGradient>
+                <radialGradient id="dgW" cx="38%" cy="28%" r="68%"><stop offset="0%" stop-color="#ffffff"/><stop offset="75%" stop-color="#f2ede6"/><stop offset="100%" stop-color="#e0d8cc"/></radialGradient>
+                <radialGradient id="dgWh" cx="35%" cy="25%" r="70%"><stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#ede8e0"/></radialGradient>
+                <radialGradient id="dgEar" cx="32%" cy="22%" r="65%"><stop offset="0%" stop-color="#f5a832"/><stop offset="60%" stop-color="#e8921a"/><stop offset="100%" stop-color="#c97010"/></radialGradient>
+                <radialGradient id="dgNose" cx="28%" cy="22%" r="60%"><stop offset="0%" stop-color="#3a3a3a"/><stop offset="100%" stop-color="#111"/></radialGradient>
+                <radialGradient id="dgIris" cx="35%" cy="30%" r="65%"><stop offset="0%" stop-color="#a0611a"/><stop offset="100%" stop-color="#6b3a0a"/></radialGradient>
+                <filter id="dSh" x="-15%" y="-15%" width="130%" height="130%"><feDropShadow dx="1" dy="2" stdDeviation="2.5" flood-color="#333" flood-opacity="0.22"/></filter>
               </defs>
-              <path d="M76 64 Q90 52 86 38" stroke="#C49A6C" stroke-width="4.5" stroke-linecap="round" fill="none"/>
-              <ellipse cx="48" cy="72" rx="27" ry="21" fill="url(#cdogFur)"/>
-              <ellipse cx="34" cy="88" rx="8" ry="5.5" fill="#E8B88A"/>
-              <ellipse cx="58" cy="88" rx="8" ry="5.5" fill="#E8B88A"/>
-              <path d="M28 56 Q48 62 68 56" stroke="#0f766e" stroke-width="4.5" stroke-linecap="round" fill="none"/>
-              <circle cx="48" cy="59" r="3.8" fill="#fbbf24" stroke="#0d5e58" stroke-width="0.8"/>
-              <circle cx="48" cy="34" r="27" fill="url(#cdogFur)"/>
-              <ellipse cx="22" cy="22" rx="11" ry="16" fill="url(#cdogEar)" transform="rotate(-22 22 22)"/>
-              <ellipse cx="74" cy="22" rx="11" ry="16" fill="url(#cdogEar)" transform="rotate(22 74 22)"/>
-              <ellipse cx="48" cy="40" rx="13" ry="10" fill="#FFF5EB"/>
-              <ellipse cx="48" cy="36" rx="5" ry="4.2" fill="#2d2d2d"/>
-              <ellipse cx="36" cy="30" rx="5.5" ry="6.5" fill="#1e1e1e"/>
-              <ellipse cx="60" cy="30" rx="5.5" ry="6.5" fill="#1e1e1e"/>
-              <circle cx="37.2" cy="28" r="2" fill="#fff"/>
-              <circle cx="61.2" cy="28" r="2" fill="#fff"/>
-              <path d="M38 45 Q48 50 58 45" stroke="#B8834A" stroke-width="2" stroke-linecap="round" fill="none"/>
-              <ellipse cx="26" cy="34" rx="4.5" ry="2.8" fill="#ffb4b4" opacity="0.45"/>
-              <ellipse cx="70" cy="34" rx="4.5" ry="2.8" fill="#ffb4b4" opacity="0.45"/>
+              <path d="M80 96 Q98 84 96 68 Q94 56 84 61" stroke="#d8d2c8" stroke-width="11" stroke-linecap="round" fill="none"/>
+              <path d="M80 96 Q98 84 96 68 Q94 56 84 61" stroke="white" stroke-width="7.5" stroke-linecap="round" fill="none"/>
+              <g id="pandaLegL" style="transform-origin:28px 97px;animation:legSwingL 1.1s cubic-bezier(.45,0,.55,1) infinite;"><ellipse cx="24" cy="100" rx="16" ry="11" fill="url(#dgW)" filter="url(#dSh)"/><ellipse cx="21" cy="112" rx="15" ry="7.5" fill="#e8e2d8"/><ellipse cx="14" cy="114" rx="5" ry="3.5" fill="#ddd6c8"/><ellipse cx="21" cy="116" rx="5.5" ry="3.5" fill="#ddd6c8"/><ellipse cx="29" cy="115" rx="5" ry="3.5" fill="#ddd6c8"/></g>
+              <g id="pandaLegR" style="transform-origin:78px 97px;animation:legSwingR 1.1s cubic-bezier(.45,0,.55,1) infinite;"><ellipse cx="82" cy="100" rx="16" ry="11" fill="url(#dgW)" filter="url(#dSh)"/><ellipse cx="85" cy="112" rx="15" ry="7.5" fill="#e8e2d8"/><ellipse cx="78" cy="115" rx="5" ry="3.5" fill="#ddd6c8"/><ellipse cx="85" cy="116" rx="5.5" ry="3.5" fill="#ddd6c8"/><ellipse cx="92" cy="114" rx="5" ry="3.5" fill="#ddd6c8"/></g>
+              <ellipse cx="53" cy="89" rx="32" ry="28" fill="url(#dgW)" filter="url(#dSh)"/>
+              <ellipse cx="48" cy="82" rx="18" ry="16" fill="white" opacity="0.55"/>
+              <g id="pandaArmL" style="transform-origin:30px 90px;animation:armSwingL 1.1s cubic-bezier(.45,0,.55,1) infinite;"><ellipse cx="25" cy="96" rx="13" ry="18" fill="url(#dgW)" filter="url(#dSh)" transform="rotate(-6 25 96)"/><ellipse cx="21" cy="113" rx="15" ry="7.5" fill="#e8e2d8"/><ellipse cx="14" cy="115" rx="5" ry="3.5" fill="#ddd6c8"/><ellipse cx="21" cy="117" rx="5.5" ry="3.5" fill="#ddd6c8"/><ellipse cx="29" cy="116" rx="5" ry="3.5" fill="#ddd6c8"/></g>
+              <g id="pandaArmR" style="transform-origin:76px 90px;animation:armSwingR 1.1s cubic-bezier(.45,0,.55,1) infinite;"><ellipse cx="81" cy="96" rx="13" ry="18" fill="url(#dgW)" filter="url(#dSh)" transform="rotate(6 81 96)"/><ellipse cx="85" cy="113" rx="15" ry="7.5" fill="#e8e2d8"/><ellipse cx="78" cy="116" rx="5" ry="3.5" fill="#ddd6c8"/><ellipse cx="85" cy="117" rx="5.5" ry="3.5" fill="#ddd6c8"/><ellipse cx="92" cy="115" rx="5" ry="3.5" fill="#ddd6c8"/></g>
+              <rect x="30" y="72" width="46" height="9.5" rx="4.8" fill="#0f766e" filter="url(#dSh)"/>
+              <rect x="30" y="72" width="46" height="4" rx="4.8" fill="white" opacity="0.2"/>
+              <circle cx="53" cy="81.5" r="3.8" fill="#fbbf24"/>
+              <g id="pandaEars" style="animation:earWiggle 2.8s cubic-bezier(.45,0,.55,1) infinite;transform-origin:53px 30px;">
+                <path d="M19 32 Q8 16 13 6 Q20 -2 30 7 Q40 18 33 40 Q27 42 19 32Z" fill="url(#dgEar)" filter="url(#dSh)"/>
+                <path d="M87 32 Q98 16 93 6 Q86 -2 76 7 Q66 18 73 40 Q79 42 87 32Z" fill="url(#dgEar)" filter="url(#dSh)"/>
+              </g>
+              <circle cx="53" cy="42" r="36" fill="url(#dgWh)" filter="url(#dSh)"/>
+              <ellipse cx="40" cy="24" rx="13" ry="8.5" fill="white" opacity="0.28" transform="rotate(-22 40 24)"/>
+              <ellipse cx="37" cy="26" rx="10" ry="6.5" fill="#e8981a" opacity="0.88" transform="rotate(-12 37 26)"/>
+              <ellipse cx="69" cy="26" rx="10" ry="6.5" fill="#e8981a" opacity="0.88" transform="rotate(12 69 26)"/>
+              <g id="pandaEyes">
+                <ellipse cx="37" cy="38" rx="11.5" ry="11" fill="white"/>
+                <ellipse cx="69" cy="38" rx="11.5" ry="11" fill="white"/>
+                <circle cx="37.5" cy="38.5" r="7.5" fill="url(#dgIris)"/>
+                <circle cx="69.5" cy="38.5" r="7.5" fill="url(#dgIris)"/>
+                <circle cx="38" cy="39" r="4.8" fill="#111"/>
+                <circle cx="70" cy="39" r="4.8" fill="#111"/>
+                <circle cx="35" cy="35.5" r="3" fill="white"/>
+                <circle cx="67" cy="35.5" r="3" fill="white"/>
+                <circle cx="41" cy="42" r="1.5" fill="white" opacity="0.65"/>
+                <circle cx="73" cy="42" r="1.5" fill="white" opacity="0.65"/>
+              </g>
+              <g id="pandaBlink" style="animation:blinkCycle 5.5s cubic-bezier(.45,0,.55,1) infinite;pointer-events:none;"><ellipse cx="37" cy="38" rx="11.5" ry="0" fill="url(#dgWh)"/><ellipse cx="69" cy="38" rx="11.5" ry="0" fill="url(#dgWh)"/></g>
+              <ellipse cx="53" cy="58" rx="20" ry="17" fill="#f5f0e6"/>
+              <ellipse cx="44" cy="54" rx="9" ry="6" fill="white" opacity="0.35"/>
+              <ellipse cx="53" cy="50" rx="13" ry="10" fill="url(#dgNose)" filter="url(#dSh)"/>
+              <ellipse cx="48" cy="46" rx="4.5" ry="3" fill="white" opacity="0.38" transform="rotate(-15 48 46)"/>
+              <path d="M53 60 L53 63" stroke="#888" stroke-width="1.8" stroke-linecap="round"/>
+              <g id="pandaMouth"><path d="M42 64 Q53 71 64 64" stroke="#777" stroke-width="2" stroke-linecap="round" fill="none"/></g>
+              <ellipse id="pandaBlushL" cx="18" cy="52" rx="9" ry="5.5" fill="#fca5a5" opacity="0.5"/>
+              <ellipse id="pandaBlushR" cx="88" cy="52" rx="9" ry="5.5" fill="#fca5a5" opacity="0.5"/>
+              <g id="pandaQuestion" opacity="0" style="transition:opacity 0.3s;"><circle cx="86" cy="10" r="12" fill="#fbbf24"/><text x="82.5" y="15.5" font-size="13" fill="white" font-weight="900" font-family="Outfit,sans-serif">?</text></g>
+              <g id="pandaTears" opacity="0"><ellipse cx="22" cy="48" rx="3" ry="6" fill="#93c5fd" style="animation:tearFall 0.9s cubic-bezier(.55,.06,.68,.19) infinite;"/><ellipse cx="84" cy="48" rx="3" ry="6" fill="#93c5fd" style="animation:tearFall 0.9s cubic-bezier(.55,.06,.68,.19) 0.2s infinite;"/></g>
             </svg>
           </div>
         </div>
@@ -4030,29 +3584,49 @@ window.addEventListener('load', async function(){
   <div style="background:#fff;border-radius:24px;width:100%;max-width:360px;box-shadow:0 32px 80px rgba(0,0,0,0.25);overflow:hidden;text-align:center;">
     <div style="background:linear-gradient(160deg,#0f766e,#14b8a6);padding:24px 24px 0;">
       <div style="display:inline-block;animation:pandaIdle 1.8s cubic-bezier(.45,0,.55,1) infinite;">
-        <svg width="88" height="82" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg width="90" height="96" viewBox="0 0 106 124" fill="none" xmlns="http://www.w3.org/2000/svg">
           <defs>
-            <linearGradient id="tkdogFur" x1="20" y1="10" x2="76" y2="92"><stop offset="0%" stop-color="#FFF7ED"/><stop offset="100%" stop-color="#F3D5B5"/></linearGradient>
-            <linearGradient id="tkdogEar" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#E8B87A"/><stop offset="100%" stop-color="#C08457"/></linearGradient>
+            <radialGradient id="tkW" cx="38%" cy="28%" r="68%"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="#ede8e0"/></radialGradient>
+            <radialGradient id="tkE" cx="32%" cy="22%" r="65%"><stop offset="0%" stop-color="#f5a832"/><stop offset="100%" stop-color="#c97010"/></radialGradient>
+            <radialGradient id="tkI" cx="35%" cy="30%" r="65%"><stop offset="0%" stop-color="#a0611a"/><stop offset="100%" stop-color="#6b3a0a"/></radialGradient>
+            <filter id="tkS"><feDropShadow dx="1" dy="2" stdDeviation="2" flood-color="#333" flood-opacity="0.2"/></filter>
           </defs>
-          <path d="M76 64 Q90 52 86 38" stroke="#C49A6C" stroke-width="4.5" stroke-linecap="round" fill="none"/>
-          <ellipse cx="48" cy="72" rx="27" ry="21" fill="url(#tkdogFur)"/>
-          <ellipse cx="34" cy="88" rx="8" ry="5.5" fill="#E8B88A"/>
-          <ellipse cx="58" cy="88" rx="8" ry="5.5" fill="#E8B88A"/>
-          <path d="M28 56 Q48 62 68 56" stroke="#0f766e" stroke-width="4.5" stroke-linecap="round" fill="none"/>
-          <circle cx="48" cy="59" r="3.8" fill="#fbbf24" stroke="#0d5e58" stroke-width="0.8"/>
-          <circle cx="48" cy="34" r="27" fill="url(#tkdogFur)"/>
-          <ellipse cx="22" cy="22" rx="11" ry="16" fill="url(#tkdogEar)" transform="rotate(-22 22 22)"/>
-          <ellipse cx="74" cy="22" rx="11" ry="16" fill="url(#tkdogEar)" transform="rotate(22 74 22)"/>
-          <ellipse cx="48" cy="40" rx="13" ry="10" fill="#FFF5EB"/>
-          <ellipse cx="48" cy="36" rx="5" ry="4.2" fill="#2d2d2d"/>
-          <path d="M32 30 Q36 24 40 30" stroke="#1e1e1e" stroke-width="2.2" stroke-linecap="round" fill="none"/>
-          <path d="M56 30 Q60 24 64 30" stroke="#1e1e1e" stroke-width="2.2" stroke-linecap="round" fill="none"/>
-          <path d="M38 44 Q48 52 58 44" stroke="#B8834A" stroke-width="2.2" stroke-linecap="round" fill="none"/>
-          <ellipse cx="53" cy="48" rx="9" ry="7" fill="#ffe0de"/>
-          <ellipse cx="48" cy="50" rx="5" ry="6" fill="#f87171"/>
-          <ellipse cx="26" cy="34" rx="5" ry="3" fill="#ffb4b4" opacity="0.65"/>
-          <ellipse cx="70" cy="34" rx="5" ry="3" fill="#ffb4b4" opacity="0.65"/>
+          <!-- Tail -->
+          <path d="M80 96 Q98 84 96 68 Q94 56 84 61" stroke="#d8d2c8" stroke-width="11" stroke-linecap="round" fill="none"/>
+          <path d="M80 96 Q98 84 96 68 Q94 56 84 61" stroke="white" stroke-width="7" stroke-linecap="round" fill="none"/>
+          <!-- Body -->
+          <ellipse cx="53" cy="89" rx="32" ry="28" fill="url(#tkW)" filter="url(#tkS)"/>
+          <ellipse cx="48" cy="82" rx="18" ry="16" fill="white" opacity="0.55"/>
+          <!-- Collar -->
+          <rect x="30" y="72" width="46" height="9" rx="4.5" fill="#0f766e"/>
+          <rect x="30" y="72" width="46" height="3.5" rx="4.5" fill="white" opacity="0.2"/>
+          <circle cx="53" cy="81" r="3.5" fill="#fbbf24"/>
+          <!-- Ears -->
+          <path d="M19 32 Q8 16 13 6 Q20 -2 30 7 Q40 18 33 40 Q27 42 19 32Z" fill="url(#tkE)" filter="url(#tkS)"/>
+          <path d="M87 32 Q98 16 93 6 Q86 -2 76 7 Q66 18 73 40 Q79 42 87 32Z" fill="url(#tkE)" filter="url(#tkS)"/>
+          <!-- Head -->
+          <circle cx="53" cy="42" r="36" fill="url(#tkW)" filter="url(#tkS)"/>
+          <!-- Eyebrow patches -->
+          <ellipse cx="37" cy="26" rx="10" ry="6.5" fill="#e8981a" opacity="0.88" transform="rotate(-12 37 26)"/>
+          <ellipse cx="69" cy="26" rx="10" ry="6.5" fill="#e8981a" opacity="0.88" transform="rotate(12 69 26)"/>
+          <!-- Eyes — happy closed crescents -->
+          <path d="M26 38 Q37 28 48 38" stroke="#6b3a0a" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+          <path d="M58 38 Q69 28 80 38" stroke="#6b3a0a" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+          <!-- Muzzle -->
+          <ellipse cx="53" cy="58" rx="20" ry="17" fill="#f5f0e6"/>
+          <!-- Nose -->
+          <ellipse cx="53" cy="50" rx="13" ry="10" fill="#1a1a1a" filter="url(#tkS)"/>
+          <ellipse cx="48" cy="46" rx="4.5" ry="3" fill="white" opacity="0.38" transform="rotate(-15 48 46)"/>
+          <!-- Happy open mouth + tongue -->
+          <path d="M38 62 Q53 72 68 62" stroke="#777" stroke-width="2" stroke-linecap="round" fill="none"/>
+          <ellipse cx="53" cy="66" rx="16" ry="10" fill="#ffe0de"/>
+          <rect x="44" y="62" width="7" height="5" rx="2" fill="white" opacity="0.9"/>
+          <rect x="52" y="62" width="7" height="5" rx="2" fill="white" opacity="0.9"/>
+          <ellipse cx="53" cy="73" rx="11" ry="9" fill="#f87171"/>
+          <ellipse cx="49" cy="71" rx="3.5" ry="2" fill="white" opacity="0.22"/>
+          <!-- Blush — very rosy for happy -->
+          <ellipse cx="18" cy="52" rx="9" ry="5.5" fill="#fca5a5" opacity="0.85"/>
+          <ellipse cx="88" cy="52" rx="9" ry="5.5" fill="#fca5a5" opacity="0.85"/>
         </svg>
       </div>
       <div style="background:white;border-radius:18px 18px 0 0;margin-top:6px;padding:16px 20px 0;">
@@ -4069,29 +3643,60 @@ window.addEventListener('load', async function(){
 <!-- Floating dog (shown when results exist and salary not yet shared) -->
 <div id="floatingPanda" style="display:none;position:fixed;bottom:20px;right:20px;z-index:99995;cursor:pointer;" onclick="showSalaryContrib(_floatingPandaBtn || null)" title="Help us with salary data!">
   <div style="position:relative;animation:dogFloat 2.8s ease-in-out infinite;">
-    <svg width="74" height="78" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 4px 14px rgba(0,0,0,0.22));display:block;">
+    <svg width="74" height="88" viewBox="0 0 106 124" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 4px 14px rgba(0,0,0,0.25));display:block;">
       <defs>
-        <linearGradient id="fdogFur" x1="20" y1="10" x2="76" y2="92"><stop offset="0%" stop-color="#FFF7ED"/><stop offset="100%" stop-color="#F3D5B5"/></linearGradient>
-        <linearGradient id="fdogEar" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#E8B87A"/><stop offset="100%" stop-color="#C08457"/></linearGradient>
+        <radialGradient id="fW" cx="38%" cy="28%" r="68%"><stop offset="0%" stop-color="#fff"/><stop offset="75%" stop-color="#f2ede6"/><stop offset="100%" stop-color="#e0d8cc"/></radialGradient>
+        <radialGradient id="fE" cx="32%" cy="22%" r="65%"><stop offset="0%" stop-color="#f5a832"/><stop offset="60%" stop-color="#e8921a"/><stop offset="100%" stop-color="#c97010"/></radialGradient>
+        <radialGradient id="fI" cx="35%" cy="30%" r="65%"><stop offset="0%" stop-color="#a0611a"/><stop offset="100%" stop-color="#6b3a0a"/></radialGradient>
+        <filter id="fSh" x="-15%" y="-15%" width="130%" height="130%"><feDropShadow dx="1" dy="2" stdDeviation="2.5" flood-color="#333" flood-opacity="0.2"/></filter>
       </defs>
-      <path d="M76 64 Q90 52 86 38" stroke="#C49A6C" stroke-width="4.5" stroke-linecap="round" fill="none"/>
-      <ellipse cx="48" cy="72" rx="27" ry="21" fill="url(#fdogFur)"/>
-      <ellipse cx="34" cy="88" rx="8" ry="5.5" fill="#E8B88A"/>
-      <ellipse cx="58" cy="88" rx="8" ry="5.5" fill="#E8B88A"/>
-      <path d="M28 56 Q48 62 68 56" stroke="#0f766e" stroke-width="4.5" stroke-linecap="round" fill="none"/>
-      <circle cx="48" cy="59" r="3.8" fill="#fbbf24" stroke="#0d5e58" stroke-width="0.8"/>
-      <circle cx="48" cy="34" r="27" fill="url(#fdogFur)"/>
-      <ellipse cx="22" cy="22" rx="11" ry="16" fill="url(#fdogEar)" transform="rotate(-22 22 22)"/>
-      <ellipse cx="74" cy="22" rx="11" ry="16" fill="url(#fdogEar)" transform="rotate(22 74 22)"/>
-      <ellipse cx="48" cy="40" rx="13" ry="10" fill="#FFF5EB"/>
-      <ellipse cx="48" cy="36" rx="5" ry="4.2" fill="#2d2d2d"/>
-      <ellipse cx="36" cy="30" rx="5.5" ry="6.5" fill="#1e1e1e"/>
-      <ellipse cx="60" cy="30" rx="5.5" ry="6.5" fill="#1e1e1e"/>
-      <circle cx="37.2" cy="28" r="2" fill="#fff"/>
-      <circle cx="61.2" cy="28" r="2" fill="#fff"/>
-      <path d="M38 45 Q48 50 58 45" stroke="#B8834A" stroke-width="2" stroke-linecap="round" fill="none"/>
-      <ellipse cx="26" cy="34" rx="4.5" ry="2.8" fill="#ffb4b4" opacity="0.45"/>
-      <ellipse cx="70" cy="34" rx="4.5" ry="2.8" fill="#ffb4b4" opacity="0.45"/>
+      <!-- Tail -->
+      <path d="M80 96 Q98 84 96 68 Q94 56 84 61" stroke="#d8d2c8" stroke-width="11" stroke-linecap="round" fill="none"/>
+      <path d="M80 96 Q98 84 96 68 Q94 56 84 61" stroke="white" stroke-width="7.5" stroke-linecap="round" fill="none"/>
+      <!-- Legs (sitting) -->
+      <ellipse cx="24" cy="105" rx="16" ry="9" fill="url(#fW)"/>
+      <ellipse cx="82" cy="105" rx="16" ry="9" fill="url(#fW)"/>
+      <!-- Body -->
+      <ellipse cx="53" cy="89" rx="32" ry="28" fill="url(#fW)" filter="url(#fSh)"/>
+      <ellipse cx="48" cy="82" rx="18" ry="16" fill="white" opacity="0.55"/>
+      <!-- Arms -->
+      <ellipse cx="20" cy="88" rx="12" ry="18" fill="url(#fW)" filter="url(#fSh)" transform="rotate(-8 20 88)"/>
+      <ellipse cx="86" cy="88" rx="12" ry="18" fill="url(#fW)" filter="url(#fSh)" transform="rotate(8 86 88)"/>
+      <!-- Collar -->
+      <rect x="30" y="72" width="46" height="9.5" rx="4.8" fill="#0f766e"/>
+      <rect x="30" y="72" width="46" height="4" rx="4.8" fill="white" opacity="0.2"/>
+      <circle cx="53" cy="81.5" r="3.8" fill="#fbbf24"/>
+      <!-- Ears (floppy, behind head) -->
+      <path d="M19 32 Q8 16 13 6 Q20 -2 30 7 Q40 18 33 40 Q27 42 19 32Z" fill="url(#fE)" filter="url(#fSh)"/>
+      <path d="M87 32 Q98 16 93 6 Q86 -2 76 7 Q66 18 73 40 Q79 42 87 32Z" fill="url(#fE)" filter="url(#fSh)"/>
+      <!-- Head -->
+      <circle cx="53" cy="42" r="36" fill="url(#fW)" filter="url(#fSh)"/>
+      <!-- Eyebrow patches -->
+      <ellipse cx="37" cy="26" rx="10" ry="6.5" fill="#e8981a" opacity="0.88" transform="rotate(-12 37 26)"/>
+      <ellipse cx="69" cy="26" rx="10" ry="6.5" fill="#e8981a" opacity="0.88" transform="rotate(12 69 26)"/>
+      <!-- Eyes - open, happy -->
+      <ellipse cx="37" cy="38" rx="11.5" ry="11" fill="white"/>
+      <ellipse cx="69" cy="38" rx="11.5" ry="11" fill="white"/>
+      <circle cx="37.5" cy="38.5" r="7.5" fill="url(#fI)"/>
+      <circle cx="69.5" cy="38.5" r="7.5" fill="url(#fI)"/>
+      <circle cx="38" cy="39" r="4.8" fill="#111"/>
+      <circle cx="70" cy="39" r="4.8" fill="#111"/>
+      <circle cx="35" cy="35.5" r="3" fill="white"/>
+      <circle cx="67" cy="35.5" r="3" fill="white"/>
+      <!-- Muzzle -->
+      <ellipse cx="53" cy="58" rx="20" ry="17" fill="#f5f0e6"/>
+      <!-- Nose -->
+      <ellipse cx="53" cy="50" rx="13" ry="10" fill="#1a1a1a"/>
+      <ellipse cx="48" cy="46" rx="4.5" ry="3" fill="white" opacity="0.38" transform="rotate(-15 48 46)"/>
+      <!-- Panting mouth + tongue -->
+      <path d="M38 62 Q53 72 68 62" stroke="#777" stroke-width="2" stroke-linecap="round" fill="none"/>
+      <ellipse cx="53" cy="66" rx="16" ry="10" fill="#ffe0de"/>
+      <rect x="44" y="62" width="7" height="5" rx="2" fill="white" opacity="0.9"/>
+      <rect x="52" y="62" width="7" height="5" rx="2" fill="white" opacity="0.9"/>
+      <ellipse cx="53" cy="73" rx="11" ry="9" fill="#f87171"/>
+      <!-- Blush -->
+      <ellipse cx="18" cy="52" rx="9" ry="5.5" fill="#fca5a5" opacity="0.5"/>
+      <ellipse cx="88" cy="52" rx="9" ry="5.5" fill="#fca5a5" opacity="0.5"/>
     </svg>
     <div style="position:absolute;bottom:92px;right:-4px;background:#0f766e;color:white;font-size:11px;font-weight:700;padding:6px 10px;border-radius:10px 10px 0 10px;white-space:nowrap;font-family:Outfit,sans-serif;box-shadow:0 4px 12px rgba(0,0,0,0.2);">
       Share your salary? 🐶
@@ -4268,9 +3873,6 @@ function setPandaMood(mood){
   var sub   = _pandaEl('salModalSub');
   if(!body) return;
 
-  var moodEl = body.querySelector('.panda-mood-emoji');
-  function setMoodEmoji(ch){ if(moodEl) moodEl.textContent = ch; }
-
   function walkOn(s){
     body.style.animation = 'pandaWalk '+(s||'1.1s')+' cubic-bezier(.45,0,.55,1) infinite';
   }
@@ -4278,7 +3880,7 @@ function setPandaMood(mood){
   if(mood==='ask'){
     walkOn('1.1s');
     _hideBubble();
-    setMoodEmoji('🐶');
+    body.querySelector('span').textContent = '🐶';
     if(title) title.textContent = 'Pretty please? 🥺';
     if(sub)   sub.textContent   = "Help others know what they're worth! Share your CTC anonymously — 20 seconds 💚";
     _pandaImpatientTimer = setTimeout(function(){ setPandaMood('waiting'); }, 8000);
@@ -4286,39 +3888,35 @@ function setPandaMood(mood){
   } else if(mood==='waiting'){
     body.style.animation = 'pandaIdle 2.4s cubic-bezier(.45,0,.55,1) infinite';
     _hideBubble();
-    setMoodEmoji('🐶');
+    body.querySelector('span').textContent = '🐶';
     _pandaImpatientTimer = setTimeout(function(){ setPandaMood('impatient'); }, 22000);
 
   } else if(mood==='impatient'){
+    // Dog pants with tongue — use 🐕 emoji and gentle breathing animation
     body.style.animation = 'pandaIdle 1.6s cubic-bezier(.45,0,.55,1) infinite';
-    setMoodEmoji('🐕');
+    body.querySelector('span').textContent = '🐕';
     _hideBubble();
     if(title) title.textContent = 'Still here... 🐾';
     if(sub)   sub.textContent   = "The dog is patiently waiting. It literally takes 20 seconds!";
 
   } else if(mood==='sad'){
     body.style.animation = 'pandaCry 0.55s cubic-bezier(.36,.07,.19,.97) infinite';
-    setMoodEmoji('🥺');
+    body.querySelector('span').textContent = '🥺';
     _showBubble("Please don't go 😢");
 
   } else if(mood==='wonder'){
     body.style.animation = 'pandaIdle 1s cubic-bezier(.45,0,.55,1) infinite';
-    setMoodEmoji('🤔');
+    body.querySelector('span').textContent = '🤔';
     _hideBubble();
     if(title) title.textContent = 'Ooh, a new one! 🐾';
     if(sub)   sub.textContent   = "We don't have this yet — tell us what they do!";
 
   } else if(mood==='happy'){
     walkOn('0.55s');
-    setMoodEmoji('🐶');
+    body.querySelector('span').textContent = '🐶';
     _hideBubble();
     if(title) title.textContent = "You're amazing! 🐶💚";
     if(sub)   sub.textContent   = "Salary data unlocked until June 2026!";
-
-  } else if(mood==='pace'){
-    walkOn('1.1s');
-    _hideBubble();
-    setMoodEmoji('🐶');
   }
 }
 let _pendingSalBtn = null;
@@ -4415,3 +4013,4 @@ function submitSalaryContrib(){
 </body>
 </html>
 
+ 
