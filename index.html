@@ -917,12 +917,12 @@ function smSignOut(){
           style="min-height:72px;padding:10px 12px;align-content:flex-start;">
           <input class="bubble-input" id="mainInput" autocomplete="off"
     placeholder="Python, React, SQL, Figma, Salesforce, Financial Modelling, Talent Acquisition…"
-            onkeydown="handleKey(event)" oninput="onInput(event)" onfocus="onFocus()" onblur="setTimeout(()=>hideSug(),150)"
+    onkeydown="handleKey(event)" oninput="onInput(event)" onblur="setTimeout(()=>hideSug(),150)"
             style="min-width:240px;font-size:14px;">
           <div class="sug-drop" id="sugDrop" onmousedown="event.preventDefault()"></div>
         </div>
       </div>
-      <div id="quickPicks" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;"></div>
+
       <button class="btn-find" onclick="addTyped()" style="width:100%;justify-content:center;">
         <svg viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.6"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
         Find matching roles
@@ -1059,12 +1059,11 @@ function smSignOut(){
     <div style="font-size:12px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;font-family:Outfit,sans-serif;">Step 1 — Target role</div>
     <div class="title-search-wrap" style="position:relative;">
       <input class="title-search-input" id="cvRoleInput"
-        placeholder="Type a role — e.g. Data Engineer, HR Business Partner, Product Manager…"
-        oninput="onCvRoleInput(event)"
-        onfocus="onCvRoleFocus()"
-        onblur="setTimeout(closeCvDrop,300)"
-        onkeydown="onCvRoleKeydown(event)"
-        autocomplete="off">
+    placeholder="Type a role — e.g. Data Engineer, HR Business Partner, Product Manager…"
+    oninput="onCvRoleInput(event)"
+    onblur="setTimeout(closeCvDrop,400)"
+    onkeydown="onCvRoleKeydown(event)"
+    autocomplete="off">
       <div class="title-dropdown" id="cvRoleDropdown"></div>
     </div>
     <div id="cvSelectedRole" style="display:none;margin-top:10px;"></div>
@@ -3409,18 +3408,7 @@ function showToast(msg,type){
 }
 
 /* ── Quick picks ── */
-function initQuickPicks(){
-  const wrap=document.getElementById('quickPicks');
-  QUICK_SKILLS.forEach(s=>{
-    const btn=document.createElement('button');
-    btn.style.cssText='padding:4px 12px;border-radius:20px;border:1px solid var(--border);background:var(--white);color:var(--ink2);font-family:var(--sans);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;';
-    btn.textContent='+ '+s;
-    btn.onclick=()=>{ addSkill(s); btn.style.opacity='.4'; btn.style.pointerEvents='none'; };
-    wrap.appendChild(btn);
-  });
-}
-
-
+function initQuickPicks(){ /* skills shown as placeholder watermark instead */ }
 
 /* ─── Sorry Dog State ─── */
 function showSorryState(query){
