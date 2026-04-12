@@ -3251,7 +3251,6 @@ function addSkill(skill){
   window._aiTopRoles = [];
   const clean = skill.trim();
   if(!clean) return;
-
   const cleanLower = clean.toLowerCase();
   if(skills.find(s=>s.toLowerCase()===cleanLower)) return;
   skills.push(clean);
@@ -3579,7 +3578,7 @@ function onCvRoleInput(e){
   if(!q){
     const all=(ROLES||[]).slice().sort((a,b)=>a.title.localeCompare(b.title)).slice(0,80);
     if(!all.length){ drop.classList.remove('open'); return; }
-    drop.innerHTML=all.map(r=>`<div class="td-item" onclick="selectCvRole(${JSON.stringify(r.title)})"><span>${escapeHtml(r.title)}</span><span style="font-size:11px;color:var(--ink3);">${escapeHtml(r.dept)}</span></div>`).join('');
+   drop.innerHTML=all.map(r=>`<div class="td-item" onmousedown="event.preventDefault();selectCvRole(${JSON.stringify(r.title)})"><span>${escapeHtml(r.title)}</span><span style="font-size:11px;color:var(--ink3);">${escapeHtml(r.dept)}</span></div>`).join('');
     drop.classList.add('open');
     return;
   }
@@ -3595,7 +3594,7 @@ function onCvRoleInput(e){
     }},800);
     return;
   }
-  drop.innerHTML=matches.map(r=>`<div class="td-item" onclick="selectCvRole(${JSON.stringify(r.title)})"><span>${escapeHtml(r.title)}</span><span style="font-size:11px;color:var(--ink3);">${escapeHtml(r.dept)}</span></div>`).join('');
+  drop.innerHTML=matches.map(r=>`<div class="td-item" onmousedown="event.preventDefault();selectCvRole(${JSON.stringify(r.title)})"></span><span style="font-size:11px;color:var(--ink3);">${escapeHtml(r.dept)}</span></div>`).join('');
   drop.classList.add('open');
 }
 
