@@ -3155,21 +3155,11 @@ function handleKey(e){
     e.preventDefault();
     // If a specific item is arrow-key focused, pick it
     if(sugFocused>=0&&items[sugFocused]){ items[sugFocused].click(); return; }
-    // If suggestions are showing, auto-pick the first one — but check title first
-    if(items.length&&drop.classList.contains('open')){
-      const firstText = items[0].querySelector('div') ? items[0].querySelector('div').textContent : items[0].textContent;
-      const rawFirst = firstText.trim();
-      const titleMatch = findTitleMatch(rawFirst);
-      if(titleMatch){ input.value=''; hideSug(); showTitleHint(rawFirst, titleMatch.title); return; }
-      items[0].click(); return;
-    }
+    // If suggestions are showing, auto-pick the first one
+    if(items.length&&drop.classList.contains('open')){ items[0].click(); return; }
     // Otherwise add whatever was typed
     const val = input.value.trim();
-    if(val){
-      const titleMatch = findTitleMatch(val);
-      if(titleMatch){ showTitleHint(val, titleMatch.title); return; }
-      addSkill(resolveAlias(val)); input.value=''; hideSug();
-    }
+    if(val){ addSkill(val); input.value=''; hideSug(); }
     return;
   }
 
@@ -3178,9 +3168,7 @@ function handleKey(e){
     const val = input.value.trim();
     if(val){
       e.preventDefault();
-      const titleMatch = findTitleMatch(val);
-      if(titleMatch){ input.value=''; hideSug(); showTitleHint(val, titleMatch.title); return; }
-      addSkill(resolveAlias(val)); input.value=''; hideSug();
+      addSkill(val); input.value=''; hideSug();
     }
     return;
   }
@@ -3193,16 +3181,7 @@ function addTyped(){
   const input = document.getElementById('mainInput');
   const val   = input.value.trim();
 
-  // Detect if user typed a job title instead of a skill
-  if(val){
-    const titleMatch = findTitleMatch(val);
-    if(titleMatch){
-      showTitleHint(val, titleMatch.title);
-      return;
-    }
-  }
-
-  if(val){ addSkill(resolveAlias(val)); input.value=''; hideSug(); }
+  if(val){ addSkill(val); input.value=''; hideSug(); }
   if(!skills.length){ input.focus(); return; }
 
   // Pre-validate: test if any roles match before consuming
@@ -3273,20 +3252,9 @@ function addSkill(skill){
   const clean = skill.trim();
   if(!clean) return;
 
-  // Title detection on RAW input — before alias resolution
-  // Catches: "HRBP", "frontend developer", "PM", "SDE", etc.
-  const titleMatch = findTitleMatch(clean);
-  if(titleMatch){
-    showTitleHint(clean, titleMatch.title);
-    return;
-  }
-
-  // Now resolve alias (e.g. "hrbp" → "Employee Relations" won't reach here)
-  const resolved = resolveAlias(clean);
-  const resolvedLower = resolved.toLowerCase();
-
-  if(skills.find(s=>s.toLowerCase()===resolvedLower)) return;
-  skills.push(resolved);
+  const cleanLower = clean.toLowerCase();
+  if(skills.find(s=>s.toLowerCase()===cleanLower)) return;
+  skills.push(clean);
   renderBubbles();
   render();
   document.getElementById('skillCountLbl').textContent = skills.length ? `${skills.length} skill${skills.length!==1?'s':''} added` : '';
@@ -3360,17 +3328,11 @@ function pickSugTitle(typed, roleTitle){
 }
 
 function pickSug(s){
-  const titleMatch = findTitleMatch(s);
   document.getElementById('mainInput').value = '';
   hideSug();
-  if(titleMatch){
-    showTitleHint(s, titleMatch.title);
-    return;
-  }
-  addSkill(resolveAlias(s));
+  addSkill(s);
   document.getElementById('mainInput').focus();
 }
-
 function filterDept(dept){
   // Handle both string (from dynamic buttons) and DOM element (legacy)
   if(dept && typeof dept === 'object' && dept.dataset) dept = dept.dataset.dept || 'all';
@@ -3617,7 +3579,7 @@ function onCvRoleInput(e){
   if(!q){
     const all=(ROLES||[]).slice().sort((a,b)=>a.title.localeCompare(b.title)).slice(0,80);
     if(!all.length){ drop.classList.remove('open'); return; }
-    drop.innerHTML=all.map(r=>`<div class="td-item" onmousedown="selectCvRole(${JSON.stringify(r.title)})"><span>${escapeHtml(r.title)}</span><span style="font-size:11px;color:var(--ink3);">${escapeHtml(r.dept)}</span></div>`).join('');
+    drop.innerHTML=all.map(r=>`<div class="td-item" onclick="selectCvRole(${JSON.stringify(r.title)})"><span>${escapeHtml(r.title)}</span><span style="font-size:11px;color:var(--ink3);">${escapeHtml(r.dept)}</span></div>`).join('');
     drop.classList.add('open');
     return;
   }
@@ -3633,7 +3595,7 @@ function onCvRoleInput(e){
     }},800);
     return;
   }
-  drop.innerHTML=matches.map(r=>`<div class="td-item" onmousedown="selectCvRole(${JSON.stringify(r.title)})"><span>${escapeHtml(r.title)}</span><span style="font-size:11px;color:var(--ink3);">${escapeHtml(r.dept)}</span></div>`).join('');
+  drop.innerHTML=matches.map(r=>`<div class="td-item" onclick="selectCvRole(${JSON.stringify(r.title)})"><span>${escapeHtml(r.title)}</span><span style="font-size:11px;color:var(--ink3);">${escapeHtml(r.dept)}</span></div>`).join('');
   drop.classList.add('open');
 }
 
