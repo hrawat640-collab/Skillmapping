@@ -922,6 +922,7 @@ function smSignOut(){
           <div class="sug-drop" id="sugDrop" onmousedown="event.preventDefault()"></div>
         </div>
       </div>
+      <div id="quickPicks" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;"></div>
       <button class="btn-find" onclick="addTyped()" style="width:100%;justify-content:center;">
         <svg viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.6"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
         Find matching roles
@@ -3854,8 +3855,6 @@ async function submitPrivacyRequest(){
   document.getElementById('privacyReqEmail').value='';
 }
 
-initQuickPicks();
-
 // Clear all search inputs on page load — search is session-based only
 window.addEventListener('load', async function(){
   ['mainInput','nlInput','titleModeInput'].forEach(id=>{
@@ -3867,6 +3866,7 @@ window.addEventListener('load', async function(){
   window._aiTopRoles=[];
   activeDept='all';
   renderBubbles();
+  initQuickPicks();
   document.getElementById('resultsArea').innerHTML=`
     <div class="empty-state">
       <div class="empty-icon" style="font-size:36px;margin-bottom:10px;">🎯</div>
