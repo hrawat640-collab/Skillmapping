@@ -3287,16 +3287,7 @@ function renderSug(q){
     items=ALL_SKILLS.filter(({s})=>!already.includes(s.toLowerCase())).slice(0,14).map(({s,cat})=>({s,cat,hi:s}));
   } else {
     const ql=q.toLowerCase();
-    // If typed query matches a title or title keyword (e.g. "HRBP", "PM", "SDE"),
-    // show a dedicated "Browse by Title" hint item — don't silently alias to a skill
-    const titleHint = findTitleMatch(q);
-    if(titleHint){
-      const safeQ = q.replace(/'/g,"\\'");
-      const safeTitle = titleHint.title.replace(/'/g,"\\'");
-      drop.innerHTML=`<div class="sug-item sug-title-hint" onclick="pickSugTitle('${safeQ}','${safeTitle}')"><div>&#x1F50D; <strong>${q}</strong> &mdash; looks like a job title</div><span class="sug-cat">Browse by Title &rarr;</span></div>`;
-      drop.classList.add('open');
-      return;
-    }
+
     const roleKwMatches=[];
     if(typeof ROLES!=='undefined'){ROLES.forEach(r=>{if(!r.keywords)return;const hit=r.keywords.slice(1).find(k=>{const kl=k.toLowerCase();return kl.includes(ql)||ql.includes(kl);});if(hit&&!roleKwMatches.find(x=>x.title===r.title))roleKwMatches.push({title:r.title,kw:hit});});}
     if(roleKwMatches.length){const safeQ=q.replace(/'/g,"\\'");drop.innerHTML=roleKwMatches.slice(0,4).map(m=>{const st=m.title.replace(/'/g,"\\'");return`<div class="sug-item sug-title-hint" onclick="pickSugTitle('${safeQ}','${st}')"><div>&#x1F50D; <strong>${q}</strong> &mdash; also called: <em>${m.title}</em></div><span class="sug-cat">Browse by Title &rarr;</span></div>`;}).join('');drop.classList.add('open');return;}
@@ -3607,17 +3598,25 @@ function closeCvDrop(){ document.getElementById('cvRoleDropdown').classList.remo
 
 function selectCvRole(title){
   cvSelectedRole=(ROLES||[]).find(r=>r.title===title);
-  document.getElementById('cvRoleInput').value=title;
+  if(!cvSelectedRole){
+    // try keyword match
+    cvSelectedRole=(ROLES||[]).find(r=>(r.keywords||[]).some(k=>k.toLowerCase()===title.toLowerCase()));
+  }
+  const resolvedTitle = cvSelectedRole ? cvSelectedRole.title : title;
+  document.getElementById('cvRoleInput').value='';
+  document.getElementById('cvRoleInput').placeholder='Role selected ✓ — change below if needed';
   document.getElementById('cvRoleDropdown').classList.remove('open');
   document.getElementById('cvRoleNotFound').style.display='none';
   const chip=document.getElementById('cvSelectedRole');
   chip.style.display='flex';
-  chip.innerHTML=`<span style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;background:#f0fdfa;border:1.5px solid rgba(15,118,110,0.3);border-radius:20px;font-size:12.5px;font-weight:600;color:#0f766e;font-family:Outfit,sans-serif;">✓ ${escapeHtml(title)} <button onclick="clearCvRole()" style="background:none;border:none;cursor:pointer;color:#0f766e;font-size:14px;padding:0;line-height:1;">×</button></span>`;
+  chip.innerHTML=`<span style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;background:#f0fdfa;border:1.5px solid rgba(15,118,110,0.3);border-radius:20px;font-size:12.5px;font-weight:600;color:#0f766e;font-family:Outfit,sans-serif;">✓ ${escapeHtml(resolvedTitle)} <button onclick="clearCvRole()" style="background:none;border:none;cursor:pointer;color:#0f766e;font-size:14px;padding:0;line-height:1;">×</button></span>`;
+  chip.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
 function clearCvRole(){
   cvSelectedRole=null;
   document.getElementById('cvRoleInput').value='';
+  document.getElementById('cvRoleInput').placeholder='Type a role — e.g. Data Engineer, HR Business Partner, Product Manager…';
   document.getElementById('cvSelectedRole').style.display='none';
 }
 
