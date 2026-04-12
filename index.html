@@ -916,7 +916,7 @@ function smSignOut(){
         <div class="bubble-wrap" id="mainWrap" onclick="document.getElementById('mainInput').focus()"
           style="min-height:72px;padding:10px 12px;align-content:flex-start;">
           <input class="bubble-input" id="mainInput" autocomplete="off"
-            placeholder="e.g. Python, React, Figma, Salesforce, Financial Modelling…"
+    placeholder="Python, React, SQL, Figma, Salesforce, Financial Modelling, Talent Acquisition…"
             onkeydown="handleKey(event)" oninput="onInput(event)" onfocus="onFocus()" onblur="setTimeout(()=>hideSug(),150)"
             style="min-width:240px;font-size:14px;">
           <div class="sug-drop" id="sugDrop" onmousedown="event.preventDefault()"></div>
@@ -1055,14 +1055,14 @@ function smSignOut(){
     <p>Select a role, upload your CV — we check every must-have and good-to-have skill and tell you exactly what to add.</p>
   </div>
 
-  <div class="input-card" style="padding:20px;margin-bottom:14px;">
+  <div class="input-card" style="padding:20px;margin-bottom:14px;position:relative;z-index:50;overflow:visible;">
     <div style="font-size:12px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;font-family:Outfit,sans-serif;">Step 1 — Target role</div>
     <div class="title-search-wrap" style="position:relative;">
       <input class="title-search-input" id="cvRoleInput"
         placeholder="Type a role — e.g. Data Engineer, HR Business Partner, Product Manager…"
         oninput="onCvRoleInput(event)"
         onfocus="onCvRoleFocus()"
-        onblur="setTimeout(closeCvDrop,160)"
+        onblur="setTimeout(closeCvDrop,300)"
         onkeydown="onCvRoleKeydown(event)"
         autocomplete="off">
       <div class="title-dropdown" id="cvRoleDropdown"></div>
