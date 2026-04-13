@@ -577,11 +577,61 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:10
       <button onclick="smBackToEmail()" style="background:none;border:none;font-size:12px;color:#aaa;cursor:pointer;font-family:Outfit,sans-serif;">← Use a different email</button>
     </div>
 
+    <!-- Profile step -->
+    <div id="smProfileStep" style="display:none;text-align:left;">
+      <div style="font-size:12px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;font-family:Outfit,sans-serif;">Tell us a little about you</div>
+      <input type="text" id="smNameInput" placeholder="Your name"
+        style="width:100%;padding:12px 14px;margin-bottom:10px;border-radius:9px;border:1.5px solid #e4e2db;font-family:Outfit,sans-serif;font-size:14px;outline:none;box-sizing:border-box;">
+      <select id="smProfessionInput"
+        style="width:100%;padding:12px 14px;margin-bottom:10px;border-radius:9px;border:1.5px solid #e4e2db;font-family:Outfit,sans-serif;font-size:14px;outline:none;box-sizing:border-box;background:#fff;color:#374151;">
+        <option value="">Select your profession</option>
+        <option value="Fresher/Student">Fresher/Student</option>
+        <option value="Working Professional">Working Professional</option>
+        <option value="HR">HR</option>
+      </select>
+      <select id="smCountryInput" onchange="toggleSmCountryOther(this.value)"
+        style="width:100%;padding:12px 14px;margin-bottom:10px;border-radius:9px;border:1.5px solid #e4e2db;font-family:Outfit,sans-serif;font-size:14px;outline:none;box-sizing:border-box;background:#fff;color:#374151;">
+        <option value="">Select country</option>
+        <option value="India">India</option>
+        <option value="United States">United States</option>
+        <option value="United Kingdom">United Kingdom</option>
+        <option value="UAE">UAE</option>
+        <option value="Canada">Canada</option>
+        <option value="Singapore">Singapore</option>
+        <option value="Australia">Australia</option>
+        <option value="Other">Other (type below)</option>
+      </select>
+      <input type="text" id="smCountryOther" placeholder="Type your country"
+        style="display:none;width:100%;padding:12px 14px;margin-bottom:10px;border-radius:9px;border:1.5px solid #e4e2db;font-family:Outfit,sans-serif;font-size:14px;outline:none;box-sizing:border-box;">
+      <p id="smProfileErr" style="font-size:12px;color:#b91c1c;margin:0 0 8px 0;display:none;">Please fill all required fields.</p>
+      <button onclick="smSaveProfileAndFinish()"
+        style="width:100%;padding:13px;background:#0f766e;color:#fff;border:none;border-radius:9px;font-weight:700;font-family:Outfit,sans-serif;font-size:14px;cursor:pointer;">
+        Continue →
+      </button>
+    </div>
+
     <label style="display:flex;align-items:flex-start;gap:10px;text-align:left;margin-top:14px;cursor:pointer;">
       <input type="checkbox" id="smConsent" checked style="margin-top:3px;flex-shrink:0;accent-color:#0f766e;">
       <span style="font-size:11.5px;color:#8a8780;line-height:1.5;font-family:Outfit,sans-serif;">Send me helpful hiring tools and insights. Unsubscribe anytime.</span>
     </label>
     <p style="font-size:11px;color:#bbb;margin-top:12px;font-family:Outfit,sans-serif;">Free · Unlimited searches</p>
+  </div>
+</div>
+
+<div id="smSalaryPromptModal" style="display:none;position:fixed;inset:0;z-index:99997;background:rgba(15,14,12,0.7);align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:16px;padding:24px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
+    <div style="font-size:18px;font-weight:800;color:#0f172a;margin-bottom:8px;font-family:Outfit,sans-serif;">Optional: share compensation</div>
+    <div style="font-size:13.5px;color:#6b6963;line-height:1.6;margin-bottom:14px;font-family:Outfit,sans-serif;">
+      Help us improve salary benchmarks for your role. This is optional and anonymous.
+    </div>
+    <label style="display:flex;gap:10px;align-items:flex-start;margin-bottom:14px;cursor:pointer;">
+      <input type="checkbox" id="smSalaryNotifyToggle" style="margin-top:3px;accent-color:#0f766e;">
+      <span style="font-size:12.5px;color:#4b5563;line-height:1.5;font-family:Outfit,sans-serif;">Notify me if the salary changes for my role.</span>
+    </label>
+    <div style="display:flex;gap:8px;">
+      <button onclick="smOpenSalaryFormFromPrompt()" style="flex:1;padding:11px 12px;background:#0f766e;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:Outfit,sans-serif;">Fill compensation form</button>
+      <button onclick="smCloseSalaryPrompt()" style="flex:1;padding:11px 12px;background:#fff;color:#6b7280;border:1.5px solid #e4e2db;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:Outfit,sans-serif;">Skip for now</button>
+    </div>
   </div>
 </div>
 <script>
@@ -611,13 +661,107 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:10
 })();
 
 let smOtpCode = '';
+let smPendingProfile = { email:'', name:'' };
+
+function getSmProfile(){
+  return {
+    profession: (localStorage.getItem('sm_user_profession') || '').trim(),
+    country: (localStorage.getItem('sm_user_country') || '').trim(),
+    name: (localStorage.getItem('sm_user_name') || '').trim()
+  };
+}
+
+function toggleSmCountryOther(val){
+  const other = document.getElementById('smCountryOther');
+  if(!other) return;
+  other.style.display = val === 'Other' ? 'block' : 'none';
+}
+
+function openSmProfileStep(email, name){
+  smPendingProfile = { email:email || '', name:name || '' };
+  document.getElementById('smEmailStep').style.display='none';
+  document.getElementById('smOtpStep').style.display='none';
+  document.getElementById('smProfileStep').style.display='block';
+  const consentWrap = document.getElementById('smConsent')?.closest('label');
+  if(consentWrap) consentWrap.style.display = 'none';
+  const profile = getSmProfile();
+  const nameInput = document.getElementById('smNameInput');
+  const professionInput = document.getElementById('smProfessionInput');
+  const countryInput = document.getElementById('smCountryInput');
+  const countryOther = document.getElementById('smCountryOther');
+  nameInput.value = (name || profile.name || '').trim();
+  professionInput.value = profile.profession || '';
+  countryInput.value = profile.country || '';
+  countryOther.value = '';
+  toggleSmCountryOther(countryInput.value);
+}
+
+function smSaveProfileAndFinish(){
+  const err = document.getElementById('smProfileErr');
+  const name = document.getElementById('smNameInput').value.trim();
+  const profession = document.getElementById('smProfessionInput').value.trim();
+  const countrySel = document.getElementById('smCountryInput').value.trim();
+  const countryOther = document.getElementById('smCountryOther').value.trim();
+  const country = countrySel === 'Other' ? countryOther : countrySel;
+  if(!name || !profession || !country){
+    err.style.display='block';
+    err.textContent = 'Please fill your name, profession and country.';
+    return;
+  }
+  err.style.display='none';
+  localStorage.setItem('sm_user_name', name);
+  localStorage.setItem('sm_user_profession', profession);
+  localStorage.setItem('sm_user_country', country);
+  smCompleteLogin(smPendingProfile.email, name, {profession:profession, country:country});
+}
+
+function smMaybeShowSalaryPrompt(profession){
+  const modal = document.getElementById('smSalaryPromptModal');
+  if(!modal) return;
+  if(profession === 'Working Professional' || profession === 'HR'){
+    modal.style.display = 'flex';
+  } else {
+    modal.style.display = 'none';
+  }
+}
+
+function smCloseSalaryPrompt(){
+  const modal = document.getElementById('smSalaryPromptModal');
+  if(modal) modal.style.display = 'none';
+}
+
+function smOpenSalaryFormFromPrompt(){
+  const notify = document.getElementById('smSalaryNotifyToggle');
+  localStorage.setItem('sm_salary_notify', notify && notify.checked ? 'yes' : 'no');
+  smCloseSalaryPrompt();
+  showSalaryContrib(null);
+}
+
+function updateUserJourneyUi(){
+  const p = (localStorage.getItem('sm_user_profession') || '').toLowerCase();
+  const node = document.getElementById('journeyNote');
+  if(!node) return;
+  if(p === 'fresher/student'){
+    node.style.display = 'block';
+    node.innerHTML = '🎓 New here? Check roles and salary by <strong>skills</strong> or <strong>job title</strong>. Start simple, then shortlist your target role.';
+  } else if(p === 'working professional'){
+    node.style.display = 'block';
+    node.innerHTML = '💼 Use SkillMapper to compare your current skills with market role expectations and salary ranges.';
+  } else if(p === 'hr'){
+    node.style.display = 'none';
+    node.innerHTML = '';
+  } else {
+    node.style.display = 'none';
+    node.innerHTML = '';
+  }
+}
 
 /* ── Page load: check login ── */
 (function(){
   // Show dog in bottom right always, unless salary already submitted
   window.addEventListener('load', function(){
     setTimeout(function(){
-      if(!isSalaryUnlocked()){
+      if(isSalaryPromptEligible() && !isSalaryUnlocked()){
         const fp = document.getElementById('floatingPanda');
         if(fp) fp.style.display = 'block';
       }
@@ -645,17 +789,19 @@ let smOtpCode = '';
     localStorage.setItem('sm_user_name', sharedName || '');
     if(!localStorage.getItem('sm_login_date')) localStorage.setItem('sm_login_date', Date.now().toString());
   }
-  // TESTING ONLY — remove before going live
   if(!localStorage.getItem('sm_user_email')){
-    localStorage.setItem('sm_user_email', 'test@test.com');
-    localStorage.setItem('sm_login_date', Date.now().toString());
-  }
-  if(false){
     document.getElementById('loginModal').style.display='flex';
   } else {
+    const profile = getSmProfile();
+    if(!profile.profession || !profile.country || !profile.name){
+      document.getElementById('loginModal').style.display='flex';
+      openSmProfileStep(localStorage.getItem('sm_user_email') || '', profile.name || '');
+      return;
+    }
     checkTrialExpiry('');
     renderTrialBadgeSM();
     smUpdateNavLinks();
+    updateUserJourneyUi();
   }
 })();
 
@@ -664,7 +810,7 @@ function smHandleGoogle(response){
   const payload = JSON.parse(atob(response.credential.split('.')[1]));
   const email = payload.email;
   const name  = payload.name || '';
-  smCompleteLogin(email, name);
+  openSmProfileStep(email, name);
 }
 
 /* ── Email OTP flow ── */
@@ -706,7 +852,7 @@ function smVerifyOtp(){
   }
   err.style.display='none';
   const email = document.getElementById('smEmailInput').value.trim();
-  smCompleteLogin(email, '');
+  openSmProfileStep(email, '');
 }
 
 function smBackToEmail(){
@@ -760,10 +906,14 @@ function smUpdateNavLinks(){
 }
 
 /* ── Complete login (called by both Google + OTP) ── */
-function smCompleteLogin(email, name){
+function smCompleteLogin(email, name, profileData){
   const consent = document.getElementById('smConsent').checked;
+  const profession = (profileData && profileData.profession) || localStorage.getItem('sm_user_profession') || '';
+  const country = (profileData && profileData.country) || localStorage.getItem('sm_user_country') || '';
   localStorage.setItem('sm_user_email', email);
   localStorage.setItem('sm_user_name', name);
+  if(profession) localStorage.setItem('sm_user_profession', profession);
+  if(country) localStorage.setItem('sm_user_country', country);
   localStorage.setItem('sm_consent', consent?'yes':'no');
   // Shared key — so TalentXRay recognises the user too
   localStorage.setItem('tr_shared_email', email);
@@ -773,15 +923,17 @@ function smCompleteLogin(email, name){
   renderTrialBadgeSM();
   smUpdateNavLinks();
   setTimeout(function(){
-    if(!isSalaryUnlocked()){
+    if((profession === 'Working Professional' || profession === 'HR') && !isSalaryUnlocked()){
       const fp=document.getElementById('floatingPanda');
       if(fp) fp.style.display='block';
     }
   }, 2000);
+  smMaybeShowSalaryPrompt(profession);
+  updateUserJourneyUi();
 
   try{
     fetch('/', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
-      body:'form-name=sm-users&email='+encodeURIComponent(email)+'&name='+encodeURIComponent(name)+'&consent='+(consent?'yes':'no')
+      body:'form-name=sm-users&email='+encodeURIComponent(email)+'&name='+encodeURIComponent(name)+'&profession='+encodeURIComponent(profession)+'&country='+encodeURIComponent(country)+'&notify_salary='+(localStorage.getItem('sm_salary_notify')||'no')+'&consent='+(consent?'yes':'no')
     });
   }catch(e){}
 }
@@ -803,7 +955,7 @@ document.addEventListener('click',function(e){
 });
 function smSignOut(){
   if(!confirm('Sign out of SkillMapper?'))return;
-  ['sm_user_email','sm_user_name','sm_login_date','sm_consent','sm_sal_unlocked_until','tr_shared_email','tr_shared_name'].forEach(k=>localStorage.removeItem(k));
+  ['sm_user_email','sm_user_name','sm_user_profession','sm_user_country','sm_salary_notify','sm_login_date','sm_consent','sm_sal_unlocked_until','tr_shared_email','tr_shared_name'].forEach(k=>localStorage.removeItem(k));
   document.getElementById('smProfileMenu').style.display='none';
   location.reload();
 }
@@ -858,6 +1010,7 @@ function smSignOut(){
     <h2>No more guesswork. Hire with data!</h2>
     <p>Know the gap. Find the role. Hire the person.</p>
   </div>
+  <div id="journeyNote" style="display:none;background:#f0fdfa;border:1px solid rgba(15,118,110,0.2);border-radius:12px;padding:10px 14px;margin:-10px 0 16px 0;font-size:12.5px;color:#0f766e;line-height:1.6;font-family:Outfit,sans-serif;"></div>
 
   <div class="input-card">
     <div class="mode-tabs">
@@ -1563,6 +1716,30 @@ function resetTitleMode(){
   document.getElementById('resultsArea').innerHTML='<div class="empty-state"><div class="empty-icon" style="font-size:36px;margin-bottom:10px;">🎯</div><div class="empty-title">Start above to see role matches</div><div class="empty-sub">Type skills, search by title, or describe what you need.</div></div>';
 }
 
+function isFresherStudentUser(){
+  return (localStorage.getItem('sm_user_profession') || '').toLowerCase() === 'fresher/student';
+}
+
+function getRoleActionHtml(title, altTitlesParam, allPassSkills){
+  if(isFresherStudentUser()){
+    const q = encodeURIComponent('TalentXRay ' + title + ' professionals');
+    return `<a class="btn-search" href="https://www.google.com/search?q=${q}" target="_blank" rel="noopener">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      Connect with professionals
+    </a>`;
+  }
+  const titleParam = encodeURIComponent(title);
+  return `<a class="btn-search" href="https://talentxray.netlify.app?title=${titleParam}&alt=${altTitlesParam}&skills=${encodeURIComponent(allPassSkills.join(','))}&from=skillmapper" target="_blank">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    Search in TalentXRay
+  </a>`;
+}
+
+function isSalaryPromptEligible(){
+  const p = (localStorage.getItem('sm_user_profession') || '').toLowerCase();
+  return p === 'working professional' || p === 'hr';
+}
+
 function runTitleMode(){
   if(!selectedTitleModeRoles.length){
     toast('Select at least one job title first','err'); return;
@@ -1609,7 +1786,6 @@ function runTitleMode(){
       <span style="font-size:10.5px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-right:2px;white-space:nowrap;">Also called</span>
       ${altNames.map(k=>`<span style="font-size:11px;color:var(--ink2);background:var(--bg);border:1px solid var(--border);padding:2px 8px;border-radius:20px;font-family:var(--mono);">${k}</span>`).join('')}
     </div>` : '';
-    const titleParam = encodeURIComponent(r.title);
     const altTitlesParam = encodeURIComponent((r.keywords||[]).slice(1,2).join(','));
     const allPassSkills = [...new Set([...(r.required||[]).slice(0,2)])].slice(0,4);
     return `<div class="result-card match-high">
@@ -1639,10 +1815,7 @@ function runTitleMode(){
           ${alsoKnownAs}
         </div>
         <div class="rc-actions" style="margin-top:10px;">
-          <a class="btn-search" href="https://talentxray.netlify.app?title=${titleParam}&alt=${altTitlesParam}&skills=${encodeURIComponent(allPassSkills.join(','))}&from=skillmapper" target="_blank">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-            Search in TalentXRay
-          </a>
+          ${getRoleActionHtml(r.title, altTitlesParam, allPassSkills)}
         </div>
       </div>
     </div>`;
@@ -2777,7 +2950,6 @@ function render(){
     const missingHtml = missingReq.map(s=>`<span class="skill-pill skill-missing">${s}</span>`).join('');
     const missingNote = missingReq.length ? `<div class="rc-missing-note">Also typically needs: <strong>${missingReq.join(', ')}</strong></div>` : '';
 
-    const titleParam = encodeURIComponent(r.title);
     // Pass ALL keywords except title as alt titles (max 6 to keep URL clean)
     // Pass max 1 alt title — more titles over-constrain the TXR search
     const altTitlesParam = encodeURIComponent((r.keywords||[]).slice(1,2).join(','));
@@ -2822,10 +2994,7 @@ function render(){
             <div style="font-size:11.5px;color:var(--ink3);">Also called: <span style="color:var(--ink2);font-weight:500;">${(r.keywords||[r.title]).slice(0,3).join(' · ')}</span></div>
             <div class="rc-actions">
               <button class="btn-copy-title" onclick="copyTitle('${(r.title||'').replace(/'/g,"\\'")}',this)">Copy title</button>
-              <a class="btn-search" href="https://talentxray.netlify.app?title=${titleParam}&alt=${altTitlesParam}&skills=${encodeURIComponent(allPassSkills.join(','))}&from=skillmapper" target="_blank">
-                <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.6"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-                Search in TalentXRay
-              </a>
+              ${getRoleActionHtml(r.title, altTitlesParam, allPassSkills)}
             </div>
           </div>
         </div>
@@ -2851,7 +3020,7 @@ function render(){
   if(bar) bar.style.display = 'flex';
 
   // Show floating dog if salary not yet submitted
-  if(!isSalaryUnlocked()){
+  if(isSalaryPromptEligible() && !isSalaryUnlocked()){
     const fp = document.getElementById('floatingPanda');
     if(fp) fp.style.display = 'block';
   }
@@ -3423,7 +3592,7 @@ function clearAndTryAgain(){
 /* ─── Salary level selector ─── */
 function selectLevel(btn){
   const lvl = btn.dataset.lvl;
-  if(lvl !== 'junior' && !isSalaryUnlocked()){
+  if(isSalaryPromptEligible() && lvl !== 'junior' && !isSalaryUnlocked()){
     showSalaryContrib(btn);
     return;
   }
@@ -3675,7 +3844,7 @@ async function fetchGoogleJdSignals(roleTitle, role, cvLower){
   const key=(GOOGLE_CSE_KEY||'').trim();
   const cx=(GOOGLE_CSE_ID||'').trim();
   if(!key || !cx){
-    return { enabled:false, reason:'Google JD mode is off. Add GOOGLE_CSE_KEY and GOOGLE_CSE_ID to enable live market keyword comparison.' };
+    return { enabled:false, keywords:[], sources:0, reason:'' };
   }
   try{
     const q = `${roleTitle} job description required skills`;
@@ -3786,6 +3955,7 @@ async function runSmartCvEvaluation(){
   document.getElementById('cvLoadingState').style.display='none';
 
   const sc=score>=75?'#0d7a4e':score>=45?'#0f766e':'#b45309';
+  const needWorkPct=Math.max(0,100-score);
   const allMissing=[...missingReq,...missingNice];
   window._cvLastMissingSkills = allMissing;
 
@@ -3798,6 +3968,22 @@ async function runSmartCvEvaluation(){
       ? 'Your CV has a solid foundation for '+rt+' but is missing some keywords ATS systems specifically scan for.'
       : 'Your CV needs focused work before applying for '+rt+' roles. The must-have skills section shows several gaps.';
   const missingReqBlurb = missingReq.length<=2 ? '' : escapeHtml(String(missingReq.length))+' required skills are missing. These are non-negotiable in most '+rt+' job descriptions.';
+  const mustBucket=(missingReq||[]).map(s=>escapeHtml(s));
+  const niceBucket=(missingNice||[]).map(s=>escapeHtml(s));
+  const atsBucket=(atsFlags||[]).map(f=>escapeHtml(f.msg));
+  const jdBucket=(jdSignals&&jdSignals.enabled?(jdSignals.keywords||[]).map(k=>escapeHtml(k.skill)):[]);
+  function renderBucket(title, icon, color, items, hint){
+    const hasItems=items&&items.length;
+    return `<div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;">
+        <div style="font-size:11px;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:.06em;font-family:Outfit,sans-serif;">${icon} ${title}</div>
+        <div style="font-size:11px;color:#6b7280;font-family:Outfit,sans-serif;">${hasItems?items.length:0}</div>
+      </div>
+      ${hasItems
+        ? `<div style="display:flex;flex-wrap:wrap;gap:6px;">${items.map(x=>`<span style="padding:4px 10px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:20px;font-size:12px;color:#374151;font-family:Outfit,sans-serif;">${x}</span>`).join('')}</div>`
+        : `<div style="font-size:12.5px;color:#6b7280;font-family:Outfit,sans-serif;">🙂 You're all good${hint?` — ${hint}`:''}</div>`}
+    </div>`;
+  }
 
   document.getElementById('cvResults').innerHTML=`
     <div style="background:#fff;border:1.5px solid #e4e2db;border-radius:14px;padding:20px 22px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
@@ -3813,6 +3999,14 @@ async function runSmartCvEvaluation(){
         </div>
       </div>
       <div style="background:#f3f4f6;border-radius:20px;height:7px;margin-bottom:16px;overflow:hidden;"><div style="height:100%;border-radius:20px;background:${sc};width:${score}%;"></div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#374151;margin:-6px 0 14px;font-family:Outfit,sans-serif;">
+        <span style="color:#0d7a4e;font-weight:700;">${score}% match</span>
+        <span style="color:#b45309;font-weight:700;">${needWorkPct}% needs work</span>
+      </div>
+      <div style="background:#ecfdf5;border:1px solid rgba(13,122,78,0.2);border-radius:20px;height:9px;margin-bottom:14px;overflow:hidden;display:flex;">
+        <div style="height:100%;width:${score}%;background:#16a34a;"></div>
+        <div style="height:100%;width:${needWorkPct}%;background:#bbf7d0;"></div>
+      </div>
 
       ${expMsg?`<div style="background:${expWarning?'#fffbeb':'#f0fdf4'};border:1px solid ${expWarning?'rgba(180,83,9,0.2)':'rgba(13,122,78,0.2)'};border-radius:9px;padding:11px 14px;margin-bottom:12px;font-size:13px;color:${expWarning?'#b45309':'#0d7a4e'};font-family:Outfit,sans-serif;">${expWarning?'⚠️':'✓'} ${eExp}</div>`:''}
 
@@ -3840,17 +4034,14 @@ async function runSmartCvEvaluation(){
         <p style="font-size:12.8px;color:#374151;line-height:1.65;margin:0;font-family:Outfit,sans-serif;">${aiNarrative}</p>
       </div>
 
-      ${jdKeywordsHtml}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+        ${renderBucket('Must-have Gaps','⚠️','#b91c1c',mustBucket,'all core skills detected')}
+        ${renderBucket('Good-to-have Gaps','💛','#b45309',niceBucket,'no optional gaps')}
+        ${renderBucket('ATS Fixes','🔍','#0f766e',atsBucket,'ATS basics look strong')}
+        ${renderBucket('Live JD Gaps','🌐','#4338ca',jdBucket,'no live-JD gaps found')}
+      </div>
 
-      ${atsFlags.length?`<div style="background:#fff8ed;border:1px solid rgba(180,83,9,0.2);border-radius:10px;padding:14px 16px;margin-bottom:12px;"><div style="font-size:11px;font-weight:700;color:#b45309;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;font-family:Outfit,sans-serif;">🔍 ATS Compatibility (${atsFlags.length} issue${atsFlags.length>1?'s':''})</div>${atsFlags.map(f=>`<div style="display:flex;gap:8px;margin-bottom:8px;align-items:flex-start;"><span style="flex-shrink:0;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:${f.sev==='high'?'#fef2f2':f.sev==='medium'?'#fffbeb':'#f3f4f6'};color:${f.sev==='high'?'#b91c1c':f.sev==='medium'?'#b45309':'#6b7280'};font-family:Outfit,sans-serif;">${f.sev==='high'?'High':f.sev==='medium'?'Medium':'Tip'}</span><span style="font-size:12.5px;color:#374151;line-height:1.55;font-family:Outfit,sans-serif;">${escapeHtml(f.msg)}</span></div>`).join('')}</div>`:
-      `<div style="background:#f0fdf4;border:1px solid rgba(13,122,78,0.2);border-radius:9px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:#0d7a4e;font-weight:600;font-family:Outfit,sans-serif;">✓ No major ATS compatibility issues found</div>`}
-
-      ${missingReq.length?`<div style="background:#fef2f2;border:1px solid rgba(185,28,28,0.15);border-radius:10px;padding:14px 16px;margin-bottom:12px;"><div style="font-size:11px;font-weight:700;color:#b91c1c;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;font-family:Outfit,sans-serif;">⚠️ Must-have skills not found (${missingReq.length})</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">${missingReq.map(s=>`<span style="padding:4px 10px;background:#fff;border:1.5px solid rgba(185,28,28,0.3);border-radius:20px;font-size:12px;font-weight:600;color:#b91c1c;font-family:Outfit,sans-serif;">${escapeHtml(s)}</span>`).join('')}</div><div style="font-size:12px;color:#6b6963;font-family:Outfit,sans-serif;">Add these exact keywords to your Skills section and relevant job descriptions.</div></div>`:
-      `<div style="background:#f0fdf4;border:1px solid rgba(13,122,78,0.2);border-radius:9px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#0d7a4e;font-weight:600;font-family:Outfit,sans-serif;">✓ All must-have skills found in your CV</div>`}
-
-      ${missingNice.length?`<div style="background:#fffbeb;border:1px solid rgba(180,83,9,0.15);border-radius:10px;padding:14px 16px;margin-bottom:12px;"><div style="font-size:11px;font-weight:700;color:#b45309;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;font-family:Outfit,sans-serif;">💛 Good-to-have skills to add (${missingNice.length})</div><div style="display:flex;flex-wrap:wrap;gap:6px;">${missingNice.map(s=>`<span style="padding:4px 10px;background:#fff;border:1.5px solid rgba(180,83,9,0.25);border-radius:20px;font-size:12px;font-weight:500;color:#b45309;font-family:Outfit,sans-serif;">${escapeHtml(s)}</span>`).join('')}</div></div>`:''}
-
-      ${(matchedReq.length+matchedNice.length)>0?`<div style="background:#f0fdfa;border:1px solid rgba(15,118,110,0.2);border-radius:10px;padding:14px 16px;margin-bottom:12px;"><div style="font-size:11px;font-weight:700;color:#0f766e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;font-family:Outfit,sans-serif;">✅ Skills found (${matchedReq.length+matchedNice.length})</div><div style="display:flex;flex-wrap:wrap;gap:6px;">${[...matchedReq,...matchedNice].map(s=>`<span style="padding:4px 10px;background:#fff;border:1.5px solid rgba(15,118,110,0.25);border-radius:20px;font-size:12px;font-weight:500;color:#0f766e;font-family:Outfit,sans-serif;">${escapeHtml(s)}</span>`).join('')}</div></div>`:''}
+      ${(matchedReq.length+matchedNice.length)>0?`<div style="background:#f0fdfa;border:1px solid rgba(15,118,110,0.2);border-radius:10px;padding:14px 16px;margin-bottom:12px;"><div style="font-size:11px;font-weight:700;color:#0f766e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;font-family:Outfit,sans-serif;">✅ Strengths (${matchedReq.length+matchedNice.length})</div><div style="display:flex;flex-wrap:wrap;gap:6px;">${[...matchedReq,...matchedNice].map(s=>`<span style="padding:4px 10px;background:#fff;border:1.5px solid rgba(15,118,110,0.25);border-radius:20px;font-size:12px;font-weight:500;color:#0f766e;font-family:Outfit,sans-serif;">${escapeHtml(s)}</span>`).join('')}</div></div>`:''}
 
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">
         <button onclick="resetCvEvaluator()" style="flex:1;min-width:120px;padding:11px;background:#f3f4f6;color:#374151;border:none;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:Outfit,sans-serif;">↺ Try another role</button>
