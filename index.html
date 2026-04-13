@@ -663,6 +663,18 @@ function getSmProfile(){
   };
 }
 
+function normalizeProfession(v){
+  const p = String(v || '').trim().toLowerCase();
+  if(!p) return '';
+  if(p.includes('fresher') || p.includes('student')) return 'fresher/student';
+  if(p.includes('hr')) return 'hr';
+  if(p.includes('founder') || p.includes('management')) return 'management/founder';
+  if(p.includes('working professional') || p.includes('working proffesional') || p.includes('professional') || p.includes('proffesional')){
+    return 'working professional';
+  }
+  return p;
+}
+
 function toggleSmCountryOther(val){
   const other = document.getElementById('smCountryOther');
   if(!other) return;
@@ -721,12 +733,12 @@ function openSmLoginModal(){
 }
 
 function canUseDescribeMode(){
-  const p = (localStorage.getItem('sm_user_profession') || '').toLowerCase();
+  const p = normalizeProfession(localStorage.getItem('sm_user_profession'));
   return p === 'hr' || p === 'management/founder';
 }
 
 function updateUserJourneyUi(){
-  const p = (localStorage.getItem('sm_user_profession') || '').toLowerCase();
+  const p = normalizeProfession(localStorage.getItem('sm_user_profession'));
   const node = document.getElementById('journeyNote');
   const nlTab = document.getElementById('modeTabNl');
   const canDescribe = canUseDescribeMode();
@@ -769,7 +781,7 @@ function updateUserJourneyUi(){
 }
 
 function dismissJourneyTips(){
-  const p = (localStorage.getItem('sm_user_profession') || 'anon').toLowerCase();
+  const p = normalizeProfession(localStorage.getItem('sm_user_profession')) || 'anon';
   localStorage.setItem('sm_journey_tips_dismissed_' + p, 'yes');
   const node = document.getElementById('journeyNote');
   if(node) node.style.display = 'none';
@@ -1717,7 +1729,7 @@ function getRoleActionHtml(title, altTitlesParam, allPassSkills){
 }
 
 function isSalaryPromptEligible(professionValue){
-  const p = String(professionValue || localStorage.getItem('sm_user_profession') || '').toLowerCase();
+  const p = normalizeProfession(professionValue || localStorage.getItem('sm_user_profession'));
   return p === 'working professional' || p === 'hr' || p === 'management/founder';
 }
 
