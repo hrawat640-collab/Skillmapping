@@ -21,6 +21,8 @@
 -->
 <script src="supabase-config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 (function(){
   var cfg = window.__SKILLMAPPER_SUPABASE__ || {};
@@ -718,11 +720,16 @@ function openSmLoginModal(){
   document.getElementById('loginModal').style.display='flex';
 }
 
+function canUseDescribeMode(){
+  const p = (localStorage.getItem('sm_user_profession') || '').toLowerCase();
+  return p === 'hr' || p === 'management/founder';
+}
+
 function updateUserJourneyUi(){
   const p = (localStorage.getItem('sm_user_profession') || '').toLowerCase();
   const node = document.getElementById('journeyNote');
   const nlTab = document.getElementById('modeTabNl');
-  const canDescribe = p === 'hr' || p === 'management/founder';
+  const canDescribe = canUseDescribeMode();
   if(nlTab) nlTab.style.display = canDescribe ? '' : 'none';
   if(!canDescribe && typeof currentMode !== 'undefined' && currentMode === 'nl'){
     const skillsTab = document.querySelector('.mode-tab[onclick*="skills"]');
@@ -1215,106 +1222,61 @@ function smSignOut(){
 <!-- CV EVALUATOR PAGE -->
 <div id="page-cv" class="page">
 <main class="main">
-  <div class="hero">
-    <h2>CV Skill Gap Evaluator</h2>
-    <p>Select a role, upload your CV — we check every must-have and good-to-have skill and tell you exactly what to add.</p>
+  <div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:10px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">
+    <div style="font-weight:800;color:#0f766e;">SkillMapper CV</div>
+    <select id="cvHistorySelect" style="padding:6px 10px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;color:#475569;">
+      <option>History</option>
+    </select>
   </div>
 
-  <div class="input-card" style="padding:20px;margin-bottom:14px;position:relative;z-index:50;overflow:visible;">
-    <div style="font-size:12px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;font-family:Outfit,sans-serif;">Step 1 — Target role</div>
-    <div class="title-search-wrap" style="position:relative;">
-      <input class="title-search-input" id="cvRoleInput"
-    placeholder="Type a role — e.g. Data Engineer, HR Business Partner, Product Manager…"
-    oninput="onCvRoleInput(event)"
-    onblur="setTimeout(closeCvDrop,500)"
-    onkeydown="onCvRoleKeydown(event)"
-    autocomplete="off">
-      <div class="title-dropdown" id="cvRoleDropdown"></div>
-    </div>
-    <div id="cvSelectedRole" style="display:none;margin-top:10px;"></div>
-    <div id="cvRoleNotFound" style="display:none;margin-top:12px;background:#fff8ed;border:1px solid rgba(180,83,9,0.2);border-radius:10px;padding:14px 16px;">
-      <div style="font-size:13px;font-weight:700;color:#b45309;margin-bottom:6px;font-family:Outfit,sans-serif;">😕 We don't have this role yet</div>
-      <div style="font-size:12.5px;color:#6b6963;margin-bottom:10px;font-family:Outfit,sans-serif;">Tell us about it and we'll add it.</div>
-      <input id="cvMissingRoleName" type="text" placeholder="Role name"
-        style="width:100%;padding:9px 12px;margin-bottom:7px;border:1.5px solid #e4e2db;border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;outline:none;box-sizing:border-box;">
-      <input id="cvMissingSkills" type="text" placeholder="Skills this role needs — e.g. Python, SQL, Tableau"
-        style="width:100%;padding:9px 12px;margin-bottom:7px;border:1.5px solid #e4e2db;border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;outline:none;box-sizing:border-box;">
-      <textarea id="cvMissingJd" placeholder="Paste a job description (optional)"
-        style="width:100%;padding:9px 12px;margin-bottom:10px;border:1.5px solid #e4e2db;border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;outline:none;box-sizing:border-box;resize:vertical;min-height:70px;"></textarea>
-      <button onclick="submitMissingRoleForm()"
-        style="padding:9px 18px;background:#0f766e;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:Outfit,sans-serif;">
-        Submit →
-      </button>
-      <div id="cvMissingRoleSent" style="display:none;margin-top:8px;font-size:12.5px;color:#0d7a4e;font-weight:600;font-family:Outfit,sans-serif;">✓ Submitted — thank you!</div>
-    </div>
-  </div>
-
-  <div class="input-card" style="padding:20px;margin-bottom:14px;">
-    <div style="font-size:12px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;font-family:Outfit,sans-serif;">Step 2 — Your experience</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+  <div class="input-card" style="max-width:840px;margin:0 auto 16px auto;padding:22px;">
+    <div style="font-size:12px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;">Input Form</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div style="grid-column:1 / -1;position:relative;">
+        <label style="font-size:11px;font-weight:700;color:#6b7280;display:block;margin-bottom:6px;">Target Role</label>
+        <input class="title-search-input" id="cvRoleInput" placeholder="e.g. Product Manager" oninput="onCvRoleInput(event)" onblur="setTimeout(closeCvDrop,500)" onkeydown="onCvRoleKeydown(event)" autocomplete="off">
+        <div class="title-dropdown" id="cvRoleDropdown"></div>
+        <div id="cvSelectedRole" style="display:none;margin-top:8px;"></div>
+      </div>
       <div>
-        <label style="font-size:11px;font-weight:700;color:#6b7280;display:block;margin-bottom:5px;font-family:Outfit,sans-serif;">Total years of experience</label>
-        <select id="cvYearsExp" style="width:100%;padding:10px 12px;border:1.5px solid #e4e2db;border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;outline:none;background:#fff;color:#374151;">
-          <option value="">Select…</option>
-          <option value="0">Fresher / 0 years</option>
-          <option value="1">1 year</option>
-          <option value="2">2 years</option>
-          <option value="3">3 years</option>
-          <option value="4">4 years</option>
-          <option value="5">5 years</option>
-          <option value="6">6 years</option>
-          <option value="7">7 years</option>
-          <option value="8">8 years</option>
-          <option value="9">9 years</option>
-          <option value="10">10 years</option>
-          <option value="12">12+ years</option>
-          <option value="15">15+ years</option>
+        <label style="font-size:11px;font-weight:700;color:#6b7280;display:block;margin-bottom:6px;">Experience Range</label>
+        <select id="cvYearsExp" class="title-search-input" style="-webkit-appearance:none;appearance:none;background-color:#fff;background-image:linear-gradient(45deg,transparent 50%,#64748b 50%),linear-gradient(135deg,#64748b 50%,transparent 50%);background-position:calc(100% - 16px) calc(50% - 2px),calc(100% - 11px) calc(50% - 2px);background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:34px;">
+          <option value="1">Entry Level (0-2 Yrs)</option>
+          <option value="4">Mid Level (3-5 Yrs)</option>
+          <option value="7">Senior Level (6-9 Yrs)</option>
+          <option value="11">Director (10-12 Yrs)</option>
+          <option value="14">Leadership (12+ Yrs)</option>
         </select>
       </div>
       <div>
-        <label style="font-size:11px;font-weight:700;color:#6b7280;display:block;margin-bottom:5px;font-family:Outfit,sans-serif;">Current / most recent role</label>
-        <input id="cvCurrentRole" type="text" placeholder="e.g. Junior Data Analyst"
-          style="width:100%;padding:10px 12px;border:1.5px solid #e4e2db;border-radius:8px;font-family:Outfit,sans-serif;font-size:13px;outline:none;box-sizing:border-box;color:#374151;">
+        <label style="font-size:11px;font-weight:700;color:#6b7280;display:block;margin-bottom:6px;">Current/Last Designation</label>
+        <input id="cvCurrentRole" class="title-search-input" type="text" placeholder="e.g. Senior Analyst">
+      </div>
+      <div style="grid-column:1 / -1;">
+        <label style="font-size:11px;font-weight:700;color:#6b7280;display:block;margin-bottom:6px;">Target Level</label>
+        <select id="cvTargetLevel" class="title-search-input" style="-webkit-appearance:none;appearance:none;background-color:#fff;background-image:linear-gradient(45deg,transparent 50%,#64748b 50%),linear-gradient(135deg,#64748b 50%,transparent 50%);background-position:calc(100% - 16px) calc(50% - 2px),calc(100% - 11px) calc(50% - 2px);background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:34px;">
+          <option value="Entry Level">Entry Level (0-2Yrs)</option>
+          <option value="Mid Level">Mid Level (3-5)</option>
+          <option value="Senior Level">Senior Level (6-9)</option>
+          <option value="Director">Director (10-12)</option>
+          <option value="Leadership">Leadership (12+)</option>
+        </select>
+      </div>
+      <div style="grid-column:1 / -1;">
+        <label style="font-size:11px;font-weight:700;color:#6b7280;display:block;margin-bottom:6px;">CV Upload (PDF)</label>
+        <div id="cvUploadZone" style="border:2px dashed #e4e2db;border-radius:12px;padding:20px;text-align:center;cursor:pointer;background:#fafaf8;" ondragover="event.preventDefault();this.style.borderColor='#0f766e'" ondragleave="this.style.borderColor='#e4e2db'" ondrop="handleCvDrop(event)" onclick="document.getElementById('cvFileInput').click()">
+          <div style="font-size:26px;">📄</div>
+          <div style="font-weight:600;color:#334155;">Drag-drop PDF or click to upload</div>
+          <input type="file" id="cvFileInput" accept=".pdf" style="display:none" onchange="handleCvFile(event)">
+        </div>
+        <div id="cvThumbWrap" style="display:none;gap:10px;align-items:center;margin-top:10px;">
+          <canvas id="cvThumb" width="90" height="120" style="border:1px solid #e2e8f0;border-radius:8px;background:#fff;"></canvas>
+          <div id="cvFileStatus" style="font-size:13px;color:#0f766e;font-weight:600;"></div>
+        </div>
       </div>
     </div>
-  </div>
-
-  <div class="input-card" style="padding:20px;margin-bottom:14px;">
-    <div style="font-size:12px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;font-family:Outfit,sans-serif;">Step 3 — Your CV</div>
-    <div style="display:flex;gap:8px;margin-bottom:14px;">
-      <button id="cvTabUpload" onclick="switchCvInput('upload')"
-        style="padding:7px 16px;border-radius:20px;border:1.5px solid #0f766e;background:#f0fdfa;color:#0f766e;font-family:Outfit,sans-serif;font-size:12.5px;font-weight:600;cursor:pointer;">
-        📎 Upload PDF / DOCX
-      </button>
-      <button id="cvTabPaste" onclick="switchCvInput('paste')"
-        style="padding:7px 16px;border-radius:20px;border:1.5px solid #e4e2db;background:#fff;color:#6b6963;font-family:Outfit,sans-serif;font-size:12.5px;font-weight:600;cursor:pointer;">
-        📋 Paste CV text
-      </button>
-    </div>
-    <div id="cvUploadZone"
-      style="border:2px dashed #e4e2db;border-radius:12px;padding:28px;text-align:center;cursor:pointer;background:#fafaf8;"
-      ondragover="event.preventDefault();this.style.borderColor='#0f766e'"
-      ondragleave="this.style.borderColor='#e4e2db'"
-      ondrop="handleCvDrop(event)"
-      onclick="document.getElementById('cvFileInput').click()">
-      <div style="font-size:28px;margin-bottom:8px;">📄</div>
-      <div style="font-size:14px;font-weight:600;color:#374151;font-family:Outfit,sans-serif;">Drop your CV here or click to browse</div>
-      <div style="font-size:12px;color:#9ca3af;margin-top:4px;font-family:Outfit,sans-serif;">PDF · DOCX · TXT · Max 5MB</div>
-      <input type="file" id="cvFileInput" accept=".pdf,.docx,.doc,.txt" style="display:none" onchange="handleCvFile(event)">
-    </div>
-    <div id="cvPasteZone" style="display:none;">
-      <textarea id="cvPasteInput" placeholder="Paste your full CV text here…"
-        style="width:100%;min-height:200px;padding:14px 16px;border:1.5px solid #e4e2db;border-radius:10px;font-family:Outfit,sans-serif;font-size:13.5px;color:#374151;resize:vertical;outline:none;box-sizing:border-box;line-height:1.6;"
-        onfocus="this.style.borderColor='#0f766e'" onblur="this.style.borderColor='#e4e2db'"></textarea>
-    </div>
-    <div id="cvFileStatus" style="display:none;margin-top:10px;font-size:13px;color:#0f766e;font-weight:600;font-family:Outfit,sans-serif;"></div>
-    <button onclick="runSmartCvEvaluation()"
-      style="margin-top:14px;width:100%;padding:14px;background:#0f766e;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:Outfit,sans-serif;">
-      ✓ Evaluate My CV
-    </button>
-    <div style="margin-top:10px;padding:10px 14px;background:#f8f9fa;border-radius:8px;font-size:11.5px;color:#6b7280;line-height:1.55;font-family:Outfit,sans-serif;">
-      🔒 Your CV text is processed locally in your browser. We only store anonymised skill match scores — never your CV content. <a href="#" onclick="switchToPrivacyPage(event);return false;" style="color:#0f766e;font-weight:600;">See our privacy policy →</a>
-    </div>
+    <button onclick="runSmartCvEvaluation()" style="margin-top:14px;width:100%;padding:14px;background:#0f766e;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;">Evaluate CV</button>
+    <div id="cvRoleNotFound" style="display:none;margin-top:10px;font-size:12px;color:#b45309;">Role not found in current library.</div>
   </div>
 
   <div id="cvLoadingState" style="display:none;text-align:center;padding:40px 20px;">
@@ -1932,6 +1894,15 @@ function switchToPrivacyPage(ev){
 let currentMode = 'skills';
 
 function switchMode(mode, btn){
+  // Hard guard: Fresher/Working Professional cannot access NL mode.
+  if(mode === 'nl' && !canUseDescribeMode()){
+    const skillsTab = document.getElementById('modeTabSkills');
+    if(skillsTab && skillsTab !== btn){
+      switchMode('skills', skillsTab);
+    }
+    return;
+  }
+
   // Reset title mode selections when leaving
   if(mode !== 'title'){
     selectedTitleModeRoles = [];
@@ -3733,6 +3704,7 @@ function buildImpliesMap(skills){
    CV EVALUATOR
    ══════════════════════════════════════ */
 let cvSelectedRole=null, cvInputMode='upload', cvExtractedText='';
+let cvLastReport = null;
 
 function escapeHtml(str){
   if(str==null) return '';
@@ -3745,12 +3717,7 @@ function escapeHtml(str){
 }
 
 function switchCvInput(mode){
-  cvInputMode=mode;
-  document.getElementById('cvUploadZone').style.display=mode==='upload'?'block':'none';
-  document.getElementById('cvPasteZone').style.display=mode==='paste'?'block':'none';
-  const u=document.getElementById('cvTabUpload'),p=document.getElementById('cvTabPaste');
-  u.style.borderColor=mode==='upload'?'#0f766e':'#e4e2db';u.style.background=mode==='upload'?'#f0fdfa':'#fff';u.style.color=mode==='upload'?'#0f766e':'#6b6963';
-  p.style.borderColor=mode==='paste'?'#0f766e':'#e4e2db';p.style.background=mode==='paste'?'#f0fdfa':'#fff';p.style.color=mode==='paste'?'#0f766e':'#6b6963';
+  cvInputMode = mode;
 }
 
 function onCvRoleFocus(){
@@ -3775,8 +3742,8 @@ function onCvRoleInput(e){
   if(!matches.length){
     drop.classList.remove('open');
     setTimeout(()=>{ if(document.getElementById('cvRoleInput').value.trim()===q){
-      document.getElementById('cvRoleNotFound').style.display='block';
-      document.getElementById('cvMissingRoleName').value=q;
+      const rn = document.getElementById('cvRoleNotFound');
+      if(rn) rn.style.display='block';
     }},800);
     return;
   }
@@ -3819,16 +3786,35 @@ function clearCvRole(){
 function handleCvFile(e){ const f=e.target.files[0]; if(f)processCvFile(f); }
 function handleCvDrop(e){ e.preventDefault(); document.getElementById('cvUploadZone').style.borderColor='#e4e2db'; const f=e.dataTransfer.files[0]; if(f)processCvFile(f); }
 
-function processCvFile(file){
+async function processCvFile(file){
   const status=document.getElementById('cvFileStatus');
-  status.style.display='block'; status.textContent='⏳ Reading '+file.name+'…';
-  const reader=new FileReader();
-  reader.onload=function(ev){
-    cvExtractedText=ev.target.result;
+  const thumbWrap=document.getElementById('cvThumbWrap');
+  if(!file || !/\.pdf$/i.test(file.name)){ showToast('Please upload a PDF file.','err'); return; }
+  thumbWrap.style.display='flex';
+  status.textContent='⏳ Reading '+file.name+'...';
+  try{
+    const arr = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arr }).promise;
+    const page = await pdf.getPage(1);
+    const viewport = page.getViewport({ scale: 0.4 });
+    const canvas = document.getElementById('cvThumb');
+    const ctx = canvas.getContext('2d');
+    canvas.width = Math.max(90, Math.floor(viewport.width));
+    canvas.height = Math.max(120, Math.floor(viewport.height));
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    let text = '';
+    for(let i=1;i<=Math.min(pdf.numPages,3);i++){
+      const p = await pdf.getPage(i);
+      const c = await p.getTextContent();
+      text += ' ' + c.items.map(it=>it.str).join(' ');
+    }
+    cvExtractedText = text.trim();
     status.textContent='✓ '+file.name+' loaded — ready to evaluate.';
     document.getElementById('cvUploadZone').style.borderColor='#0f766e';
-  };
-  reader.readAsText(file);
+  }catch(e){
+    cvExtractedText='';
+    status.textContent='Could not parse PDF text. Try another file.';
+  }
 }
 
 function smartSkillMatch(skill,cvLower){
@@ -3886,22 +3872,41 @@ async function runSmartCvEvaluation(){
   const role=cvSelectedRole, cvLower=cvText.toLowerCase();
   const wordCount=cvText.split(/\s+/).filter(Boolean).length;
   const userYears=document.getElementById('cvYearsExp').value;
+  const targetLevel = (document.getElementById('cvTargetLevel')?.value || 'Entry Level').trim();
+  const levelByYears = userYears <= 2 ? 'Entry Level' : userYears <= 5 ? 'Mid Level' : userYears <= 9 ? 'Senior Level' : userYears <= 12 ? 'Director' : 'Leadership';
+  const levelOrder = ['Entry Level','Mid Level','Senior Level','Director','Leadership'];
+  const currentLevelIdx = levelOrder.indexOf(levelByYears);
+  const targetLevelIdx = levelOrder.indexOf(targetLevel);
+  const levelGap = (currentLevelIdx >= 0 && targetLevelIdx >= 0) ? (targetLevelIdx - currentLevelIdx) : 0;
 
   document.getElementById('cvResults').innerHTML='';
   document.getElementById('cvLoadingState').style.display='block';
   document.getElementById('cvLoadingText').textContent='Analysing your CV…';
+
+  if(levelGap > 1){
+    document.getElementById('cvLoadingState').style.display='none';
+    document.getElementById('cvResults').innerHTML = `
+      <div style="background:#fff;border:1px solid #f1d4d4;border-radius:12px;padding:16px;box-shadow:0 8px 20px rgba(15,23,42,0.06);">
+        <div style="font-size:15px;font-weight:800;color:#991b1b;margin-bottom:8px;">Role-level mismatch</div>
+        <div style="font-size:13px;color:#475569;line-height:1.6;">
+          Acheving Target role is currently not possible as the experience is less. Please try changing the target level.
+        </div>
+      </div>`;
+    showToast('Please change target level based on experience.','err');
+    return;
+  }
 
   const matchedReq=(role.required||[]).filter(s=>smartSkillMatch(s,cvLower));
   const missingReq=(role.required||[]).filter(s=>!smartSkillMatch(s,cvLower));
   const matchedNice=(role.nice||[]).filter(s=>smartSkillMatch(s,cvLower));
   const missingNice=(role.nice||[]).filter(s=>!smartSkillMatch(s,cvLower)).slice(0,8);
   const totalReq=(role.required||[]).length;
-  const reqCoveragePct=totalReq?Math.round((matchedReq.length/totalReq)*100):100;
-
-  const reqScore=role.required.length>0?(matchedReq.length/role.required.length)*70:70;
-  const niceScore=role.nice.length>0?(matchedNice.length/Math.min(role.nice.length,10))*20:0;
-  const sparseBonus=wordCount>=400?10:wordCount>=200?5:0;
-  let score=Math.round(reqScore+niceScore+sparseBonus);
+  const totalNice=(role.nice||[]).length;
+  const mustHaveCoveragePct=totalReq?Math.round((matchedReq.length/totalReq)*100):100;
+  const niceCoveragePct=totalNice?Math.round((matchedNice.length/totalNice)*100):100;
+  // Skills Match prioritizes must-have keywords; nice-to-have only enhances the score.
+  const reqCoveragePct=Math.round((mustHaveCoveragePct*0.85)+(niceCoveragePct*0.15));
+  let score=0;
 
   // Experience adjustment
   let expMsg='', expWarning=false;
@@ -3911,17 +3916,15 @@ async function runSmartCvEvaluation(){
     const levels=Object.entries(role.exp||{}).filter(([,d])=>d&&d[0]!==null).map(([lvl,d])=>({lvl,min:d[0],max:d[1]}));
     if(levels.length){
       const lowest=levels[0], highest=levels[levels.length-1];
-      if(yrs<lowest.min){ score=Math.max(0,score-25); expWarning=true; expMsg=`Your ${yrs} year(s) is below the typical ${lowest.min}–${highest.max} years for this role. Consider targeting more junior versions first.`; }
+      if(yrs<lowest.min){ expWarning=true; expMsg=`Your ${yrs} year(s) is below the typical ${lowest.min}–${highest.max} years for this role. Consider targeting more junior versions first.`; }
       else if(yrs>highest.max){ expMsg=`Your ${yrs} years exceeds this role's typical range. You may want to consider more senior titles.`; }
       else { expMsg=`Your experience level is a good match for this role.`; }
       if(yrs<=1 && seniorTitleHint){
-        score=Math.max(0,score-20);
         expWarning=true;
         expMsg='This looks like a senior role. As a fresher/student, target junior or associate titles first for better shortlist chances.';
       }
     }
   }
-  score=Math.max(0,Math.min(99,score));
 
   // ATS checks
   const atsFlags=[];
@@ -3935,21 +3938,15 @@ async function runSmartCvEvaluation(){
 
   const roleTips={'Data Engineer':'Mention specific tools by name (Airflow, dbt, Kafka) and data volumes handled.','Data Scientist':'Quantify model performance and name the business problem solved.','Product Manager':'Show metrics: DAU growth %, churn reduction %, revenue impact.','HR Business Partner':'Quantify: headcount managed, attrition % reduced, programmes launched.','Talent Acquisition Specialist':'Show funnel metrics: time-to-hire, offer acceptance rate. Name ATS tools used.','Financial Analyst':'Show modelling depth: DCF, LBO, scenario analysis. Name the industry.','Frontend Engineer':'Name frameworks and versions. Add portfolio or GitHub link.','Backend Engineer':'Mention scale: RPS, DB size, team size supported.','default':'Use exact keywords from the job description verbatim — ATS matches strings, not meanings.'};
   const roleTip=roleTips[role.title]||roleTips['default'];
-  const marketBand=reqCoveragePct>=80?'Top-market ready':reqCoveragePct>=55?'Mid-market competitive':'Below current market baseline';
-  const marketBandColor=reqCoveragePct>=80?'#0d7a4e':reqCoveragePct>=55?'#0f766e':'#b45309';
-  const marketSummary=reqCoveragePct>=80
+  const marketBand=mustHaveCoveragePct>=80?'Top-market ready':mustHaveCoveragePct>=55?'Mid-market competitive':'Below current market baseline';
+  const marketBandColor=mustHaveCoveragePct>=80?'#0d7a4e':mustHaveCoveragePct>=55?'#0f766e':'#b45309';
+  const marketSummary=mustHaveCoveragePct>=80
     ? 'Your CV covers most must-have skills commonly listed in live job descriptions for this role.'
-    : reqCoveragePct>=55
+    : mustHaveCoveragePct>=55
       ? 'Your CV is in the competitive band, but stronger keyword depth can improve shortlist rate.'
       : 'Compared with current role expectations, your CV is missing multiple baseline keywords recruiters screen for first.';
-  const aiNarrative=score>=75
-    ? 'If you apply now, you should pass most first-level screening. Focus on adding quantified impact to improve interview conversion.'
-    : score>=45
-      ? 'You have a credible profile; the next lift is precision. Add exact tool names and measurable outcomes in each experience bullet.'
-      : 'Treat this as a targeted rewrite: prioritize must-have skills, mirror JD wording, and highlight one result per project.';
-  document.getElementById('cvLoadingText').textContent='Comparing against live Google JDs…';
+  document.getElementById('cvLoadingText').textContent='Checking market signals…';
   const jdSignals = await fetchGoogleJdSignals(role.title, role, cvLower);
-  if(_sb) void _sb.from('cv_evaluations').insert({role_title:role.title,total_skills:(role.required.length+role.nice.length),matched_skills:(matchedReq.length+matchedNice.length),missing_required:missingReq.length,missing_nice:missingNice.length,final_score:score,word_count:wordCount,user_years_exp:userYears||null}).then(()=>{}).catch(()=>{});
 
   document.getElementById('cvLoadingState').style.display='none';
 
@@ -3990,76 +3987,301 @@ async function runSmartCvEvaluation(){
   }
   feedbackPointers.push(`Role-specific tip: ${roleTip}`);
 
+  const levelAligned = targetLevel === levelByYears;
+  const industryTag = String(role.dept || role.department || 'General').trim();
+  const levelIndustryTips = {
+    'Entry Level': `For ${industryTag}, keep projects practical and tool-specific with 2-3 measurable outcomes.`,
+    'Mid Level': `For ${industryTag}, show ownership, mentoring, and delivery outcomes across multiple projects.`,
+    'Senior Level': `For ${industryTag}, highlight cross-functional influence and business impact with clear metrics.`,
+    'Director': `For ${industryTag}, emphasize strategy, team leadership, and budget or KPI ownership.`,
+    'Leadership': `For ${industryTag}, position transformation impact, scale handled, and org-level outcomes.`
+  };
+
+  const atsScore = Math.max(40, 100 - Math.min(60, atsFlags.length * 12));
+  const expFit = userYears==='' ? 60 : (expWarning ? 38 : (levelAligned ? 84 : 62));
+  // Final score is a weighted mix of Skills Match, Experience Fit, and ATS Compatibility.
+  score = Math.round((reqCoveragePct*0.60) + (expFit*0.25) + (atsScore*0.15));
+  // Guardrail: high score should only happen when all must-have keywords are present.
+  if(missingReq.length>0) score = Math.min(score, 79);
+  score=Math.max(0,Math.min(99,score));
+  const aiNarrative=score>=75
+    ? 'If you apply now, you should pass most first-level screening. Focus on adding quantified impact to improve interview conversion.'
+    : score>=45
+      ? 'You have a credible profile; the next lift is precision. Add exact tool names and measurable outcomes in each experience bullet.'
+      : 'Treat this as a targeted rewrite: prioritize must-have skills, mirror JD wording, and highlight one result per project.';
+  if(_sb) void _sb.from('cv_evaluations').insert({role_title:role.title,total_skills:(role.required.length+role.nice.length),matched_skills:(matchedReq.length+matchedNice.length),missing_required:missingReq.length,missing_nice:missingNice.length,final_score:score,word_count:wordCount,user_years_exp:userYears||null}).then(()=>{}).catch(()=>{});
+  const overallPct = score;
+  const verdictColor = overallPct>=80 ? '#16a34a' : (overallPct>=60 ? '#d97706' : '#fca5a5');
+  const verdictWord = 'Review full report';
+  const yearsRow = expWarning ? 'Years not aligned' : 'Years aligned';
+  const roleTokens = (document.getElementById('cvCurrentRole').value||'').toLowerCase().split(/\s+/).filter(Boolean);
+  const targetTokens = String(role.title||'').toLowerCase().split(/\s+/).filter(Boolean);
+  const overlap = roleTokens.filter(t=>targetTokens.includes(t)).length;
+  const desigSim = targetTokens.length ? Math.round((overlap/targetTokens.length)*100) : 0;
+  const hasEmail = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i.test(cvText);
+  const hasLinkedin = /linkedin\.com\/in\//i.test(cvText);
+  const hasMobile = /(\+?\d[\d\s().-]{8,}\d)/.test(cvText);
+  const hasEducation = /(education|b\.tech|btech|b\.e|be|mba|m\.tech|mtech|bachelor|master|degree)/i.test(cvText);
+  const hasCertificates = /(certificate|certification|certified)/i.test(cvText);
+  const hasImpactNumbers = (cvText.match(/\d+%|\d+\s*(years|yrs|users|clients|projects|revenue|team|people|k|m|cr|crore)/gi)||[]).length >= 2;
+  const positivePointers = [
+    mustHaveCoveragePct >= 70 ? `Strong required-skill coverage (${mustHaveCoveragePct}%).` : `You already match ${mustHaveCoveragePct}% of required skills.`,
+    (matchedReq.length+matchedNice.length) ? `Detected strengths: ${[...matchedReq,...matchedNice].slice(0,6).join(', ')}.` : 'Good baseline profile present; add role-specific keywords for better ATS fit.',
+    expWarning ? 'Experience level is slightly off the typical range.' : 'Experience alignment looks healthy for this target.',
+    levelAligned ? `Target level alignment is clear (${targetLevel}).` : `You selected ${targetLevel}; your current experience maps closer to ${levelByYears}.`
+  ];
+  const marketPointers = [
+    marketSummary,
+    (jdSignals.keywords||[]).length
+      ? `Live JD analysis: recruiters are repeatedly asking for ${jdSignals.keywords.slice(0,5).map(k=>k.skill).join(', ')}.`
+      : (jdSignals.reason
+          ? `Live JD analysis note: ${jdSignals.reason}`
+          : (jdSignals.enabled ? 'Live JD analysis is on, but no additional repeated keywords were detected right now.' : 'Live JD analysis is off for this run.')),
+    missingReq.length ? `Must-have skills to add first: ${missingReq.slice(0,6).join(', ')}.` : 'All must-have skills found in your CV.',
+    missingNice.length ? `Good-to-have skills to strengthen profile: ${missingNice.slice(0,6).join(', ')}.` : 'Nice-to-have coverage is in a good range.'
+  ];
+  const aiRecruiterPointers = [
+    aiNarrative,
+    `Role-specific tip: ${roleTip}`,
+    levelIndustryTips[targetLevel] || levelIndustryTips['Entry Level'],
+    ...(!hasEmail ? ['Add a professional email at the top.'] : []),
+    ...(!hasLinkedin ? ['Add your LinkedIn profile URL.'] : []),
+    ...(!hasMobile ? ['Add a reachable mobile number.'] : []),
+    ...(!hasEducation ? ['Add education details with degree and year.'] : []),
+    ...(!hasCertificates ? ['Add relevant certifications (if any).'] : []),
+    ...(!hasImpactNumbers ? ['Add measurable impact in experience bullets (%, counts, revenue, team size).'] : []),
+    ...(atsFlags.length ? atsFlags.slice(0,2).map(f=>f.msg) : [])
+  ];
+  cvLastReport = {
+    role: role.title,
+    targetLevel,
+    overall: overallPct,
+    skills: reqCoveragePct,
+    exp: expFit,
+    ats: atsScore,
+    looksGood: positivePointers,
+    marketInsights: marketPointers,
+    aiPointers: aiRecruiterPointers,
+    matchedReqCount: matchedReq.length,
+    totalReqCount: role.required.length,
+    matchedNiceCount: matchedNice.length,
+    totalNiceCount: role.nice.length,
+    missingReq,
+    missingNice,
+    missing: allMissing
+  };
+
   document.getElementById('cvResults').innerHTML=`
-    <div style="background:#fff;border:1.5px solid #e4e2db;border-radius:16px;padding:20px 22px;box-shadow:0 8px 30px rgba(15,23,42,0.06);">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #f3f4f6;">
-        <div>
-          <div style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;font-family:Outfit,sans-serif;">CV Evaluation</div>
-          <div style="font-size:17px;font-weight:800;color:#111;font-family:Outfit,sans-serif;">${rt}</div>
-          <div style="font-size:12px;color:#6b7280;margin-top:3px;font-family:Outfit,sans-serif;">${wordCount} words • ${matchedReq.length}/${role.required.length} required skills found</div>
+    <div style="background:
+      radial-gradient(1200px 220px at -10% -20%, #dbeafe 0%, rgba(219,234,254,0) 55%),
+      radial-gradient(1000px 200px at 110% -10%, #dcfce7 0%, rgba(220,252,231,0) 52%),
+      linear-gradient(180deg, #f8fafc 0%, #ffffff 65%);
+      border:1px solid #dbe3ec;border-radius:16px;padding:14px;box-shadow:0 14px 34px rgba(15,23,42,0.08);">
+      <div style="padding:12px;border-radius:12px;background:linear-gradient(135deg,#e0f2fe,#f8fafc 45%,#ecfeff);margin-bottom:10px;border:1px solid #dbeafe;backdrop-filter: blur(1px);">
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+          <div id="cvScoreRing" style="width:118px;height:118px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(#2563eb 0%, #e5e7eb 0);box-shadow:0 8px 18px #cbd5e155;">
+            <div style="width:94px;height:94px;border-radius:50%;background:#fff;display:grid;place-items:center;">
+              <div id="cvScoreText" style="font-weight:800;font-size:21px;color:#334155;">0/100</div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:24px;font-weight:800;color:#2563eb;">${overallPct}/100 Your Score</div>
+            <div style="font-size:13px;font-weight:700;color:#334155;">${verdictWord}</div>
+            <div style="font-size:11px;color:#64748b;margin-top:3px;">Role: ${rt} · Target Level: ${escapeHtml(targetLevel)}</div>
+          </div>
         </div>
-        <div style="text-align:right;">
-          <div style="font-size:40px;font-weight:800;color:${sc};line-height:1;font-family:Outfit,sans-serif;">${score}%</div>
-          <div style="font-size:11px;font-weight:600;color:${sc};margin-top:3px;font-family:Outfit,sans-serif;">${score>=75?'Strong match':score>=45?'Partial match':'Needs work'}</div>
-          <div style="margin-top:6px;padding:4px 10px;border-radius:20px;background:${readinessBg};color:${readinessColor};font-size:11px;font-weight:700;font-family:Outfit,sans-serif;">${readinessLabel}</div>
-        </div>
-      </div>
-
-      <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#374151;margin:0 0 8px;font-family:Outfit,sans-serif;">
-        <span style="color:#0d7a4e;font-weight:700;">${score}% match</span>
-        <span style="color:#b45309;font-weight:700;">${needWorkPct}% needs work</span>
-      </div>
-      <div style="background:#f3f4f6;border:1px solid #e5e7eb;border-radius:999px;height:12px;margin-bottom:14px;overflow:hidden;display:flex;">
-        <div style="height:100%;width:${score}%;background:linear-gradient(90deg,#16a34a,#22c55e);"></div>
-        <div style="height:100%;width:${needWorkPct}%;background:#fde68a;"></div>
-      </div>
-
-      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px;">
-        <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;">
-          <div style="font-size:10.5px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-family:Outfit,sans-serif;">Required Coverage</div>
-          <div style="font-size:18px;color:#0f172a;font-weight:800;font-family:Outfit,sans-serif;">${reqCoveragePct}%</div>
-        </div>
-        <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;">
-          <div style="font-size:10.5px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-family:Outfit,sans-serif;">Market Band</div>
-          <div style="font-size:14px;color:${marketBandColor};font-weight:800;font-family:Outfit,sans-serif;">${marketBand}</div>
-        </div>
-        <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;">
-          <div style="font-size:10.5px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-family:Outfit,sans-serif;">Must-have Gaps</div>
-          <div style="font-size:18px;color:${missingReq.length?'#b91c1c':'#166534'};font-weight:800;font-family:Outfit,sans-serif;">${missingReq.length}</div>
+        <div style="margin-top:10px;display:grid;gap:6px;">
+          ${[
+            {k:'Skills Match',v:reqCoveragePct,c:'#16a34a'},
+            {k:'Experience Fit',v:expFit,c:'#2563eb'},
+            {k:'ATS Compatibility',v:atsScore,c:'#0f766e'},
+            {k:'Overall',v:overallPct,c:'#2563eb'}
+          ].map(p=>`<div><div style="display:flex;justify-content:space-between;font-size:11px;color:#475569;"><span>${p.k}</span><strong>${p.v}%</strong></div><div style="height:7px;background:#e5e7eb;border-radius:999px;overflow:hidden;"><div style="height:100%;width:${p.v}%;background:${p.c};"></div></div></div>`).join('')}
         </div>
       </div>
 
-      ${expMsg?`<div style="background:${expWarning?'#fffbeb':'#f0fdf4'};border:1px solid ${expWarning?'rgba(180,83,9,0.2)':'rgba(13,122,78,0.2)'};border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12.8px;color:${expWarning?'#b45309':'#0d7a4e'};font-family:Outfit,sans-serif;">${expWarning?'⚠️':'✓'} ${eExp}</div>`:''}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div style="border:1px solid #e6ebf1;border-radius:10px;padding:10px;background:rgba(255,255,255,0.86);">
+          <div style="font-weight:700;margin-bottom:6px;font-size:13px;">Looks Good</div>
+          <ul style="margin:0;padding-left:16px;display:grid;gap:5px;">
+            ${positivePointers.map(p=>`<li style="font-size:12px;color:#334155;line-height:1.45;">${escapeHtml(p)}</li>`).join('')}
+          </ul>
+        </div>
+        <div style="border:1px solid #e6ebf1;border-radius:10px;padding:10px;background:rgba(255,255,255,0.9);">
+          <div style="font-weight:700;margin-bottom:6px;font-size:13px;">Keyword in CV</div>
+          <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <tr style="background:#f8fafc;"><th style="text-align:left;padding:6px;border-bottom:1px solid #e5e7eb;">Group</th><th style="text-align:left;padding:6px;border-bottom:1px solid #e5e7eb;">Matched / Total</th><th style="text-align:left;padding:6px;border-bottom:1px solid #e5e7eb;">Status</th></tr>
+            <tr><td style="padding:6px;border-bottom:1px solid #f1f5f9;">Must-Have</td><td style="padding:6px;border-bottom:1px solid #f1f5f9;">${matchedReq.length}/${role.required.length}</td><td style="padding:6px;border-bottom:1px solid #f1f5f9;color:${missingReq.length?'#ef4444':'#16a34a'};">${missingReq.length?`<a href="javascript:void(0)" onclick="highlightCvMissing('must')" style="color:#dc2626;text-decoration:underline;">${missingReq.length} missing</a>`:'All clear'}</td></tr>
+            <tr><td style="padding:6px;">Nice-to-Have</td><td style="padding:6px;">${matchedNice.length}/${role.nice.length}</td><td style="padding:6px;color:#475569;">${(role.nice.length-matchedNice.length)>0?`<a href="javascript:void(0)" onclick="highlightCvMissing('nice')" style="color:#475569;text-decoration:underline;">${Math.max(0,role.nice.length-matchedNice.length)} missing</a>`:'All clear'}</td></tr>
+          </table>
+          ${missingReq.length?`<div id="cvMissingMust" style="margin-top:7px;font-size:11.5px;color:#475569;padding:4px 6px;border-radius:6px;transition:background-color .2s;"><strong>Must-have skills:</strong> ${escapeHtml(missingReq.slice(0,8).join(', '))}</div>`:''}
+          ${missingNice.length?`<div id="cvMissingNice" style="margin-top:3px;font-size:11.5px;color:#64748b;padding:4px 6px;border-radius:6px;transition:background-color .2s;"><strong>Good-to-have skills:</strong> ${escapeHtml(missingNice.slice(0,8).join(', '))}</div>`:''}
+        </div>
+      </div>
 
-      <div style="background:linear-gradient(180deg,#f8fafc 0%,#f1f5f9 100%);border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;margin-bottom:12px;">
-        <div style="font-size:11px;font-weight:700;color:#0f766e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;font-family:Outfit,sans-serif;">🤖 AI Recruiter Feedback</div>
-        <ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:7px;">
-          ${feedbackPointers.slice(0,8).map(item=>`<li style="font-size:12.8px;line-height:1.6;color:#334155;font-family:Outfit,sans-serif;">${escapeHtml(item)}</li>`).join('')}
+      <div style="margin-top:10px;border:1px solid #e6ebf1;border-radius:10px;padding:10px;background:rgba(255,255,255,0.9);">
+        <div style="font-weight:700;margin-bottom:6px;font-size:13px;">Market vs Resume Insights</div>
+        <ul style="margin:0;padding-left:16px;display:grid;gap:5px;">
+          ${marketPointers.map(p=>`<li style="font-size:12px;color:#334155;line-height:1.45;">${escapeHtml(p)}</li>`).join('')}
         </ul>
       </div>
 
-      ${(matchedReq.length+matchedNice.length)>0?`<div style="background:#f0fdfa;border:1px solid rgba(15,118,110,0.2);border-radius:10px;padding:14px 16px;margin-bottom:12px;"><div style="font-size:11px;font-weight:700;color:#0f766e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;font-family:Outfit,sans-serif;">✅ Strengths (${matchedReq.length+matchedNice.length})</div><div style="display:flex;flex-wrap:wrap;gap:6px;">${[...matchedReq,...matchedNice].map(s=>`<span style="padding:4px 10px;background:#fff;border:1.5px solid rgba(15,118,110,0.25);border-radius:20px;font-size:12px;font-weight:500;color:#0f766e;font-family:Outfit,sans-serif;">${escapeHtml(s)}</span>`).join('')}</div></div>`:''}
+      <div style="margin-top:10px;border:1px solid #d9e7e3;border-radius:10px;padding:10px;background:linear-gradient(180deg,#f8fafc,#f1f5f9);">
+        <div style="font-weight:700;margin-bottom:6px;font-size:13px;color:#0f766e;">AI Recruiter Pointers</div>
+        <ul style="margin:0;padding-left:16px;display:grid;gap:5px;">
+          ${aiRecruiterPointers.map(p=>`<li style="font-size:12px;color:#334155;line-height:1.45;">${escapeHtml(p)}</li>`).join('')}
+        </ul>
+      </div>
 
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">
-        <button onclick="resetCvEvaluator()" style="flex:1;min-width:120px;padding:11px;background:#f3f4f6;color:#374151;border:none;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:Outfit,sans-serif;">↺ Try another role</button>
-        <button onclick="copyCvMissing()" style="flex:1;min-width:120px;padding:11px;background:#0f766e;color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:Outfit,sans-serif;">📋 Copy missing skills</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+        <button onclick="downloadCvReport()" style="padding:10px 12px;background:#0f766e;color:#fff;border:none;border-radius:9px;font-weight:700;font-size:12px;">Download PDF Report</button>
+        <button onclick="resetCvEvaluator()" style="padding:10px 12px;background:#f1f5f9;color:#334155;border:1px solid #e2e8f0;border-radius:9px;font-weight:700;font-size:12px;">New Evaluation</button>
+        <button onclick="shareCvReport()" style="padding:10px 12px;background:#fff;color:#0f172a;border:1px solid #e2e8f0;border-radius:9px;font-weight:700;font-size:12px;">Share Link</button>
+        <button onclick="checkoutSalaryForTargetRole()" style="padding:10px 12px;background:#1d4ed8;color:#fff;border:none;border-radius:9px;font-weight:700;font-size:12px;">Check out salary for your target role</button>
       </div>
     </div>`;
 
+  animateCvScoreRing(overallPct, '#2563eb');
   setTimeout(()=>document.getElementById('cvResults').scrollIntoView({behavior:'smooth',block:'nearest'}),100);
+}
+
+function animateCvScoreRing(targetScore, color){
+  const ring = document.getElementById('cvScoreRing');
+  const text = document.getElementById('cvScoreText');
+  if(!ring || !text) return;
+  const target = Math.max(0, Math.min(100, Number(targetScore) || 0));
+  let current = 0;
+  const step = Math.max(1, Math.round(target / 45));
+  const timer = setInterval(()=>{
+    current = Math.min(target, current + step);
+    ring.style.background = `conic-gradient(${color} ${current}%, #e5e7eb 0)`;
+    text.textContent = `${current}/100`;
+    if(current >= target) clearInterval(timer);
+  }, 16);
+}
+
+function highlightCvMissing(kind){
+  const id = kind === 'must' ? 'cvMissingMust' : 'cvMissingNice';
+  const node = document.getElementById(id);
+  if(!node) return;
+  const prevBg = node.style.backgroundColor;
+  node.style.backgroundColor = '#fef3c7';
+  node.scrollIntoView({behavior:'smooth', block:'nearest'});
+  setTimeout(()=>{ node.style.backgroundColor = prevBg || 'transparent'; }, 5000);
 }
 
 function resetCvEvaluator(){
   document.getElementById('cvResults').innerHTML='';
   window._cvLastMissingSkills = [];
+  cvLastReport = null;
   clearCvRole();
   document.getElementById('cvRoleInput').value='';
   const s=document.getElementById('cvFileStatus');if(s)s.style.display='none';
   cvExtractedText='';
   document.getElementById('cvUploadZone').style.borderColor='#e4e2db';
-  const p=document.getElementById('cvPasteInput');if(p)p.value='';
-  document.getElementById('cvYearsExp').value='';
+  const tw=document.getElementById('cvThumbWrap'); if(tw) tw.style.display='none';
+  const y=document.getElementById('cvYearsExp'); if(y) y.value='1';
+  const tl=document.getElementById('cvTargetLevel'); if(tl) tl.value='Entry Level';
   document.getElementById('cvCurrentRole').value='';
+}
+
+function downloadCvReport(){
+  if(!cvLastReport || !window.jspdf){ showToast('Run an evaluation first.','err'); return; }
+  const doc = new window.jspdf.jsPDF();
+  let y = 16;
+  const lineGap = 6;
+  const sectionGap = 10;
+
+  function ensurePage(spaceNeeded){
+    if(y + spaceNeeded > 282){
+      doc.addPage();
+      y = 16;
+    }
+  }
+  function addTitle(text){
+    ensurePage(10);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(13);
+    doc.text(text, 14, y);
+    y += 7;
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(11);
+  }
+  function addBullet(text){
+    const lines = doc.splitTextToSize(`- ${text}`, 182);
+    ensurePage((lines.length * lineGap) + 2);
+    doc.text(lines, 16, y);
+    y += (lines.length * lineGap);
+  }
+  function addLabelValue(label, value){
+    const lines = doc.splitTextToSize(`${label}: ${value}`, 182);
+    ensurePage((lines.length * lineGap) + 2);
+    doc.setFont('helvetica','bold');
+    doc.text(`${label}:`, 14, y);
+    doc.setFont('helvetica','normal');
+    if(lines.length === 1){
+      doc.text(String(value), 45, y);
+      y += lineGap;
+      return;
+    }
+    doc.text(doc.splitTextToSize(String(value), 150), 45, y);
+    y += Math.max(lineGap, doc.splitTextToSize(String(value), 150).length * lineGap);
+  }
+
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(18);
+  doc.text('CV Evaluation Report', 14, y);
+  y += 10;
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(11);
+  addLabelValue('Role', `${cvLastReport.role} (${cvLastReport.targetLevel || 'Entry Level'})`);
+  addLabelValue('Overall Score', `${cvLastReport.overall}/100`);
+  addLabelValue('Skills Match', `${cvLastReport.skills}%`);
+  addLabelValue('Experience Fit', `${cvLastReport.exp}%`);
+  addLabelValue('ATS Compatibility', `${cvLastReport.ats}%`);
+  y += 2;
+
+  addTitle('Looks Good');
+  (cvLastReport.looksGood || []).forEach(addBullet);
+  y += sectionGap - 2;
+
+  addTitle('Keyword in CV');
+  addBullet(`Must-Have: ${cvLastReport.matchedReqCount || 0}/${cvLastReport.totalReqCount || 0} matched`);
+  addBullet(`Nice-to-Have: ${cvLastReport.matchedNiceCount || 0}/${cvLastReport.totalNiceCount || 0} matched`);
+  if((cvLastReport.missingReq || []).length){
+    addBullet(`Must-have skills to add: ${(cvLastReport.missingReq || []).join(', ')}`);
+  }
+  if((cvLastReport.missingNice || []).length){
+    addBullet(`Good-to-have skills to add: ${(cvLastReport.missingNice || []).join(', ')}`);
+  }
+  y += sectionGap - 2;
+
+  addTitle('Market vs Resume Insights');
+  (cvLastReport.marketInsights || []).forEach(addBullet);
+  y += sectionGap - 2;
+
+  addTitle('AI Recruiter Pointers');
+  (cvLastReport.aiPointers || []).forEach(addBullet);
+
+  doc.save('cv-report.pdf');
+}
+
+function shareCvReport(){
+  const url = window.location.href.split('#')[0];
+  copyToClipboard(url).then(()=>showToast('Share link copied','ok'));
+}
+
+function checkoutSalaryForTargetRole(){
+  const title = (cvSelectedRole && cvSelectedRole.title)
+    ? String(cvSelectedRole.title).trim()
+    : String((document.getElementById('cvRoleInput')||{}).value || '').trim();
+  if(!title){
+    showToast('Please select a target role first.','err');
+    return;
+  }
+  const toolTab = document.querySelector(".tab-btn[onclick*=\"switchTab('tool'\"]");
+  if(toolTab) switchTab('tool', toolTab);
+  switchToTitleSearch(title);
 }
 
 function copyCvMissing(){
@@ -4725,52 +4947,4 @@ function submitSalaryContrib(){
   setTimeout(()=>{ document.getElementById('salThanksModal').style.display='none'; }, 3200);
 }
 
-/* ---- Admin preview mode for role-based QA ---- */
-function smApplyPreviewRole(role){
-  localStorage.setItem('sm_user_profession', role);
-  if(!localStorage.getItem('sm_user_name')) localStorage.setItem('sm_user_name', 'Admin Reviewer');
-  if(!localStorage.getItem('sm_user_country')) localStorage.setItem('sm_user_country', 'India');
-  if(!localStorage.getItem('sm_user_email')) localStorage.setItem('sm_user_email', 'admin-review@skillmapper.local');
-  try { updateUserJourneyUi(); } catch(e){}
-  try { refreshUserPill(); } catch(e){}
-}
-
-function smInitAdminPreviewPanel(){
-  const params = new URLSearchParams(window.location.search);
-  const adminEnabled = params.get('admin') === '1' || localStorage.getItem('sm_admin_mode') === 'yes';
-  if(!adminEnabled) return;
-  localStorage.setItem('sm_admin_mode', 'yes');
-
-  const panel = document.createElement('div');
-  panel.id = 'smAdminPreviewPanel';
-  panel.style.cssText = 'position:fixed;right:14px;bottom:14px;z-index:99999;background:#111827;color:#fff;border-radius:12px;padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.28);font-family:Outfit,sans-serif;width:260px;';
-  panel.innerHTML = `
-    <div style="font-size:12px;font-weight:700;margin-bottom:8px;">Admin Role Preview</div>
-    <select id="smAdminRoleSel" style="width:100%;padding:8px;border-radius:8px;border:1px solid #374151;background:#1f2937;color:#fff;margin-bottom:8px;">
-      <option value="Fresher/Student">Fresher/Student</option>
-      <option value="Working Professional">Working Professional</option>
-      <option value="HR">HR</option>
-      <option value="Management/Founder">Management/Founder</option>
-    </select>
-    <div style="display:flex;gap:8px;">
-      <button id="smAdminApplyRole" style="flex:1;padding:8px;border:none;border-radius:8px;background:#0f766e;color:#fff;font-weight:700;cursor:pointer;">Apply</button>
-      <button id="smAdminExit" style="padding:8px 10px;border:none;border-radius:8px;background:#374151;color:#fff;cursor:pointer;">Exit</button>
-    </div>
-    <div style="font-size:11px;opacity:.8;margin-top:8px;">Open with <b>?admin=1</b> to keep this panel.</div>
-  `;
-  document.body.appendChild(panel);
-
-  const sel = document.getElementById('smAdminRoleSel');
-  sel.value = localStorage.getItem('sm_user_profession') || 'Fresher/Student';
-  document.getElementById('smAdminApplyRole').onclick = function(){
-    smApplyPreviewRole(sel.value);
-    location.reload();
-  };
-  document.getElementById('smAdminExit').onclick = function(){
-    localStorage.removeItem('sm_admin_mode');
-    panel.remove();
-  };
-}
-
-setTimeout(smInitAdminPreviewPanel, 50);
 </script>
