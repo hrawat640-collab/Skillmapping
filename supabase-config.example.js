@@ -8,5 +8,8 @@
  */
 window.__SKILLMAPPER_SUPABASE__ = {
   url: 'https://YOUR_PROJECT_REF.supabase.co',
-  anonKey: 'YOUR_ANON_OR_PUBLISHABLE_KEY'
+  anonKey: 'YOUR_ANON_OR_PUBLISHABLE_KEY',
+  // Optional: Google Programmable Search (for live JD keyword gaps)
+  googleCseKey: 'YOUR_GOOGLE_CSE_API_KEY',
+  googleCseId: 'YOUR_GOOGLE_CSE_ID'
 };

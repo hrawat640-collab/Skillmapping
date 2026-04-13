@@ -21,14 +21,17 @@
   var cfg = window.__SKILLMAPPER_SUPABASE__ || {};
   var url = (cfg.url || '').trim();
   var key = (cfg.anonKey || '').trim();
+  window.__SKILLMAPPER_GOOGLE__ = {
+    cseKey: (cfg.googleCseKey || '').trim(),
+    cseId: (cfg.googleCseId || '').trim()
+  };
   window._sb = (url && key && typeof supabase !== 'undefined')
     ? supabase.createClient(url, key)
     : null;
 })();
 var _sb = window._sb;
-window._sb = supabase.createClient(window.__SKILLMAPPER_SUPABASE__.url, window.__SKILLMAPPER_SUPABASE__.anonKey);
-var GOOGLE_CSE_KEY = '';
-var GOOGLE_CSE_ID  = '';
+var GOOGLE_CSE_KEY = (window.__SKILLMAPPER_GOOGLE__ && window.__SKILLMAPPER_GOOGLE__.cseKey) || '';
+var GOOGLE_CSE_ID  = (window.__SKILLMAPPER_GOOGLE__ && window.__SKILLMAPPER_GOOGLE__.cseId) || '';
 var DB_ROLES  = [];
 var DB_SKILLS = {};
 var DB_DEPTS  = {};
@@ -3282,6 +3285,7 @@ function renderBubbles(){
 function renderSug(q){
   const drop=document.getElementById('sugDrop');
   const already=skills.map(s=>s.toLowerCase());
+  let titleHintHtml='';
   let items;
   if(!q){
     items=ALL_SKILLS.filter(({s})=>!already.includes(s.toLowerCase())).slice(0,14).map(({s,cat})=>({s,cat,hi:s}));
@@ -3293,13 +3297,17 @@ function renderSug(q){
     if(titleHint){
       const safeQ = q.replace(/'/g,"\\'");
       const safeTitle = titleHint.title.replace(/'/g,"\\'");
-      drop.innerHTML=`<div class="sug-item sug-title-hint" onclick="pickSugTitle('${safeQ}','${safeTitle}')"><div>&#x1F50D; <strong>${q}</strong> &mdash; looks like a job title</div><span class="sug-cat">Browse by Title &rarr;</span></div>`;
-      drop.classList.add('open');
-      return;
+      titleHintHtml = `<div class="sug-item sug-title-hint" onclick="pickSugTitle('${safeQ}','${safeTitle}')"><div>&#x1F50D; <strong>${q}</strong> &mdash; looks like a job title</div><span class="sug-cat">Browse by Title &rarr;</span></div>`;
     }
     const roleKwMatches=[];
     if(typeof ROLES!=='undefined'&&ql.length>=4){ROLES.forEach(r=>{if(!r.keywords)return;const hit=r.keywords.slice(1).find(k=>{const kl=k.toLowerCase();return kl===ql||ql===kl;});if(hit&&!roleKwMatches.find(x=>x.title===r.title))roleKwMatches.push({title:r.title,kw:hit});});}
-    if(roleKwMatches.length){const safeQ=q.replace(/'/g,"\\'");drop.innerHTML=roleKwMatches.slice(0,4).map(m=>{const st=m.title.replace(/'/g,"\\'");return`<div class="sug-item sug-title-hint" onclick="pickSugTitle('${safeQ}','${st}')"><div>&#x1F50D; <strong>${q}</strong> &mdash; also called: <em>${m.title}</em></div><span class="sug-cat">Browse by Title &rarr;</span></div>`;}).join('');drop.classList.add('open');return;}
+    if(roleKwMatches.length){
+      const safeQ=q.replace(/'/g,"\\'");
+      titleHintHtml += roleKwMatches.slice(0,3).map(m=>{
+        const st=m.title.replace(/'/g,"\\'");
+        return `<div class="sug-item sug-title-hint" onclick="pickSugTitle('${safeQ}','${st}')"><div>&#x1F50D; <strong>${q}</strong> &mdash; also called: <em>${m.title}</em></div><span class="sug-cat">Browse by Title &rarr;</span></div>`;
+      }).join('');
+    }
     // Starts-with matches first, then contains
     const startsWith=ALL_SKILLS.filter(({s})=>s.toLowerCase().startsWith(ql)&&!already.includes(s.toLowerCase()));
     const contains=ALL_SKILLS.filter(({s})=>!s.toLowerCase().startsWith(ql)&&s.toLowerCase().includes(ql)&&!already.includes(s.toLowerCase()));
@@ -3308,10 +3316,11 @@ function renderSug(q){
       hi:s.replace(new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'),'<strong>$1</strong>')
     }));
   }
-  if(!items.length){ drop.classList.remove('open'); return; }
+  if(!items.length && !titleHintHtml){ drop.classList.remove('open'); return; }
   const grouped={};
   items.forEach(({s,cat,hi})=>{ if(!grouped[cat]) grouped[cat]=[]; grouped[cat].push({s,hi}); });
   let html='';
+  if(titleHintHtml) html+=titleHintHtml;
   if(!q) html+=`<div class="sug-group">Popular skills — type to filter</div>`;
   Object.entries(grouped).forEach(([cat,list])=>{
     if(Object.keys(grouped).length>1||q) html+=`<div class="sug-group">${cat}</div>`;
@@ -3484,8 +3493,10 @@ async function loadAppData(){
       DB_SKILLS = window.SKILLS_DB;
       ALL_SKILLS = Object.entries(window.SKILLS_DB||{})
         .flatMap(([cat,list])=>list.map(s=>({s,cat})));
-      _STATIC_ALL_SKILLS = ALL_SKILLS;
     }
+    // Safety net: if skills table misses entries, hydrate from roles.required/nice
+    ALL_SKILLS = mergeRoleSkillsIntoAllSkills(ALL_SKILLS, ROLES);
+    _STATIC_ALL_SKILLS = ALL_SKILLS;
     if(deptsRes.data){
       DEPT_COLORS = buildDeptsMap(deptsRes.data);
       DB_DEPTS = deptsRes.data;
@@ -3519,6 +3530,24 @@ function buildSkillsDb(skills){
     (s.aliases||[]).forEach(a=>{ if(!db[s.category].includes(a))db[s.category].push(a); });
   });
   return db;
+}
+
+function mergeRoleSkillsIntoAllSkills(baseSkills, roles){
+  const out = Array.isArray(baseSkills) ? baseSkills.slice() : [];
+  const seen = new Set(out.map(x=>String((x&&x.s)||'').toLowerCase()));
+  (roles||[]).forEach(r=>{
+    const cat = (r&&r.dept) ? r.dept : 'Role Skills';
+    const allRoleSkills = [...(r&&r.required||[]), ...(r&&r.nice||[])];
+    allRoleSkills.forEach(raw=>{
+      const s = String(raw||'').trim();
+      if(!s) return;
+      const key = s.toLowerCase();
+      if(seen.has(key)) return;
+      seen.add(key);
+      out.push({s,cat});
+    });
+  });
+  return out;
 }
 
 function buildDeptsMap(depts){
@@ -3642,7 +3671,48 @@ function smartSkillMatch(skill,cvLower){
   return implies.some(imp=>cvLower.includes(imp.toLowerCase()));
 }
 
-function runSmartCvEvaluation(){
+async function fetchGoogleJdSignals(roleTitle, role, cvLower){
+  const key=(GOOGLE_CSE_KEY||'').trim();
+  const cx=(GOOGLE_CSE_ID||'').trim();
+  if(!key || !cx){
+    return { enabled:false, reason:'Google JD mode is off. Add GOOGLE_CSE_KEY and GOOGLE_CSE_ID to enable live market keyword comparison.' };
+  }
+  try{
+    const q = `${roleTitle} job description required skills`;
+    const url = `https://www.googleapis.com/customsearch/v1?key=${encodeURIComponent(key)}&cx=${encodeURIComponent(cx)}&q=${encodeURIComponent(q)}&num=6`;
+    const res = await fetch(url);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data = await res.json();
+    const items = Array.isArray(data.items) ? data.items : [];
+    const text = items.map(i=>`${i.title||''} ${i.snippet||''}`).join(' ').toLowerCase();
+    if(!text){
+      return { enabled:true, keywords:[], sources:0, reason:'No JD snippets returned from Google for this role right now.' };
+    }
+    const pool = [...new Set([...(role.required||[]), ...(role.nice||[])])];
+    const scored = pool.map(s=>{
+      const sl = String(s||'').toLowerCase().trim();
+      if(!sl) return null;
+      const esc = sl.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+      const count = (text.match(new RegExp(`\\b${esc}\\b`,'g'))||[]).length;
+      const inCv = smartSkillMatch(s, cvLower);
+      return { skill:s, count, inCv, required:(role.required||[]).includes(s) };
+    }).filter(Boolean).filter(x=>x.count>0).sort((a,b)=>{
+      if(a.inCv!==b.inCv) return a.inCv?1:-1; // missing first
+      if(a.required!==b.required) return a.required?-1:1; // required before nice
+      return b.count-a.count;
+    });
+    const missing = scored.filter(x=>!x.inCv).slice(0,10);
+    return {
+      enabled:true,
+      keywords:missing,
+      sources:items.length
+    };
+  }catch(e){
+    return { enabled:true, keywords:[], sources:0, reason:'Could not fetch Google JD snippets right now.' };
+  }
+}
+
+async function runSmartCvEvaluation(){
   if(!cvSelectedRole){showToast('Please select a target role first','err');return;}
   const cvText=cvInputMode==='paste'?document.getElementById('cvPasteInput').value.trim():cvExtractedText;
   if(!cvText){showToast('Please upload your CV or paste your CV text','err');return;}
@@ -3659,6 +3729,8 @@ function runSmartCvEvaluation(){
   const missingReq=(role.required||[]).filter(s=>!smartSkillMatch(s,cvLower));
   const matchedNice=(role.nice||[]).filter(s=>smartSkillMatch(s,cvLower));
   const missingNice=(role.nice||[]).filter(s=>!smartSkillMatch(s,cvLower)).slice(0,8);
+  const totalReq=(role.required||[]).length;
+  const reqCoveragePct=totalReq?Math.round((matchedReq.length/totalReq)*100):100;
 
   const reqScore=role.required.length>0?(matchedReq.length/role.required.length)*70:70;
   const niceScore=role.nice.length>0?(matchedNice.length/Math.min(role.nice.length,10))*20:0;
@@ -3691,6 +3763,23 @@ function runSmartCvEvaluation(){
 
   const roleTips={'Data Engineer':'Mention specific tools by name (Airflow, dbt, Kafka) and data volumes handled.','Data Scientist':'Quantify model performance and name the business problem solved.','Product Manager':'Show metrics: DAU growth %, churn reduction %, revenue impact.','HR Business Partner':'Quantify: headcount managed, attrition % reduced, programmes launched.','Talent Acquisition Specialist':'Show funnel metrics: time-to-hire, offer acceptance rate. Name ATS tools used.','Financial Analyst':'Show modelling depth: DCF, LBO, scenario analysis. Name the industry.','Frontend Engineer':'Name frameworks and versions. Add portfolio or GitHub link.','Backend Engineer':'Mention scale: RPS, DB size, team size supported.','default':'Use exact keywords from the job description verbatim — ATS matches strings, not meanings.'};
   const roleTip=roleTips[role.title]||roleTips['default'];
+  const marketBand=reqCoveragePct>=80?'Top-market ready':reqCoveragePct>=55?'Mid-market competitive':'Below current market baseline';
+  const marketBandColor=reqCoveragePct>=80?'#0d7a4e':reqCoveragePct>=55?'#0f766e':'#b45309';
+  const marketSummary=reqCoveragePct>=80
+    ? 'Your CV covers most must-have skills commonly listed in live job descriptions for this role.'
+    : reqCoveragePct>=55
+      ? 'Your CV is in the competitive band, but stronger keyword depth can improve shortlist rate.'
+      : 'Compared with current role expectations, your CV is missing multiple baseline keywords recruiters screen for first.';
+  const aiNarrative=score>=75
+    ? 'If you apply now, you should pass most first-level screening. Focus on adding quantified impact to improve interview conversion.'
+    : score>=45
+      ? 'You have a credible profile; the next lift is precision. Add exact tool names and measurable outcomes in each experience bullet.'
+      : 'Treat this as a targeted rewrite: prioritize must-have skills, mirror JD wording, and highlight one result per project.';
+  document.getElementById('cvLoadingText').textContent='Comparing against live Google JDs…';
+  const jdSignals = await fetchGoogleJdSignals(role.title, role, cvLower);
+  const jdKeywordsHtml = (jdSignals.keywords||[]).length
+    ? `<div style="background:#eef2ff;border:1px solid rgba(79,70,229,0.2);border-radius:10px;padding:14px 16px;margin-bottom:12px;"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;"><div style="font-size:11px;font-weight:700;color:#4338ca;text-transform:uppercase;letter-spacing:.06em;font-family:Outfit,sans-serif;">🌐 Live JD keyword gaps (Google)</div><div style="font-size:11px;color:#6366f1;font-weight:600;font-family:Outfit,sans-serif;">${jdSignals.sources} sources</div></div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">${jdSignals.keywords.map(k=>`<span style="padding:4px 10px;background:#fff;border:1.5px solid rgba(79,70,229,0.25);border-radius:20px;font-size:12px;font-weight:600;color:#4338ca;font-family:Outfit,sans-serif;">${escapeHtml(k.skill)}</span>`).join('')}</div><div style="font-size:12px;color:#4b5563;font-family:Outfit,sans-serif;">These keywords appeared repeatedly in public JDs but were not detected in your CV text.</div></div>`
+    : `<div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:11px 14px;margin-bottom:12px;font-size:12.5px;color:#6b7280;font-family:Outfit,sans-serif;">${escapeHtml(jdSignals.reason || 'No additional live JD keyword gaps found.')}</div>`;
 
   if(_sb) void _sb.from('cv_evaluations').insert({role_title:role.title,total_skills:(role.required.length+role.nice.length),matched_skills:(matchedReq.length+matchedNice.length),missing_required:missingReq.length,missing_nice:missingNice.length,final_score:score,word_count:wordCount,user_years_exp:userYears||null}).then(()=>{}).catch(()=>{});
 
@@ -3736,6 +3825,22 @@ function runSmartCvEvaluation(){
           <p style="font-size:12.5px;color:#374151;line-height:1.65;margin:0;font-family:Outfit,sans-serif;">${eTip}</p>
         </div>
       </div>
+
+      <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
+          <div style="font-size:11px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.06em;font-family:Outfit,sans-serif;">📊 Market vs Resume</div>
+          <div style="font-size:11px;font-weight:700;color:${marketBandColor};font-family:Outfit,sans-serif;">${marketBand}</div>
+        </div>
+        <p style="font-size:12.8px;color:#374151;line-height:1.65;margin:0 0 8px;font-family:Outfit,sans-serif;">${marketSummary}</p>
+        <div style="font-size:12px;color:#6b7280;font-family:Outfit,sans-serif;">Required skills benchmark: <strong style="color:#111;">${matchedReq.length}/${totalReq}</strong> matched (${reqCoveragePct}%).</div>
+      </div>
+
+      <div style="background:#fffbeb;border:1px solid rgba(180,83,9,0.18);border-radius:10px;padding:13px 16px;margin-bottom:12px;">
+        <div style="font-size:11px;font-weight:700;color:#b45309;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;font-family:Outfit,sans-serif;">🤖 AI Recruiter Insight</div>
+        <p style="font-size:12.8px;color:#374151;line-height:1.65;margin:0;font-family:Outfit,sans-serif;">${aiNarrative}</p>
+      </div>
+
+      ${jdKeywordsHtml}
 
       ${atsFlags.length?`<div style="background:#fff8ed;border:1px solid rgba(180,83,9,0.2);border-radius:10px;padding:14px 16px;margin-bottom:12px;"><div style="font-size:11px;font-weight:700;color:#b45309;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;font-family:Outfit,sans-serif;">🔍 ATS Compatibility (${atsFlags.length} issue${atsFlags.length>1?'s':''})</div>${atsFlags.map(f=>`<div style="display:flex;gap:8px;margin-bottom:8px;align-items:flex-start;"><span style="flex-shrink:0;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:${f.sev==='high'?'#fef2f2':f.sev==='medium'?'#fffbeb':'#f3f4f6'};color:${f.sev==='high'?'#b91c1c':f.sev==='medium'?'#b45309':'#6b7280'};font-family:Outfit,sans-serif;">${f.sev==='high'?'High':f.sev==='medium'?'Medium':'Tip'}</span><span style="font-size:12.5px;color:#374151;line-height:1.55;font-family:Outfit,sans-serif;">${escapeHtml(f.msg)}</span></div>`).join('')}</div>`:
       `<div style="background:#f0fdf4;border:1px solid rgba(13,122,78,0.2);border-radius:9px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:#0d7a4e;font-weight:600;font-family:Outfit,sans-serif;">✓ No major ATS compatibility issues found</div>`}

@@ -9,5 +9,8 @@
  */
 window.__SKILLMAPPER_SUPABASE__ = {
   url: 'https://oqknepaevzhcmmmatame.supabase.co',
-  anonKey: 'sb_publishable_ZwdxLA2twuvjkBug6JPxxA_zlWzaVN2'
+  anonKey: 'sb_publishable_ZwdxLA2twuvjkBug6JPxxA_zlWzaVN2',
+  // Optional: Google Programmable Search (for live JD keyword gaps)
+  googleCseKey: 'AIzaSyDyWtkRR5_myZOQB-pNa-LyzHIrh9l2LTI',
+  googleCseId: '87cd14f2aa3104e7b'
 };
