@@ -3628,13 +3628,13 @@ function onCvRoleInput(e){
   if(!q){
     const all=(ROLES||[]).slice().sort((a,b)=>a.title.localeCompare(b.title)).slice(0,80);
     if(!all.length){ drop.classList.remove('open'); return; }
-    drop.innerHTML=all.map(r=>`<div class="td-item" onmousedown="selectCvRole(${JSON.stringify(r.title)})"><span>${escapeHtml(r.title)}</span><span style="font-size:11px;color:var(--ink3);">${escapeHtml(r.dept)}</span></div>`).join('');
+    drop.innerHTML=all.map(cvRoleOptionHtml).join('');
     drop.classList.add('open');
     return;
   }
   const ql=q.toLowerCase();
   const matches=(ROLES||[]).filter(r=>
-    r.title.toLowerCase().includes(ql)||(r.keywords||[]).some(k=>k.toLowerCase().includes(ql))
+    String(r.title||'').toLowerCase().includes(ql)||(r.keywords||[]).some(k=>String(k||'').toLowerCase().includes(ql))
   ).slice(0,12);
   if(!matches.length){
     drop.classList.remove('open');
@@ -3644,8 +3644,14 @@ function onCvRoleInput(e){
     }},800);
     return;
   }
-  drop.innerHTML=matches.map(r=>`<div class="td-item" onmousedown="selectCvRole(${JSON.stringify(r.title)})"><span>${escapeHtml(r.title)}</span><span style="font-size:11px;color:var(--ink3);">${escapeHtml(r.dept)}</span></div>`).join('');
+  drop.innerHTML=matches.map(cvRoleOptionHtml).join('');
   drop.classList.add('open');
+}
+
+function cvRoleOptionHtml(r){
+  const roleTitle=String((r&&r.title)||'');
+  const encodedTitle=encodeURIComponent(roleTitle);
+  return `<div class="td-item" data-role-title="${encodedTitle}" onmousedown="selectCvRole(decodeURIComponent(this.dataset.roleTitle || ''))"><span>${escapeHtml(roleTitle)}</span><span style="font-size:11px;color:var(--ink3);">${escapeHtml((r&&r.dept)||'')}</span></div>`;
 }
 
 function onCvRoleKeydown(e){
@@ -3831,7 +3837,13 @@ async function submitMissingRoleForm(){
   const jd=document.getElementById('cvMissingJd').value.trim();
   if(!name){showToast('Please enter the role name','err');return;}
   if(!_sb){ showToast('Database not configured','err'); return; }
-  try{ await _sb.from('missing_roles').insert({role_name:name,skills_mentioned:skills,jd_notes:jd}); }catch(e){}
+  try{
+    const { error } = await _sb.from('missing_roles').insert({role_name:name,skills_mentioned:skills,jd_notes:jd});
+    if(error) throw error;
+  }catch(e){
+    showToast('Unable to submit role request. Please try again.','err');
+    return;
+  }
   document.getElementById('cvMissingRoleSent').style.display='block';
   setTimeout(()=>{document.getElementById('cvRoleNotFound').style.display='none';document.getElementById('cvMissingRoleSent').style.display='none';},3000);
 }
