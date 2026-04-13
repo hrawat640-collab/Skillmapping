@@ -724,22 +724,43 @@ function updateUserJourneyUi(){
     if(skillsTab) switchMode('skills', skillsTab);
   }
   if(!node) return;
+  const dismissedKey = 'sm_journey_tips_dismissed_' + (p || 'anon');
+  if(localStorage.getItem(dismissedKey) === 'yes'){
+    node.style.display = 'none';
+    return;
+  }
+  const closeBtn = `<button onclick="dismissJourneyTips()" title="Close tips" style="position:absolute;top:8px;right:8px;border:none;background:transparent;color:#64748b;font-size:16px;cursor:pointer;line-height:1;">×</button>`;
   if(p === 'fresher/student'){
     node.style.display = 'block';
-    node.innerHTML = '👋 Start here: <strong>Add skills</strong>, use <strong>Browse by title</strong>, and run <strong>Evaluate My CV</strong> to improve readiness.';
+    node.innerHTML = `${closeBtn}<div style="font-weight:700;margin-bottom:6px;">Tips for Fresher/Student</div>
+    <div>➜ <strong>Add Skills</strong>: Add skills to get which role suits you the best.</div>
+    <div>➜ <strong>Evaluate My CV</strong>: Get your CV evaluated against open roles.</div>`;
   } else if(p === 'working professional'){
     node.style.display = 'block';
-    node.innerHTML = '👋 Start here: find matches with <strong>Add skills</strong>, validate titles in <strong>Browse by title</strong>, and run <strong>Evaluate My CV</strong>.';
+    node.innerHTML = `${closeBtn}<div style="font-weight:700;margin-bottom:6px;">Tips for Working Professional</div>
+    <div>➜ <strong>Add Skills</strong>: Add your strongest tools and skills to find matching roles quickly.</div>
+    <div>➜ <strong>Evaluate My CV</strong>: Check role-fit and close keyword gaps before applying.</div>`;
   } else if(p === 'management/founder'){
     node.style.display = 'block';
-    node.innerHTML = '👋 Founder mode: use <strong>Describe what you need</strong> to convert business needs into role, skills, and salary guidance.';
+    node.innerHTML = `${closeBtn}<div style="font-weight:700;margin-bottom:6px;">Tips for Management/Founder</div>
+    <div>➜ <strong>Add Skills</strong>: Add required skills to identify the right hire role.</div>
+    <div>➜ <strong>Describe what you need</strong>: Convert business needs into role + skills + salary guidance.</div>`;
   } else if(p === 'hr'){
     node.style.display = 'block';
-    node.innerHTML = '👋 HR mode: all journeys are enabled, including <strong>Describe what you need</strong>.';
+    node.innerHTML = `${closeBtn}<div style="font-weight:700;margin-bottom:6px;">Tips for HR</div>
+    <div>➜ <strong>Add Skills</strong>: Add skills and find your next hire role.</div>
+    <div>➜ <strong>Browse by title</strong>: Type title to find the role; avoid putting prefixes like Senior, Lead, etc.</div>`;
   } else {
     node.style.display = 'none';
     node.innerHTML = '';
   }
+}
+
+function dismissJourneyTips(){
+  const p = (localStorage.getItem('sm_user_profession') || 'anon').toLowerCase();
+  localStorage.setItem('sm_journey_tips_dismissed_' + p, 'yes');
+  const node = document.getElementById('journeyNote');
+  if(node) node.style.display = 'none';
 }
 
 /* ── Page load: check login ── */
@@ -992,15 +1013,12 @@ function smSignOut(){
 <div id="page-tool" class="page active">
 <main class="main">
 
-  <div class="hero">
-    <h2>No more guesswork, role details at your fingertips.</h2>
-  </div>
-  <div id="journeyNote" style="display:none;background:#f0fdfa;border:1px solid rgba(15,118,110,0.2);border-radius:12px;padding:10px 14px;margin:-10px 0 16px 0;font-size:12.5px;color:#0f766e;line-height:1.6;font-family:Outfit,sans-serif;"></div>
+  <div id="journeyNote" style="display:none;position:relative;background:#f0fdfa;border:1px solid rgba(15,118,110,0.2);border-radius:12px;padding:12px 14px;margin:0 0 16px 0;font-size:12.5px;color:#0f766e;line-height:1.6;font-family:Outfit,sans-serif;"></div>
 
   <div class="input-card">
     <div class="mode-tabs">
-      <button class="mode-tab active" onclick="switchMode('skills',this)">Add skills</button>
-      <button class="mode-tab" onclick="switchMode('title',this)">Browse by title</button>
+      <button class="mode-tab active" id="modeTabSkills" onclick="switchMode('skills',this)">Add skills</button>
+      <button class="mode-tab" id="modeTabTitle" onclick="switchMode('title',this)">Browse by title</button>
       <button class="mode-tab" id="modeTabNl" onclick="switchMode('nl',this)">Describe what you need</button>
     </div>
 
@@ -3926,10 +3944,6 @@ async function runSmartCvEvaluation(){
       : 'Treat this as a targeted rewrite: prioritize must-have skills, mirror JD wording, and highlight one result per project.';
   document.getElementById('cvLoadingText').textContent='Comparing against live Google JDs…';
   const jdSignals = await fetchGoogleJdSignals(role.title, role, cvLower);
-  const jdKeywordsHtml = (jdSignals.keywords||[]).length
-    ? `<div style="background:#eef2ff;border:1px solid rgba(79,70,229,0.2);border-radius:10px;padding:14px 16px;margin-bottom:12px;"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;"><div style="font-size:11px;font-weight:700;color:#4338ca;text-transform:uppercase;letter-spacing:.06em;font-family:Outfit,sans-serif;">🌐 Live JD keyword gaps (Google)</div><div style="font-size:11px;color:#6366f1;font-weight:600;font-family:Outfit,sans-serif;">${jdSignals.sources} sources</div></div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">${jdSignals.keywords.map(k=>`<span style="padding:4px 10px;background:#fff;border:1.5px solid rgba(79,70,229,0.25);border-radius:20px;font-size:12px;font-weight:600;color:#4338ca;font-family:Outfit,sans-serif;">${escapeHtml(k.skill)}</span>`).join('')}</div><div style="font-size:12px;color:#4b5563;font-family:Outfit,sans-serif;">These keywords appeared repeatedly in public JDs but were not detected in your CV text.</div></div>`
-    : `<div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:11px 14px;margin-bottom:12px;font-size:12.5px;color:#6b7280;font-family:Outfit,sans-serif;">${escapeHtml(jdSignals.reason || 'No additional live JD keyword gaps found.')}</div>`;
-
   if(_sb) void _sb.from('cv_evaluations').insert({role_title:role.title,total_skills:(role.required.length+role.nice.length),matched_skills:(matchedReq.length+matchedNice.length),missing_required:missingReq.length,missing_nice:missingNice.length,final_score:score,word_count:wordCount,user_years_exp:userYears||null}).then(()=>{}).catch(()=>{});
 
   document.getElementById('cvLoadingState').style.display='none';
@@ -3950,31 +3964,34 @@ async function runSmartCvEvaluation(){
     : score>=45
       ? 'Your CV has a solid foundation for '+rt+' but is missing some keywords ATS systems specifically scan for.'
       : 'Your CV needs focused work before applying for '+rt+' roles. The must-have skills section shows several gaps.';
-  const missingReqBlurb = missingReq.length<=2 ? '' : escapeHtml(String(missingReq.length))+' required skills are missing. These are non-negotiable in most '+rt+' job descriptions.';
-  const mustBucket=(missingReq||[]).map(s=>escapeHtml(s));
-  const niceBucket=(missingNice||[]).map(s=>escapeHtml(s));
-  const atsBucket=(atsFlags||[]).map(f=>escapeHtml(f.msg));
-  const jdBucket=(jdSignals&&jdSignals.enabled?(jdSignals.keywords||[]).map(k=>escapeHtml(k.skill)):[]);
-  function renderBucket(title, icon, color, items, hint){
-    const hasItems=items&&items.length;
-    return `<div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;">
-        <div style="font-size:11px;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:.06em;font-family:Outfit,sans-serif;">${icon} ${title}</div>
-        <div style="font-size:11px;color:#6b7280;font-family:Outfit,sans-serif;">${hasItems?items.length:0}</div>
-      </div>
-      ${hasItems
-        ? `<div style="display:flex;flex-wrap:wrap;gap:6px;">${items.map(x=>`<span style="padding:4px 10px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:20px;font-size:12px;color:#374151;font-family:Outfit,sans-serif;">${x}</span>`).join('')}</div>`
-        : `<div style="font-size:12.5px;color:#6b7280;font-family:Outfit,sans-serif;">🙂 You're all good${hint?` — ${hint}`:''}</div>`}
-    </div>`;
+  const feedbackPointers = [];
+  feedbackPointers.push(smartBlurb);
+  feedbackPointers.push(aiNarrative);
+  feedbackPointers.push(`Market benchmark: ${marketSummary}`);
+  if(expMsg) feedbackPointers.push(expMsg);
+  if(missingReq.length){
+    feedbackPointers.push(`Must-have gaps: ${missingReq.join(', ')}.`);
+  } else {
+    feedbackPointers.push('All must-have skills are detected in your CV.');
   }
+  if(missingNice.length){
+    feedbackPointers.push(`Good-to-have skills to add: ${missingNice.slice(0,6).join(', ')}.`);
+  }
+  if(atsFlags.length){
+    feedbackPointers.push(`ATS fixes: ${atsFlags.slice(0,3).map(f=>f.msg).join(' ')}`);
+  }
+  if((jdSignals.keywords||[]).length){
+    feedbackPointers.push(`Live JD keyword opportunities: ${(jdSignals.keywords||[]).slice(0,6).map(k=>k.skill).join(', ')}.`);
+  }
+  feedbackPointers.push(`Role-specific tip: ${roleTip}`);
 
   document.getElementById('cvResults').innerHTML=`
-    <div style="background:#fff;border:1.5px solid #e4e2db;border-radius:14px;padding:20px 22px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+    <div style="background:#fff;border:1.5px solid #e4e2db;border-radius:16px;padding:20px 22px;box-shadow:0 8px 30px rgba(15,23,42,0.06);">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #f3f4f6;">
         <div>
           <div style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;font-family:Outfit,sans-serif;">CV Evaluation</div>
           <div style="font-size:17px;font-weight:800;color:#111;font-family:Outfit,sans-serif;">${rt}</div>
-          <div style="font-size:12px;color:#6b7280;margin-top:3px;font-family:Outfit,sans-serif;">${wordCount} words · ${matchedReq.length}/${role.required.length} required skills found</div>
+          <div style="font-size:12px;color:#6b7280;margin-top:3px;font-family:Outfit,sans-serif;">${wordCount} words • ${matchedReq.length}/${role.required.length} required skills found</div>
         </div>
         <div style="text-align:right;">
           <div style="font-size:40px;font-weight:800;color:${sc};line-height:1;font-family:Outfit,sans-serif;">${score}%</div>
@@ -3982,47 +3999,38 @@ async function runSmartCvEvaluation(){
           <div style="margin-top:6px;padding:4px 10px;border-radius:20px;background:${readinessBg};color:${readinessColor};font-size:11px;font-weight:700;font-family:Outfit,sans-serif;">${readinessLabel}</div>
         </div>
       </div>
-      <div style="background:#f3f4f6;border-radius:20px;height:7px;margin-bottom:16px;overflow:hidden;"><div style="height:100%;border-radius:20px;background:${sc};width:${score}%;"></div></div>
-      <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#374151;margin:-6px 0 14px;font-family:Outfit,sans-serif;">
+
+      <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#374151;margin:0 0 8px;font-family:Outfit,sans-serif;">
         <span style="color:#0d7a4e;font-weight:700;">${score}% match</span>
         <span style="color:#b45309;font-weight:700;">${needWorkPct}% needs work</span>
       </div>
-      <div style="background:#ecfdf5;border:1px solid rgba(13,122,78,0.2);border-radius:20px;height:9px;margin-bottom:14px;overflow:hidden;display:flex;">
-        <div style="height:100%;width:${score}%;background:#16a34a;"></div>
-        <div style="height:100%;width:${needWorkPct}%;background:#bbf7d0;"></div>
+      <div style="background:#f3f4f6;border:1px solid #e5e7eb;border-radius:999px;height:12px;margin-bottom:14px;overflow:hidden;display:flex;">
+        <div style="height:100%;width:${score}%;background:linear-gradient(90deg,#16a34a,#22c55e);"></div>
+        <div style="height:100%;width:${needWorkPct}%;background:#fde68a;"></div>
       </div>
 
-      ${expMsg?`<div style="background:${expWarning?'#fffbeb':'#f0fdf4'};border:1px solid ${expWarning?'rgba(180,83,9,0.2)':'rgba(13,122,78,0.2)'};border-radius:9px;padding:11px 14px;margin-bottom:12px;font-size:13px;color:${expWarning?'#b45309':'#0d7a4e'};font-family:Outfit,sans-serif;">${expWarning?'⚠️':'✓'} ${eExp}</div>`:''}
-
-      <div style="background:linear-gradient(135deg,#f8fafc,#f0fdfa);border:1px solid rgba(15,118,110,0.12);border-radius:10px;padding:14px 16px;margin-bottom:12px;">
-        <div style="font-size:11px;font-weight:700;color:#0f766e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;font-family:Outfit,sans-serif;">💡 Smart Feedback</div>
-        <p style="font-size:13px;color:#374151;line-height:1.7;margin:0 0 8px;font-family:Outfit,sans-serif;">${smartBlurb}</p>
-        ${missingReq.length===0?`<p style="font-size:13px;color:#0d7a4e;line-height:1.7;margin:0 0 8px;font-family:Outfit,sans-serif;font-weight:600;">All must-have skills found — you pass the first ATS filter.</p>`:missingReq.length<=2?`<p style="font-size:13px;color:#374151;line-height:1.7;margin:0 0 8px;font-family:Outfit,sans-serif;">Almost there — just ${missingReq.length} required skill(s) missing. If you have this experience, add the exact keyword.</p>`:`<p style="font-size:13px;color:#374151;line-height:1.7;margin:0 0 8px;font-family:Outfit,sans-serif;">${missingReqBlurb}</p>`}
-        <div style="border-top:1px solid rgba(15,118,110,0.1);padding-top:10px;margin-top:4px;">
-          <div style="font-size:10px;font-weight:700;color:#0f766e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;font-family:Outfit,sans-serif;">Role-specific tip</div>
-          <p style="font-size:12.5px;color:#374151;line-height:1.65;margin:0;font-family:Outfit,sans-serif;">${eTip}</p>
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px;">
+        <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;">
+          <div style="font-size:10.5px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-family:Outfit,sans-serif;">Required Coverage</div>
+          <div style="font-size:18px;color:#0f172a;font-weight:800;font-family:Outfit,sans-serif;">${reqCoveragePct}%</div>
+        </div>
+        <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;">
+          <div style="font-size:10.5px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-family:Outfit,sans-serif;">Market Band</div>
+          <div style="font-size:14px;color:${marketBandColor};font-weight:800;font-family:Outfit,sans-serif;">${marketBand}</div>
+        </div>
+        <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;">
+          <div style="font-size:10.5px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-family:Outfit,sans-serif;">Must-have Gaps</div>
+          <div style="font-size:18px;color:${missingReq.length?'#b91c1c':'#166534'};font-weight:800;font-family:Outfit,sans-serif;">${missingReq.length}</div>
         </div>
       </div>
 
-      <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin-bottom:12px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
-          <div style="font-size:11px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.06em;font-family:Outfit,sans-serif;">📊 Market vs Resume</div>
-          <div style="font-size:11px;font-weight:700;color:${marketBandColor};font-family:Outfit,sans-serif;">${marketBand}</div>
-        </div>
-        <p style="font-size:12.8px;color:#374151;line-height:1.65;margin:0 0 8px;font-family:Outfit,sans-serif;">${marketSummary}</p>
-        <div style="font-size:12px;color:#6b7280;font-family:Outfit,sans-serif;">Required skills benchmark: <strong style="color:#111;">${matchedReq.length}/${totalReq}</strong> matched (${reqCoveragePct}%).</div>
-      </div>
+      ${expMsg?`<div style="background:${expWarning?'#fffbeb':'#f0fdf4'};border:1px solid ${expWarning?'rgba(180,83,9,0.2)':'rgba(13,122,78,0.2)'};border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12.8px;color:${expWarning?'#b45309':'#0d7a4e'};font-family:Outfit,sans-serif;">${expWarning?'⚠️':'✓'} ${eExp}</div>`:''}
 
-      <div style="background:#fffbeb;border:1px solid rgba(180,83,9,0.18);border-radius:10px;padding:13px 16px;margin-bottom:12px;">
-        <div style="font-size:11px;font-weight:700;color:#b45309;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;font-family:Outfit,sans-serif;">🤖 AI Recruiter Insight</div>
-        <p style="font-size:12.8px;color:#374151;line-height:1.65;margin:0;font-family:Outfit,sans-serif;">${aiNarrative}</p>
-      </div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-        ${renderBucket('Must-have Gaps','⚠️','#b91c1c',mustBucket,'all core skills detected')}
-        ${renderBucket('Good-to-have Gaps','💛','#b45309',niceBucket,'no optional gaps')}
-        ${renderBucket('ATS Fixes','🔍','#0f766e',atsBucket,'ATS basics look strong')}
-        ${renderBucket('Live JD Gaps','🌐','#4338ca',jdBucket,'no live-JD gaps found')}
+      <div style="background:linear-gradient(180deg,#f8fafc 0%,#f1f5f9 100%);border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;margin-bottom:12px;">
+        <div style="font-size:11px;font-weight:700;color:#0f766e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;font-family:Outfit,sans-serif;">🤖 AI Recruiter Feedback</div>
+        <ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:7px;">
+          ${feedbackPointers.slice(0,8).map(item=>`<li style="font-size:12.8px;line-height:1.6;color:#334155;font-family:Outfit,sans-serif;">${escapeHtml(item)}</li>`).join('')}
+        </ul>
       </div>
 
       ${(matchedReq.length+matchedNice.length)>0?`<div style="background:#f0fdfa;border:1px solid rgba(15,118,110,0.2);border-radius:10px;padding:14px 16px;margin-bottom:12px;"><div style="font-size:11px;font-weight:700;color:#0f766e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;font-family:Outfit,sans-serif;">✅ Strengths (${matchedReq.length+matchedNice.length})</div><div style="display:flex;flex-wrap:wrap;gap:6px;">${[...matchedReq,...matchedNice].map(s=>`<span style="padding:4px 10px;background:#fff;border:1.5px solid rgba(15,118,110,0.25);border-radius:20px;font-size:12px;font-weight:500;color:#0f766e;font-family:Outfit,sans-serif;">${escapeHtml(s)}</span>`).join('')}</div></div>`:''}
