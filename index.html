@@ -4724,4 +4724,53 @@ function submitSalaryContrib(){
   if(_pendingSalBtn){ applySelectLevel(_pendingSalBtn); _pendingSalBtn=null; }
   setTimeout(()=>{ document.getElementById('salThanksModal').style.display='none'; }, 3200);
 }
+
+/* ---- Admin preview mode for role-based QA ---- */
+function smApplyPreviewRole(role){
+  localStorage.setItem('sm_user_profession', role);
+  if(!localStorage.getItem('sm_user_name')) localStorage.setItem('sm_user_name', 'Admin Reviewer');
+  if(!localStorage.getItem('sm_user_country')) localStorage.setItem('sm_user_country', 'India');
+  if(!localStorage.getItem('sm_user_email')) localStorage.setItem('sm_user_email', 'admin-review@skillmapper.local');
+  try { updateUserJourneyUi(); } catch(e){}
+  try { refreshUserPill(); } catch(e){}
+}
+
+function smInitAdminPreviewPanel(){
+  const params = new URLSearchParams(window.location.search);
+  const adminEnabled = params.get('admin') === '1' || localStorage.getItem('sm_admin_mode') === 'yes';
+  if(!adminEnabled) return;
+  localStorage.setItem('sm_admin_mode', 'yes');
+
+  const panel = document.createElement('div');
+  panel.id = 'smAdminPreviewPanel';
+  panel.style.cssText = 'position:fixed;right:14px;bottom:14px;z-index:99999;background:#111827;color:#fff;border-radius:12px;padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.28);font-family:Outfit,sans-serif;width:260px;';
+  panel.innerHTML = `
+    <div style="font-size:12px;font-weight:700;margin-bottom:8px;">Admin Role Preview</div>
+    <select id="smAdminRoleSel" style="width:100%;padding:8px;border-radius:8px;border:1px solid #374151;background:#1f2937;color:#fff;margin-bottom:8px;">
+      <option value="Fresher/Student">Fresher/Student</option>
+      <option value="Working Professional">Working Professional</option>
+      <option value="HR">HR</option>
+      <option value="Management/Founder">Management/Founder</option>
+    </select>
+    <div style="display:flex;gap:8px;">
+      <button id="smAdminApplyRole" style="flex:1;padding:8px;border:none;border-radius:8px;background:#0f766e;color:#fff;font-weight:700;cursor:pointer;">Apply</button>
+      <button id="smAdminExit" style="padding:8px 10px;border:none;border-radius:8px;background:#374151;color:#fff;cursor:pointer;">Exit</button>
+    </div>
+    <div style="font-size:11px;opacity:.8;margin-top:8px;">Open with <b>?admin=1</b> to keep this panel.</div>
+  `;
+  document.body.appendChild(panel);
+
+  const sel = document.getElementById('smAdminRoleSel');
+  sel.value = localStorage.getItem('sm_user_profession') || 'Fresher/Student';
+  document.getElementById('smAdminApplyRole').onclick = function(){
+    smApplyPreviewRole(sel.value);
+    location.reload();
+  };
+  document.getElementById('smAdminExit').onclick = function(){
+    localStorage.removeItem('sm_admin_mode');
+    panel.remove();
+  };
+}
+
+setTimeout(smInitAdminPreviewPanel, 50);
 </script>
