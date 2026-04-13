@@ -3829,10 +3829,29 @@ async function fetchGoogleJdSignals(roleTitle, role, cvLower){
   if(!key || !cx){
     return { enabled:false, keywords:[], sources:0, reason:'' };
   }
+  const timeoutMs = 12000;
+  async function fetchWithTimeout(url){
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    let timeoutId = null;
+    try{
+      if(controller){
+        timeoutId = setTimeout(()=>controller.abort(), timeoutMs);
+      }
+      return await fetch(url, controller ? { signal: controller.signal } : undefined);
+    }finally{
+      if(timeoutId) clearTimeout(timeoutId);
+    }
+  }
   try{
     const q = `${roleTitle} job description required skills`;
     const url = `https://www.googleapis.com/customsearch/v1?key=${encodeURIComponent(key)}&cx=${encodeURIComponent(cx)}&q=${encodeURIComponent(q)}&num=6`;
-    const res = await fetch(url);
+    let res;
+    try{
+      res = await fetchWithTimeout(url);
+    }catch(firstErr){
+      // One retry for transient network slowness/rate limiting edge cases.
+      res = await fetchWithTimeout(url);
+    }
     if(!res.ok) throw new Error('HTTP '+res.status);
     const data = await res.json();
     const items = Array.isArray(data.items) ? data.items : [];
@@ -3860,6 +3879,9 @@ async function fetchGoogleJdSignals(roleTitle, role, cvLower){
       sources:items.length
     };
   }catch(e){
+    if(e && e.name === 'AbortError'){
+      return { enabled:true, keywords:[], sources:0, reason:'Live JD check timed out after retry. Showing report without market snippets.' };
+    }
     return { enabled:true, keywords:[], sources:0, reason:'Could not fetch Google JD snippets right now.' };
   }
 }
@@ -3945,7 +3967,7 @@ async function runSmartCvEvaluation(){
     : mustHaveCoveragePct>=55
       ? 'Your CV is in the competitive band, but stronger keyword depth can improve shortlist rate.'
       : 'Compared with current role expectations, your CV is missing multiple baseline keywords recruiters screen for first.';
-  document.getElementById('cvLoadingText').textContent='Checking market signals…';
+  document.getElementById('cvLoadingText').textContent='Checking live JDs and comparing with your resume…';
   const jdSignals = await fetchGoogleJdSignals(role.title, role, cvLower);
 
   document.getElementById('cvLoadingState').style.display='none';
@@ -3966,27 +3988,6 @@ async function runSmartCvEvaluation(){
     : score>=45
       ? 'Your CV has a solid foundation for '+rt+' but is missing some keywords ATS systems specifically scan for.'
       : 'Your CV needs focused work before applying for '+rt+' roles. The must-have skills section shows several gaps.';
-  const feedbackPointers = [];
-  feedbackPointers.push(smartBlurb);
-  feedbackPointers.push(aiNarrative);
-  feedbackPointers.push(`Market benchmark: ${marketSummary}`);
-  if(expMsg) feedbackPointers.push(expMsg);
-  if(missingReq.length){
-    feedbackPointers.push(`Must-have gaps: ${missingReq.join(', ')}.`);
-  } else {
-    feedbackPointers.push('All must-have skills are detected in your CV.');
-  }
-  if(missingNice.length){
-    feedbackPointers.push(`Good-to-have skills to add: ${missingNice.slice(0,6).join(', ')}.`);
-  }
-  if(atsFlags.length){
-    feedbackPointers.push(`ATS fixes: ${atsFlags.slice(0,3).map(f=>f.msg).join(' ')}`);
-  }
-  if((jdSignals.keywords||[]).length){
-    feedbackPointers.push(`Live JD keyword opportunities: ${(jdSignals.keywords||[]).slice(0,6).map(k=>k.skill).join(', ')}.`);
-  }
-  feedbackPointers.push(`Role-specific tip: ${roleTip}`);
-
   const levelAligned = targetLevel === levelByYears;
   const industryTag = String(role.dept || role.department || 'General').trim();
   const levelIndustryTips = {
@@ -4030,7 +4031,16 @@ async function runSmartCvEvaluation(){
     expWarning ? 'Experience level is slightly off the typical range.' : 'Experience alignment looks healthy for this target.',
     levelAligned ? `Target level alignment is clear (${targetLevel}).` : `You selected ${targetLevel}; your current experience maps closer to ${levelByYears}.`
   ];
+  const liveJdTrustLine = (jdSignals.keywords||[]).length
+    ? `Live JD check: compared your resume against ${jdSignals.sources||0} live Google JD snippets for ${role.title}.`
+    : (jdSignals.reason
+        ? `Live JD check: comparison attempted, but ${jdSignals.reason}`
+        : (jdSignals.enabled
+            ? `Live JD check: compared with live Google JDs, but no extra repeated keywords were detected right now.`
+            : 'Live JD check: currently unavailable for this run.'));
+
   const marketPointers = [
+    liveJdTrustLine,
     marketSummary,
     (jdSignals.keywords||[]).length
       ? `Live JD analysis: recruiters are repeatedly asking for ${jdSignals.keywords.slice(0,5).map(k=>k.skill).join(', ')}.`
