@@ -588,6 +588,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:10
         <option value="Fresher/Student">Fresher/Student</option>
         <option value="Working Professional">Working Professional</option>
         <option value="HR">HR</option>
+        <option value="Management/Founder">Management/Founder</option>
       </select>
       <select id="smCountryInput" onchange="toggleSmCountryOther(this.value)"
         style="width:100%;padding:12px 14px;margin-bottom:10px;border-radius:9px;border:1.5px solid #e4e2db;font-family:Outfit,sans-serif;font-size:14px;outline:none;box-sizing:border-box;background:#fff;color:#374151;">
@@ -618,22 +619,6 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:10
   </div>
 </div>
 
-<div id="smSalaryPromptModal" style="display:none;position:fixed;inset:0;z-index:99997;background:rgba(15,14,12,0.7);align-items:center;justify-content:center;padding:20px;">
-  <div style="background:#fff;border-radius:16px;padding:24px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
-    <div style="font-size:18px;font-weight:800;color:#0f172a;margin-bottom:8px;font-family:Outfit,sans-serif;">Optional: share compensation</div>
-    <div style="font-size:13.5px;color:#6b6963;line-height:1.6;margin-bottom:14px;font-family:Outfit,sans-serif;">
-      Help us improve salary benchmarks for your role. This is optional and anonymous.
-    </div>
-    <label style="display:flex;gap:10px;align-items:flex-start;margin-bottom:14px;cursor:pointer;">
-      <input type="checkbox" id="smSalaryNotifyToggle" style="margin-top:3px;accent-color:#0f766e;">
-      <span style="font-size:12.5px;color:#4b5563;line-height:1.5;font-family:Outfit,sans-serif;">Notify me if the salary changes for my role.</span>
-    </label>
-    <div style="display:flex;gap:8px;">
-      <button onclick="smOpenSalaryFormFromPrompt()" style="flex:1;padding:11px 12px;background:#0f766e;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:Outfit,sans-serif;">Fill compensation form</button>
-      <button onclick="smCloseSalaryPrompt()" style="flex:1;padding:11px 12px;background:#fff;color:#6b7280;border:1.5px solid #e4e2db;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:Outfit,sans-serif;">Skip for now</button>
-    </div>
-  </div>
-</div>
 <script>
 /* ── EmailJS + Google OAuth init ── */
 (function(){
@@ -716,40 +701,41 @@ function smSaveProfileAndFinish(){
 }
 
 function smMaybeShowSalaryPrompt(profession){
-  const modal = document.getElementById('smSalaryPromptModal');
-  if(!modal) return;
-  if(profession === 'Working Professional' || profession === 'HR'){
-    modal.style.display = 'flex';
-  } else {
-    modal.style.display = 'none';
-  }
+  if(isSalaryPromptEligible(profession)) showSalaryContrib(null);
 }
 
-function smCloseSalaryPrompt(){
-  const modal = document.getElementById('smSalaryPromptModal');
-  if(modal) modal.style.display = 'none';
-}
-
-function smOpenSalaryFormFromPrompt(){
-  const notify = document.getElementById('smSalaryNotifyToggle');
-  localStorage.setItem('sm_salary_notify', notify && notify.checked ? 'yes' : 'no');
-  smCloseSalaryPrompt();
-  showSalaryContrib(null);
+function openSmLoginModal(){
+  document.getElementById('smEmailStep').style.display='block';
+  document.getElementById('smOtpStep').style.display='none';
+  document.getElementById('smProfileStep').style.display='none';
+  const consentWrap = document.getElementById('smConsent')?.closest('label');
+  if(consentWrap) consentWrap.style.display = 'flex';
+  document.getElementById('loginModal').style.display='flex';
 }
 
 function updateUserJourneyUi(){
   const p = (localStorage.getItem('sm_user_profession') || '').toLowerCase();
   const node = document.getElementById('journeyNote');
+  const nlTab = document.getElementById('modeTabNl');
+  const canDescribe = p === 'hr' || p === 'management/founder';
+  if(nlTab) nlTab.style.display = canDescribe ? '' : 'none';
+  if(!canDescribe && typeof currentMode !== 'undefined' && currentMode === 'nl'){
+    const skillsTab = document.querySelector('.mode-tab[onclick*="skills"]');
+    if(skillsTab) switchMode('skills', skillsTab);
+  }
   if(!node) return;
   if(p === 'fresher/student'){
     node.style.display = 'block';
-    node.innerHTML = '🎓 New here? Check roles and salary by <strong>skills</strong> or <strong>job title</strong>. Start simple, then shortlist your target role.';
+    node.innerHTML = '👋 Start here: <strong>Add skills</strong>, use <strong>Browse by title</strong>, and run <strong>Evaluate My CV</strong> to improve readiness.';
   } else if(p === 'working professional'){
     node.style.display = 'block';
-    node.innerHTML = '💼 Use SkillMapper to compare your current skills with market role expectations and salary ranges.';
+    node.innerHTML = '👋 Start here: find matches with <strong>Add skills</strong>, validate titles in <strong>Browse by title</strong>, and run <strong>Evaluate My CV</strong>.';
+  } else if(p === 'management/founder'){
+    node.style.display = 'block';
+    node.innerHTML = '👋 Founder mode: use <strong>Describe what you need</strong> to convert business needs into role, skills, and salary guidance.';
   } else if(p === 'hr'){
-    node.style.display = 'none';
-    node.innerHTML = '';
+    node.style.display = 'block';
+    node.innerHTML = '👋 HR mode: all journeys are enabled, including <strong>Describe what you need</strong>.';
   } else {
     node.style.display = 'none';
     node.innerHTML = '';
@@ -790,7 +776,7 @@ function updateUserJourneyUi(){
     if(!localStorage.getItem('sm_login_date')) localStorage.setItem('sm_login_date', Date.now().toString());
   }
   if(!localStorage.getItem('sm_user_email')){
-    document.getElementById('loginModal').style.display='flex';
+    openSmLoginModal();
   } else {
     const profile = getSmProfile();
     if(!profile.profession || !profile.country || !profile.name){
@@ -923,7 +909,7 @@ function smCompleteLogin(email, name, profileData){
   renderTrialBadgeSM();
   smUpdateNavLinks();
   setTimeout(function(){
-    if((profession === 'Working Professional' || profession === 'HR') && !isSalaryUnlocked()){
+    if(isSalaryPromptEligible(profession) && !isSalaryUnlocked()){
       const fp=document.getElementById('floatingPanda');
       if(fp) fp.style.display='block';
     }
@@ -943,7 +929,7 @@ function smDoLogin(){ document.getElementById('smEmailInput').focus(); }
 function toggleProfileMenu(){
   const menu=document.getElementById('smProfileMenu');
   const email=localStorage.getItem('sm_user_email');
-  if(!email){document.getElementById('loginModal').style.display='flex';return;}
+  if(!email){openSmLoginModal();return;}
   const emailRow=document.getElementById('smProfileEmailRow');
   if(emailRow)emailRow.textContent=email;
   if(menu)menu.style.display=menu.style.display==='none'?'block':'none';
@@ -1007,8 +993,7 @@ function smSignOut(){
 <main class="main">
 
   <div class="hero">
-    <h2>No more guesswork. Hire with data!</h2>
-    <p>Know the gap. Find the role. Hire the person.</p>
+    <h2>No more guesswork, role details at your fingertips.</h2>
   </div>
   <div id="journeyNote" style="display:none;background:#f0fdfa;border:1px solid rgba(15,118,110,0.2);border-radius:12px;padding:10px 14px;margin:-10px 0 16px 0;font-size:12.5px;color:#0f766e;line-height:1.6;font-family:Outfit,sans-serif;"></div>
 
@@ -1016,7 +1001,7 @@ function smSignOut(){
     <div class="mode-tabs">
       <button class="mode-tab active" onclick="switchMode('skills',this)">Add skills</button>
       <button class="mode-tab" onclick="switchMode('title',this)">Browse by title</button>
-      <button class="mode-tab" onclick="switchMode('nl',this)">Describe what you need</button>
+      <button class="mode-tab" id="modeTabNl" onclick="switchMode('nl',this)">Describe what you need</button>
     </div>
 
     <!-- Browse by job title mode -->
@@ -1716,28 +1701,17 @@ function resetTitleMode(){
   document.getElementById('resultsArea').innerHTML='<div class="empty-state"><div class="empty-icon" style="font-size:36px;margin-bottom:10px;">🎯</div><div class="empty-title">Start above to see role matches</div><div class="empty-sub">Type skills, search by title, or describe what you need.</div></div>';
 }
 
-function isFresherStudentUser(){
-  return (localStorage.getItem('sm_user_profession') || '').toLowerCase() === 'fresher/student';
-}
-
 function getRoleActionHtml(title, altTitlesParam, allPassSkills){
-  if(isFresherStudentUser()){
-    const q = encodeURIComponent('TalentXRay ' + title + ' professionals');
-    return `<a class="btn-search" href="https://www.google.com/search?q=${q}" target="_blank" rel="noopener">
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-      Connect with professionals
-    </a>`;
-  }
   const titleParam = encodeURIComponent(title);
   return `<a class="btn-search" href="https://talentxray.netlify.app?title=${titleParam}&alt=${altTitlesParam}&skills=${encodeURIComponent(allPassSkills.join(','))}&from=skillmapper" target="_blank">
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-    Search in TalentXRay
+    Search professional
   </a>`;
 }
 
-function isSalaryPromptEligible(){
-  const p = (localStorage.getItem('sm_user_profession') || '').toLowerCase();
-  return p === 'working professional' || p === 'hr';
+function isSalaryPromptEligible(professionValue){
+  const p = String(professionValue || localStorage.getItem('sm_user_profession') || '').toLowerCase();
+  return p === 'working professional' || p === 'hr' || p === 'management/founder';
 }
 
 function runTitleMode(){
@@ -3910,12 +3884,18 @@ async function runSmartCvEvaluation(){
   let expMsg='', expWarning=false;
   if(userYears!==''){
     const yrs=parseInt(userYears);
+    const seniorTitleHint=/(senior|lead|manager|head|director|principal|vp)/i.test(String(role.title||''));
     const levels=Object.entries(role.exp||{}).filter(([,d])=>d&&d[0]!==null).map(([lvl,d])=>({lvl,min:d[0],max:d[1]}));
     if(levels.length){
       const lowest=levels[0], highest=levels[levels.length-1];
       if(yrs<lowest.min){ score=Math.max(0,score-25); expWarning=true; expMsg=`Your ${yrs} year(s) is below the typical ${lowest.min}–${highest.max} years for this role. Consider targeting more junior versions first.`; }
       else if(yrs>highest.max){ expMsg=`Your ${yrs} years exceeds this role's typical range. You may want to consider more senior titles.`; }
       else { expMsg=`Your experience level is a good match for this role.`; }
+      if(yrs<=1 && seniorTitleHint){
+        score=Math.max(0,score-20);
+        expWarning=true;
+        expMsg='This looks like a senior role. As a fresher/student, target junior or associate titles first for better shortlist chances.';
+      }
     }
   }
   score=Math.max(0,Math.min(99,score));
@@ -3956,6 +3936,9 @@ async function runSmartCvEvaluation(){
 
   const sc=score>=75?'#0d7a4e':score>=45?'#0f766e':'#b45309';
   const needWorkPct=Math.max(0,100-score);
+  const readinessLabel=score>=75?'Interview Ready':score>=50?'Close to Ready':'Needs Upskilling';
+  const readinessBg=score>=75?'#ecfdf5':score>=50?'#eff6ff':'#fff7ed';
+  const readinessColor=score>=75?'#166534':score>=50?'#1d4ed8':'#b45309';
   const allMissing=[...missingReq,...missingNice];
   window._cvLastMissingSkills = allMissing;
 
@@ -3996,6 +3979,7 @@ async function runSmartCvEvaluation(){
         <div style="text-align:right;">
           <div style="font-size:40px;font-weight:800;color:${sc};line-height:1;font-family:Outfit,sans-serif;">${score}%</div>
           <div style="font-size:11px;font-weight:600;color:${sc};margin-top:3px;font-family:Outfit,sans-serif;">${score>=75?'Strong match':score>=45?'Partial match':'Needs work'}</div>
+          <div style="margin-top:6px;padding:4px 10px;border-radius:20px;background:${readinessBg};color:${readinessColor};font-size:11px;font-weight:700;font-family:Outfit,sans-serif;">${readinessLabel}</div>
         </div>
       </div>
       <div style="background:#f3f4f6;border-radius:20px;height:7px;margin-bottom:16px;overflow:hidden;"><div style="height:100%;border-radius:20px;background:${sc};width:${score}%;"></div></div>
@@ -4139,7 +4123,7 @@ window.addEventListener('load', async function(){
   <div style="background:#fff;border-radius:20px;width:100%;max-width:420px;box-shadow:0 24px 64px rgba(0,0,0,0.22);overflow:hidden;position:relative;max-height:95vh;overflow-y:auto;">
 
     <!-- Close button -->
-    <button onclick="skipSalaryContrib()" onmouseenter="setPandaMood('sad')" onmouseleave="setPandaMood('pace')"
+    <button onclick="closeSalaryContrib()" onmouseenter="setPandaMood('sad')" onmouseleave="setPandaMood('pace')"
       style="position:absolute;top:10px;right:10px;background:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.4);border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;color:#555;z-index:20;line-height:1;padding:0;">×</button>
 
     <!-- ── Teal header: dog left, text right ── -->
@@ -4156,7 +4140,7 @@ window.addEventListener('load', async function(){
           <!-- Speech bubble (pops above dog) -->
           <div id="pandaBubble" style="position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%) scale(0.85);background:white;border-radius:10px 10px 10px 2px;padding:4px 9px;font-size:10.5px;font-weight:700;color:#0f766e;white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,0.15);opacity:0;transition:opacity .4s cubic-bezier(.34,1.56,.64,1),transform .4s cubic-bezier(.34,1.56,.64,1);pointer-events:none;font-family:Outfit,sans-serif;z-index:10;"></div>
           <!-- Dog body (animated) -->
-          <div id="pandaBody" style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);animation:pandaWalk 1.1s cubic-bezier(.45,0,.55,1) infinite;">
+          <div id="pandaBody" style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);animation:pandaWalk 1.1s cubic-bezier(.45,0,.55,1) infinite, dogBreath 2.2s ease-in-out infinite;">
             <span class="panda-mood-emoji" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;">🐶</span>
             <svg width="74" height="78" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
               <defs>
@@ -4187,8 +4171,8 @@ window.addEventListener('load', async function(){
 
         <!-- Text column -->
         <div style="flex:1;padding-bottom:18px;min-width:0;">
-          <div id="salModalTitle" style="font-size:20px;font-weight:800;color:white;letter-spacing:-0.03em;line-height:1.2;margin-bottom:7px;font-family:Outfit,sans-serif;">Pretty please? 🥺</div>
-          <div id="salModalSub" style="font-size:12.5px;color:rgba(255,255,255,0.9);line-height:1.55;font-family:Outfit,sans-serif;">Help others know what they're worth! Share your CTC anonymously — 20 seconds 💚</div>
+          <div id="salModalTitle" style="font-size:20px;font-weight:800;color:white;letter-spacing:-0.03em;line-height:1.2;margin-bottom:7px;font-family:Outfit,sans-serif;">Share your salary benchmark 🐶</div>
+          <div id="salModalSub" style="font-size:12.5px;color:rgba(255,255,255,0.9);line-height:1.55;font-family:Outfit,sans-serif;">Help us keep salary data fresh for your role.</div>
         </div>
       </div>
 
@@ -4315,6 +4299,10 @@ window.addEventListener('load', async function(){
       </div>
 
       <p id="salErr" style="font-size:12px;color:#b91c1c;display:none;margin-bottom:8px;font-family:Outfit,sans-serif;"></p>
+      <label style="display:flex;gap:8px;align-items:flex-start;margin-bottom:10px;cursor:pointer;">
+        <input type="checkbox" id="salNotifyChange" style="margin-top:2px;accent-color:#0f766e;">
+        <span style="font-size:12px;color:#4b5563;line-height:1.45;font-family:Outfit,sans-serif;">Notify me if salary changes for my role.</span>
+      </label>
       <button onclick="submitSalaryContrib()" style="width:100%;padding:13px;background:#0f766e;color:#fff;border:none;border-radius:10px;font-weight:700;font-family:Outfit,sans-serif;font-size:14px;cursor:pointer;margin-bottom:8px;transition:background .15s;">Share anonymously ✨</button>
       <button id="salSkipBtn" onclick="skipSalaryContrib()" onmouseenter="setPandaMood('sad')" onmouseleave="setPandaMood('pace')"
         style="width:100%;padding:10px;background:transparent;color:#6b6963;border:1.5px solid #e4e2db;border-radius:10px;font-weight:600;font-family:Outfit,sans-serif;font-size:13px;cursor:pointer;transition:border-color .15s;">
@@ -4357,7 +4345,7 @@ window.addEventListener('load', async function(){
         </svg>
       </div>
       <div style="background:white;border-radius:18px 18px 0 0;margin-top:6px;padding:16px 20px 0;">
-        <div style="font-size:19px;font-weight:800;color:#0f172a;letter-spacing:-0.02em;margin-bottom:4px;font-family:Outfit,sans-serif;">Thank you! 🐶💚</div>
+        <div style="font-size:19px;font-weight:800;color:#0f172a;letter-spacing:-0.02em;margin-bottom:4px;font-family:Outfit,sans-serif;">Thank you! 🐶💚 <span class="heart-spin">💖</span></div>
       </div>
     </div>
     <div style="padding:14px 24px 24px;">
@@ -4369,7 +4357,7 @@ window.addEventListener('load', async function(){
 
 <!-- Floating dog (shown when results exist and salary not yet shared) -->
 <div id="floatingPanda" style="display:none;position:fixed;bottom:20px;right:20px;z-index:99995;cursor:pointer;" onclick="showSalaryContrib(_floatingPandaBtn || null)" title="Help us with salary data!">
-  <div style="position:relative;animation:dogFloat 2.8s ease-in-out infinite;">
+  <div style="position:relative;animation:dogFloat 2.8s ease-in-out infinite, dogBreath 2.2s ease-in-out infinite;">
     <svg width="74" height="78" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 4px 14px rgba(0,0,0,0.22));display:block;">
       <defs>
         <linearGradient id="fdogFur" x1="20" y1="10" x2="76" y2="92"><stop offset="0%" stop-color="#FFF7ED"/><stop offset="100%" stop-color="#F3D5B5"/></linearGradient>
@@ -4404,6 +4392,10 @@ window.addEventListener('load', async function(){
 @keyframes dogFloat {
   0%,100% { transform: translateY(0px); }
   50%     { transform: translateY(-7px); }
+}
+@keyframes dogBreath {
+  0%,100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
 }
 @keyframes pandaWalk {
   0%,100% { transform: translateX(-50%) translateY(0px) rotate(0deg); }
@@ -4452,6 +4444,12 @@ window.addEventListener('load', async function(){
   90% { transform: rotate(6deg); }
   97% { transform: rotate(-3deg); }
 }
+@keyframes heartSpin {
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(18deg) scale(1.12); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+.heart-spin{display:inline-block;animation:heartSpin .9s ease-in-out infinite;transform-origin:center;}
 @keyframes legSwingL { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(22deg); } }
 @keyframes legSwingR { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(-22deg); } }
 @keyframes armSwingL { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(28deg); } }
@@ -4636,14 +4634,16 @@ function showSalaryContrib(btn){
   document.getElementById('salCurrency').value = locCurs[USER_LOCATION]||'INR';
   const lvlMap={junior:'0-2',mid:'2-4',senior:'6-9',lead:'12+'};
   document.getElementById('salYrs').value = btn && btn.dataset.lvl ? (lvlMap[btn.dataset.lvl]||'') : '';
+  const notify = document.getElementById('salNotifyChange');
+  if(notify) notify.checked = (localStorage.getItem('sm_salary_notify') || 'no') === 'yes';
   document.getElementById('floatingPanda').style.display = 'none';
 
   // Clear timers and reset panda state
   if(_pandaTimer) clearTimeout(_pandaTimer);
   if(_pandaImpatientTimer) clearTimeout(_pandaImpatientTimer);
   _hideBubble();
-  document.getElementById('salModalTitle').textContent = 'Pretty please? 🥺';
-  document.getElementById('salModalSub').textContent = "Help others know what they're worth! Share your CTC anonymously — 20 seconds 💚";
+  document.getElementById('salModalTitle').textContent = 'Share your salary benchmark 🐶';
+  document.getElementById('salModalSub').textContent = 'Help us keep salary data fresh for your role.';
   document.getElementById('salContribModal').style.display = 'flex';
   setPandaMood('ask');
 
@@ -4666,6 +4666,10 @@ function skipSalaryContrib(){
   try{ setPandaMood('sad'); setTimeout(()=>setPandaMood('pace'), 1500); } catch(e){}
 }
 
+function closeSalaryContrib(){
+  skipSalaryContrib();
+}
+
 function submitSalaryContrib(){
   const ctc = document.getElementById('salCtc').value.trim();
   const err = document.getElementById('salErr');
@@ -4683,6 +4687,8 @@ function submitSalaryContrib(){
   const country     = document.getElementById('salCountry').value;
   const roleDesc    = document.getElementById('salRoleDesc')?.value.trim()||'';
   const company     = document.getElementById('salCompany')?.value.trim()||'';
+  const notifyPref  = document.getElementById('salNotifyChange')?.checked ? 'yes' : 'no';
+  localStorage.setItem('sm_salary_notify', notifyPref);
   try {
     fetch('/',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
       body:'form-name=salary-contrib'
@@ -4695,6 +4701,7 @@ function submitSalaryContrib(){
         +'&country='+encodeURIComponent(country)
         +'&role_desc='+encodeURIComponent(roleDesc)
         +'&company='+encodeURIComponent(company)
+        +'&notify_salary='+encodeURIComponent(notifyPref)
         +'&loc_detected='+encodeURIComponent(USER_LOCATION)});
   } catch(e){}
   document.getElementById('salContribModal').style.display='none';
