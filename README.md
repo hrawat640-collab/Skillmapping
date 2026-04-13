@@ -1,5 +1,11 @@
 # CV Evaluation SaaS (100% Free Stack)
 
+## Active App Target
+
+- Production frontend target is `frontend` (React + Vite).
+- Netlify should build from repo root `netlify.toml` with `base = "frontend"`.
+- Root `index.html` is a legacy prototype and is not the primary app path.
+
 Production-style SaaS scaffold with:
 
 - `frontend` (React + Tailwind + Recharts)
