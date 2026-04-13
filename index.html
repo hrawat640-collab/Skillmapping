@@ -3846,69 +3846,6 @@ function smartSkillMatch(skill,cvLower){
   return implies.some(imp=>cvLower.includes(imp.toLowerCase()));
 }
 
-async function fetchGoogleJdSignals(roleTitle, role, cvLower){
-  const key=(GOOGLE_CSE_KEY||'').trim();
-  const cx=(GOOGLE_CSE_ID||'').trim();
-  if(!key || !cx){
-    return { enabled:false, keywords:[], sources:0, reason:'' };
-  }
-  const timeoutMs = 12000;
-  async function fetchWithTimeout(url){
-    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    let timeoutId = null;
-    try{
-      if(controller){
-        timeoutId = setTimeout(()=>controller.abort(), timeoutMs);
-      }
-      return await fetch(url, controller ? { signal: controller.signal } : undefined);
-    }finally{
-      if(timeoutId) clearTimeout(timeoutId);
-    }
-  }
-  try{
-    const q = `${roleTitle} job description required skills`;
-    const url = `https://www.googleapis.com/customsearch/v1?key=${encodeURIComponent(key)}&cx=${encodeURIComponent(cx)}&q=${encodeURIComponent(q)}&num=6`;
-    let res;
-    try{
-      res = await fetchWithTimeout(url);
-    }catch(firstErr){
-      // One retry for transient network slowness/rate limiting edge cases.
-      res = await fetchWithTimeout(url);
-    }
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    const data = await res.json();
-    const items = Array.isArray(data.items) ? data.items : [];
-    const text = items.map(i=>`${i.title||''} ${i.snippet||''}`).join(' ').toLowerCase();
-    if(!text){
-      return { enabled:true, keywords:[], sources:0, reason:'No JD snippets returned from Google for this role right now.' };
-    }
-    const pool = [...new Set([...(role.required||[]), ...(role.nice||[])])];
-    const scored = pool.map(s=>{
-      const sl = String(s||'').toLowerCase().trim();
-      if(!sl) return null;
-      const esc = sl.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-      const count = (text.match(new RegExp(`\\b${esc}\\b`,'g'))||[]).length;
-      const inCv = smartSkillMatch(s, cvLower);
-      return { skill:s, count, inCv, required:(role.required||[]).includes(s) };
-    }).filter(Boolean).filter(x=>x.count>0).sort((a,b)=>{
-      if(a.inCv!==b.inCv) return a.inCv?1:-1; // missing first
-      if(a.required!==b.required) return a.required?-1:1; // required before nice
-      return b.count-a.count;
-    });
-    const missing = scored.filter(x=>!x.inCv).slice(0,10);
-    return {
-      enabled:true,
-      keywords:missing,
-      sources:items.length
-    };
-  }catch(e){
-    if(e && e.name === 'AbortError'){
-      return { enabled:true, keywords:[], sources:0, reason:'Live JD check timed out after retry. Showing report without market snippets.' };
-    }
-    return { enabled:true, keywords:[], sources:0, reason:'Could not fetch Google JD snippets right now.' };
-  }
-}
-
 async function runSmartCvEvaluation(){
   if(!cvSelectedRole){showToast('Please select a target role first','err');return;}
   const cvText=cvInputMode==='paste'?document.getElementById('cvPasteInput').value.trim():cvExtractedText;
@@ -3990,8 +3927,8 @@ async function runSmartCvEvaluation(){
     : mustHaveCoveragePct>=55
       ? 'Your CV is in the competitive band, but stronger keyword depth can improve shortlist rate.'
       : 'Compared with current role expectations, your CV is missing multiple baseline keywords recruiters screen for first.';
-  document.getElementById('cvLoadingText').textContent='Checking live JDs and comparing with your resume…';
-  const jdSignals = await fetchGoogleJdSignals(role.title, role, cvLower);
+  document.getElementById('cvLoadingText').textContent='Finalizing report…';
+  const jdSignals = { enabled:false, keywords:[], sources:0, reason:'' };
 
   document.getElementById('cvLoadingState').style.display='none';
 
@@ -4045,7 +3982,8 @@ async function runSmartCvEvaluation(){
   const overlap = roleTokens.filter(t=>targetTokens.includes(t)).length;
   const desigSim = targetTokens.length ? Math.round((overlap/targetTokens.length)*100) : 0;
   const hasEmail = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i.test(cvText);
-  const hasLinkedin = /linkedin\.com\/(in|pub|company)\//i.test(cvText) || /linkedin\.com\/[A-Za-z0-9_-]{3,}/i.test(cvText);
+  const cvNorm = cvText.toLowerCase().replace(/\s+/g,'');
+  const hasLinkedin = /linkedin\.com\/(in|pub|company)\//i.test(cvText) || /linkedin\.com\/[A-Za-z0-9_-]{3,}/i.test(cvText) || cvNorm.includes('linkedin.com/in/') || cvNorm.includes('linkedin.com/');
   const hasMobile = /(\+?\d[\d\s().-]{8,}\d)/.test(cvText);
   const hasEducation = /(education|b\.tech|btech|b\.e|be|mba|m\.tech|mtech|bachelor|master|degree)/i.test(cvText);
   const hasCertificates = /(certificate|certification|certified)/i.test(cvText);
@@ -4056,22 +3994,8 @@ async function runSmartCvEvaluation(){
     expWarning ? 'Experience level is slightly off the typical range.' : 'Experience alignment looks healthy for this target.',
     levelAligned ? `Target level alignment is clear (${targetLevel}).` : `You selected ${targetLevel}; your current experience maps closer to ${levelByYears}.`
   ];
-  const liveJdTrustLine = (jdSignals.keywords||[]).length
-    ? `Live JD check: compared your resume against ${jdSignals.sources||0} live Google JD snippets for ${role.title}.`
-    : (jdSignals.reason
-        ? `Live JD check: comparison attempted, but ${jdSignals.reason}`
-        : (jdSignals.enabled
-            ? `Live JD check: compared with live Google JDs, but no extra repeated keywords were detected right now.`
-            : 'Live JD check: currently unavailable for this run.'));
-
   const marketPointers = [
-    liveJdTrustLine,
     marketSummary,
-    (jdSignals.keywords||[]).length
-      ? `Live JD analysis: recruiters are repeatedly asking for ${jdSignals.keywords.slice(0,5).map(k=>k.skill).join(', ')}.`
-      : (jdSignals.reason
-          ? `Live JD analysis note: ${jdSignals.reason}`
-          : (jdSignals.enabled ? 'Live JD analysis is on, but no additional repeated keywords were detected right now.' : 'Live JD analysis is off for this run.')),
     missingReq.length ? `Must-have skills to add first: ${missingReq.slice(0,6).join(', ')}.` : 'All must-have skills found in your CV.',
     missingNice.length ? `Good-to-have skills to strengthen profile: ${missingNice.slice(0,6).join(', ')}.` : 'Nice-to-have coverage is in a good range.'
   ];
