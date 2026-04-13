@@ -1,0 +1,6 @@
+# OS / editor
+.DS_Store
+
+# Optional: keep real keys only on the server — copy from supabase-config.example.js locally
+# and do not commit supabase-config.js (then inject at build/deploy).
+# supabase-config.js
