@@ -964,7 +964,22 @@ function toggleProfileMenu(){
   const email=localStorage.getItem('sm_user_email');
   if(!email){openSmLoginModal();return;}
   const emailRow=document.getElementById('smProfileEmailRow');
+  const nameRow=document.getElementById('smProfileNameRow');
+  const professionRow=document.getElementById('smProfileProfessionRow');
+  const countryRow=document.getElementById('smProfileCountryRow');
+  const salaryRow=document.getElementById('smProfileSalaryRow');
+  const notifyRow=document.getElementById('smProfileNotifyRow');
+  const name = localStorage.getItem('sm_user_name') || '';
+  const profession = localStorage.getItem('sm_user_profession') || '';
+  const country = localStorage.getItem('sm_user_country') || '';
+  const salaryFilled = isSalaryUnlocked() ? 'Filled' : 'Not filled';
+  const salaryNotify = (localStorage.getItem('sm_salary_notify') || 'no') === 'yes' ? 'Enabled' : 'Not enabled';
   if(emailRow)emailRow.textContent=email;
+  if(nameRow) nameRow.textContent = name || 'Not provided';
+  if(professionRow) professionRow.textContent = profession || 'Not provided';
+  if(countryRow) countryRow.textContent = country || 'Not provided';
+  if(salaryRow) salaryRow.textContent = salaryFilled;
+  if(notifyRow) notifyRow.textContent = salaryNotify;
   if(menu)menu.style.display=menu.style.display==='none'?'block':'none';
 }
 document.addEventListener('click',function(e){
@@ -1007,8 +1022,15 @@ function smSignOut(){
         <svg viewBox="0 0 16 16" fill="none"><path d="M8 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM3 13a5 5 0 0 1 10 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
         <span class="btn-contact-text" id="smTopbarLabel">Sign in</span>
       </button>
-      <div id="smProfileMenu" style="display:none;position:absolute;right:0;top:calc(100% + 8px);background:#fff;border:1px solid #e5e7eb;border-radius:10px;box-shadow:0 4px 24px rgba(0,0,0,0.10);min-width:200px;z-index:500;overflow:hidden;font-family:var(--sans);">
-        <div id="smProfileEmailRow" style="padding:12px 16px;font-size:13px;color:#374151;word-break:break-all;border-bottom:1px solid #f3f4f6;"></div>
+      <div id="smProfileMenu" style="display:none;position:absolute;right:0;top:calc(100% + 8px);background:#fff;border:1px solid #e5e7eb;border-radius:10px;box-shadow:0 4px 24px rgba(0,0,0,0.10);min-width:250px;z-index:500;overflow:hidden;font-family:var(--sans);">
+        <div id="smProfileEmailRow" style="padding:12px 16px;font-size:13px;color:#374151;word-break:break-all;border-bottom:1px solid #f3f4f6;font-weight:600;"></div>
+        <div style="padding:10px 16px;border-bottom:1px solid #f3f4f6;display:grid;gap:7px;">
+          <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;"><span style="color:#6b7280;">Name</span><strong id="smProfileNameRow" style="color:#111827;"></strong></div>
+          <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;"><span style="color:#6b7280;">Profession</span><strong id="smProfileProfessionRow" style="color:#111827;"></strong></div>
+          <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;"><span style="color:#6b7280;">Country</span><strong id="smProfileCountryRow" style="color:#111827;"></strong></div>
+          <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;"><span style="color:#6b7280;">Salary details</span><strong id="smProfileSalaryRow" style="color:#111827;"></strong></div>
+          <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;"><span style="color:#6b7280;">Salary alerts</span><strong id="smProfileNotifyRow" style="color:#111827;"></strong></div>
+        </div>
         <button onclick="smSignOut()" style="width:100%;padding:11px 16px;text-align:left;background:none;border:none;font-size:13px;color:#6b7280;cursor:pointer;font-family:var(--sans);" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='none'">Sign out</button>
       </div>
     </div>
@@ -3547,7 +3569,8 @@ function clearAndTryAgain(){
   document.getElementById('aiBanner').classList.remove('show');
   document.getElementById('deptFilter').style.display='none';
   const _cb=document.getElementById('currencyBar'); if(_cb) _cb.style.display='none';
-  const fp=document.getElementById('floatingPanda'); if(fp) fp.style.display='none';
+  const fp=document.getElementById('floatingPanda');
+  if(fp) fp.style.display = (isSalaryPromptEligible() && !isSalaryUnlocked()) ? 'block' : 'none';
   document.getElementById('resultsArea').innerHTML=`<div class="empty-state"><div class="empty-icon" style="font-size:36px;margin-bottom:10px;">🎯</div><div class="empty-title">Start above to see role matches</div><div class="empty-sub">Type skills, search by title, or describe what you need.</div></div>`;
   document.getElementById('nlInput').value='';
   document.getElementById('mainInput').value='';
@@ -3927,7 +3950,7 @@ async function runSmartCvEvaluation(){
   const mustHaveCoveragePct=totalReq?Math.round((matchedReq.length/totalReq)*100):100;
   const niceCoveragePct=totalNice?Math.round((matchedNice.length/totalNice)*100):100;
   // Skills Match prioritizes must-have keywords; nice-to-have only enhances the score.
-  const reqCoveragePct=Math.round((mustHaveCoveragePct*0.85)+(niceCoveragePct*0.15));
+  const reqCoveragePct=Math.round((mustHaveCoveragePct*0.90)+(niceCoveragePct*0.10));
   let score=0;
 
   // Experience adjustment
@@ -4004,6 +4027,8 @@ async function runSmartCvEvaluation(){
   score = Math.round((reqCoveragePct*0.60) + (expFit*0.25) + (atsScore*0.15));
   // Guardrail: high score should only happen when all must-have keywords are present.
   if(missingReq.length>0) score = Math.min(score, 79);
+  // Guardrail: keep top-end scores only when nice-to-have coverage is complete.
+  if(niceCoveragePct < 100) score = Math.min(score, 90);
   score=Math.max(0,Math.min(99,score));
   const aiNarrative=score>=75
     ? 'If you apply now, you should pass most first-level screening. Focus on adding quantified impact to improve interview conversion.'
@@ -4020,7 +4045,7 @@ async function runSmartCvEvaluation(){
   const overlap = roleTokens.filter(t=>targetTokens.includes(t)).length;
   const desigSim = targetTokens.length ? Math.round((overlap/targetTokens.length)*100) : 0;
   const hasEmail = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i.test(cvText);
-  const hasLinkedin = /linkedin\.com\/in\//i.test(cvText);
+  const hasLinkedin = /linkedin\.com\/(in|pub|company)\//i.test(cvText) || /linkedin\.com\/[A-Za-z0-9_-]{3,}/i.test(cvText);
   const hasMobile = /(\+?\d[\d\s().-]{8,}\d)/.test(cvText);
   const hasEducation = /(education|b\.tech|btech|b\.e|be|mba|m\.tech|mtech|bachelor|master|degree)/i.test(cvText);
   const hasCertificates = /(certificate|certification|certified)/i.test(cvText);
@@ -4145,8 +4170,6 @@ async function runSmartCvEvaluation(){
 
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
         <button onclick="downloadCvReport()" style="padding:10px 12px;background:#0f766e;color:#fff;border:none;border-radius:9px;font-weight:700;font-size:12px;">Download PDF Report</button>
-        <button onclick="resetCvEvaluator()" style="padding:10px 12px;background:#f1f5f9;color:#334155;border:1px solid #e2e8f0;border-radius:9px;font-weight:700;font-size:12px;">New Evaluation</button>
-        <button onclick="shareCvReport()" style="padding:10px 12px;background:#fff;color:#0f172a;border:1px solid #e2e8f0;border-radius:9px;font-weight:700;font-size:12px;">Share Link</button>
         <button onclick="checkoutSalaryForTargetRole()" style="padding:10px 12px;background:#1d4ed8;color:#fff;border:none;border-radius:9px;font-weight:700;font-size:12px;">Check out salary for your target role</button>
       </div>
     </div>`;
