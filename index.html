@@ -26,6 +26,7 @@
     : null;
 })();
 var _sb = window._sb;
+window._sb = supabase.createClient(window.__SKILLMAPPER_SUPABASE__.url, window.__SKILLMAPPER_SUPABASE__.anonKey);
 var GOOGLE_CSE_KEY = '';
 var GOOGLE_CSE_ID  = '';
 var DB_ROLES  = [];
@@ -641,7 +642,12 @@ let smOtpCode = '';
     localStorage.setItem('sm_user_name', sharedName || '');
     if(!localStorage.getItem('sm_login_date')) localStorage.setItem('sm_login_date', Date.now().toString());
   }
+  // TESTING ONLY — remove before going live
   if(!localStorage.getItem('sm_user_email')){
+    localStorage.setItem('sm_user_email', 'test@test.com');
+    localStorage.setItem('sm_login_date', Date.now().toString());
+  }
+  if(false){
     document.getElementById('loginModal').style.display='flex';
   } else {
     checkTrialExpiry('');
@@ -792,11 +798,6 @@ document.addEventListener('click',function(e){
   const menu=document.getElementById('smProfileMenu');
   if(wrap&&menu&&!wrap.contains(e.target))menu.style.display='none';
 });
-function smShowAccount(){
-  const email=localStorage.getItem('sm_user_email')||'Not logged in';
-  alert('Logged in as: '+email);
-  document.getElementById('smProfileMenu').style.display='none';
-}
 function smSignOut(){
   if(!confirm('Sign out of SkillMapper?'))return;
   ['sm_user_email','sm_user_name','sm_login_date','sm_consent','sm_sal_unlocked_until','tr_shared_email','tr_shared_name'].forEach(k=>localStorage.removeItem(k));
@@ -916,12 +917,13 @@ function smSignOut(){
         <div class="bubble-wrap" id="mainWrap" onclick="document.getElementById('mainInput').focus()"
           style="min-height:72px;padding:10px 12px;align-content:flex-start;">
           <input class="bubble-input" id="mainInput" autocomplete="off"
-            placeholder="e.g. Python, React, Figma, Salesforce, Financial Modelling…"
-            onkeydown="handleKey(event)" oninput="onInput(event)" onfocus="onFocus()" onblur="setTimeout(()=>hideSug(),150)"
+    placeholder="Python, React, SQL, Figma, Salesforce, Financial Modelling, Talent Acquisition…"
+    onkeydown="handleKey(event)" oninput="onInput(event)" onblur="setTimeout(()=>hideSug(),150)"
             style="min-width:240px;font-size:14px;">
           <div class="sug-drop" id="sugDrop" onmousedown="event.preventDefault()"></div>
         </div>
       </div>
+
       <button class="btn-find" onclick="addTyped()" style="width:100%;justify-content:center;">
         <svg viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.6"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
         Find matching roles
@@ -1054,16 +1056,15 @@ function smSignOut(){
     <p>Select a role, upload your CV — we check every must-have and good-to-have skill and tell you exactly what to add.</p>
   </div>
 
-  <div class="input-card" style="padding:20px;margin-bottom:14px;">
+  <div class="input-card" style="padding:20px;margin-bottom:14px;position:relative;z-index:50;overflow:visible;">
     <div style="font-size:12px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;font-family:Outfit,sans-serif;">Step 1 — Target role</div>
     <div class="title-search-wrap" style="position:relative;">
       <input class="title-search-input" id="cvRoleInput"
-        placeholder="Type a role — e.g. Data Engineer, HR Business Partner, Product Manager…"
-        oninput="onCvRoleInput(event)"
-        onfocus="onCvRoleFocus()"
-        onblur="setTimeout(closeCvDrop,160)"
-        onkeydown="onCvRoleKeydown(event)"
-        autocomplete="off">
+    placeholder="Type a role — e.g. Data Engineer, HR Business Partner, Product Manager…"
+    oninput="onCvRoleInput(event)"
+    onblur="setTimeout(closeCvDrop,500)"
+    onkeydown="onCvRoleKeydown(event)"
+    autocomplete="off">
       <div class="title-dropdown" id="cvRoleDropdown"></div>
     </div>
     <div id="cvSelectedRole" style="display:none;margin-top:10px;"></div>
@@ -1650,27 +1651,6 @@ function runTitleMode(){
   // Scroll to results
   setTimeout(()=>area.scrollIntoView({behavior:'smooth',block:'nearest'}),200);
 }
-
-/* ═══════════════════════════════════════════════════════
-   FEATURE: Candidate mode toggle
-   ═══════════════════════════════════════════════════════ */
-let isCandidateMode = false;
-
-function toggleCandidateMode(){} // removed
-
-let lastResults = [];
-
-/* Wrapper that calls showResults and also stores last results */
-function showResultsWrapped(roles, mode){
-  lastResults = roles;
-  showResults(roles, mode);
-}
-
-function renderResultsWithMode(roles){
-  showResults(roles, isCandidateMode ? 'candidate' : 'normal');
-}
-
-
 
 /* ══════════════════════════════════════
    ROLES DATABASE — JD-accurate, all industries
@@ -2617,6 +2597,7 @@ function extractSkillsFromText(text){
    ══════════════ */
 let ROLES = [];
 let ALL_SKILLS = [];
+let _STATIC_ALL_SKILLS = [];
 let skills = [];
 let activeDept = 'all';
 let sugFocused = -1;
@@ -2826,9 +2807,13 @@ function render(){
             ${expHtml}
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;">
-            <span style="font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-right:2px;">Skills matched</span>
+            <span style="font-size:11px;font-weight:600;color:var(--teal);text-transform:uppercase;letter-spacing:.06em;margin-right:2px;">Required skills</span>
             ${matchedSkillsHtml}
             ${missingHtml}
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;">
+            <span style="font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-right:2px;">Nice to have</span>
+            ${(r.nice||[]).slice(0,6).map(s=>`<span class="skill-pill skill-missing">${s}</span>`).join('')}
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between;">
             <div style="font-size:11.5px;color:var(--ink3);">Also called: <span style="color:var(--ink2);font-weight:500;">${(r.keywords||[r.title]).slice(0,3).join(' · ')}</span></div>
@@ -3247,21 +3232,11 @@ function switchToTitleSearch(title){
   }, 60);
 }
 
-// Also called from "Find roles" button in skills tab
-function findRolesManual(){
-  addTyped();
-}
-
 function onInput(e){
   sugFocused=-1;
   const q=e.target.value.trim();
   renderSug(q);
 }
-
-function onFocus(){
-  renderSug(document.getElementById('mainInput').value.trim());
-}
-
 function hideSug(){
   document.getElementById('sugDrop').classList.remove('open');
   sugFocused=-1;
@@ -3272,14 +3247,6 @@ function addSkill(skill){
   window._aiTopRoles = [];
   const clean = skill.trim();
   if(!clean) return;
-
-  // Title detection on RAW input — before alias resolution
-  // Catches: "HRBP", "frontend developer", "PM", "SDE", etc.
-  const titleMatch = findTitleMatch(clean);
-  if(titleMatch){
-    showTitleHint(clean, titleMatch.title);
-    return;
-  }
 
   // Now resolve alias (e.g. "hrbp" → "Employee Relations" won't reach here)
   const resolved = resolveAlias(clean);
@@ -3331,7 +3298,7 @@ function renderSug(q){
       return;
     }
     const roleKwMatches=[];
-    if(typeof ROLES!=='undefined'){ROLES.forEach(r=>{if(!r.keywords)return;const hit=r.keywords.slice(1).find(k=>{const kl=k.toLowerCase();return kl.includes(ql)||ql.includes(kl);});if(hit&&!roleKwMatches.find(x=>x.title===r.title))roleKwMatches.push({title:r.title,kw:hit});});}
+    if(typeof ROLES!=='undefined'&&ql.length>=4){ROLES.forEach(r=>{if(!r.keywords)return;const hit=r.keywords.slice(1).find(k=>{const kl=k.toLowerCase();return kl===ql||ql===kl;});if(hit&&!roleKwMatches.find(x=>x.title===r.title))roleKwMatches.push({title:r.title,kw:hit});});}
     if(roleKwMatches.length){const safeQ=q.replace(/'/g,"\\'");drop.innerHTML=roleKwMatches.slice(0,4).map(m=>{const st=m.title.replace(/'/g,"\\'");return`<div class="sug-item sug-title-hint" onclick="pickSugTitle('${safeQ}','${st}')"><div>&#x1F50D; <strong>${q}</strong> &mdash; also called: <em>${m.title}</em></div><span class="sug-cat">Browse by Title &rarr;</span></div>`;}).join('');drop.classList.add('open');return;}
     // Starts-with matches first, then contains
     const startsWith=ALL_SKILLS.filter(({s})=>s.toLowerCase().startsWith(ql)&&!already.includes(s.toLowerCase()));
@@ -3406,20 +3373,6 @@ function showToast(msg,type){
   t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),2500);
 }
-
-/* ── Quick picks ── */
-function initQuickPicks(){
-  const wrap=document.getElementById('quickPicks');
-  QUICK_SKILLS.forEach(s=>{
-    const btn=document.createElement('button');
-    btn.style.cssText='padding:4px 12px;border-radius:20px;border:1px solid var(--border);background:var(--white);color:var(--ink2);font-family:var(--sans);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;';
-    btn.textContent='+ '+s;
-    btn.onclick=()=>{ addSkill(s); btn.style.opacity='.4'; btn.style.pointerEvents='none'; };
-    wrap.appendChild(btn);
-  });
-}
-
-
 
 /* ─── Sorry Dog State ─── */
 function showSorryState(query){
@@ -3513,7 +3466,7 @@ function toggleCurrency(cur){
 async function loadAppData(){
   if(!_sb){
     console.warn('SkillMapper: Supabase not initialised. Check supabase-config.js (see supabase-config.example.js).');
-    ROLES=[];ALL_SKILLS=[];window.SKILLS_DB={};DEPT_COLORS=_DEFAULT_DEPT_COLORS;DB_LOADED=false;
+    ROLES=[];ALL_SKILLS=_STATIC_ALL_SKILLS.length?_STATIC_ALL_SKILLS:[];window.SKILLS_DB={};DEPT_COLORS=_DEFAULT_DEPT_COLORS;DB_LOADED=false;
     return;
   }
   try {
@@ -3531,6 +3484,7 @@ async function loadAppData(){
       DB_SKILLS = window.SKILLS_DB;
       ALL_SKILLS = Object.entries(window.SKILLS_DB||{})
         .flatMap(([cat,list])=>list.map(s=>({s,cat})));
+      _STATIC_ALL_SKILLS = ALL_SKILLS;
     }
     if(deptsRes.data){
       DEPT_COLORS = buildDeptsMap(deptsRes.data);
@@ -3578,19 +3532,6 @@ function buildImpliesMap(skills){
   (skills||[]).forEach(s=>{
     if(s.implies&&s.implies.length) window.SKILL_IMPLIES[s.name]=s.implies;
   });
-}
-
-function showAppLoading(){
-  document.getElementById('resultsArea').innerHTML=`
-    <div class="empty-state">
-      <div style="display:flex;justify-content:center;gap:6px;margin-bottom:14px;">
-        <div style="width:8px;height:8px;border-radius:50%;background:var(--teal);animation:ldot 1.2s ease-in-out infinite;"></div>
-        <div style="width:8px;height:8px;border-radius:50%;background:var(--teal);animation:ldot 1.2s ease-in-out .2s infinite;"></div>
-        <div style="width:8px;height:8px;border-radius:50%;background:var(--teal);animation:ldot 1.2s ease-in-out .4s infinite;"></div>
-      </div>
-      <div class="empty-title" style="font-size:14px;">Loading role database…</div>
-      <div class="empty-sub">Fetching latest roles and skills</div>
-    </div>`;
 }
 
 /* ══════════════════════════════════════
@@ -3659,11 +3600,14 @@ function onCvRoleKeydown(e){
   if(e.key==='Enter'){const items=document.querySelectorAll('#cvRoleDropdown .td-item');if(items.length)items[0].dispatchEvent(new MouseEvent('mousedown'));}
 }
 
-function closeCvDrop(){ document.getElementById('cvRoleDropdown').classList.remove('open'); }
+function closeCvDrop(){
+  document.getElementById('cvRoleDropdown').classList.remove('open');
+}
 
 function selectCvRole(title){
-  cvSelectedRole=(ROLES||[]).find(r=>r.title===title);
-  document.getElementById('cvRoleInput').value=title;
+  cvSelectedRole=(ROLES||[]).find(r=>r.title===title) || {title:title,required:[],nice:[],exp:{},dept:'',desc:'',hint:'',keywords:[]};
+  const _inp=document.getElementById('cvRoleInput');
+  _inp.value=title;
   document.getElementById('cvRoleDropdown').classList.remove('open');
   document.getElementById('cvRoleNotFound').style.display='none';
   const chip=document.getElementById('cvSelectedRole');
@@ -3866,14 +3810,11 @@ async function submitPrivacyRequest(){
   document.getElementById('privacyReqEmail').value='';
 }
 
-initQuickPicks();
-
 // Clear all search inputs on page load — search is session-based only
 window.addEventListener('load', async function(){
   ['mainInput','nlInput','titleModeInput'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
-  showAppLoading();
   await loadAppData();
   skills=[];
   window._aiTopRoles=[];
@@ -4293,14 +4234,6 @@ function isKnownRole(val){
   return ROLES.some(r => r.title.toLowerCase() === v || (r.keywords && r.keywords.some(k => k.toLowerCase() === v)));
 }
 
-function buildSalRoleList(){
-  const dl = document.getElementById('salRoleList');
-  if(!dl || typeof ROLES === 'undefined') return;
-  // not needed with new dropdown design
-}
-
-function onSalRoleInput(){ /* no-op — kept for safety */ }
-
 // Panda moods
 /* ── Panda animation controller ── */
 let _pandaTimer = null;
@@ -4476,5 +4409,3 @@ function submitSalaryContrib(){
   setTimeout(()=>{ document.getElementById('salThanksModal').style.display='none'; }, 3200);
 }
 </script>
-</body>
-</html>
