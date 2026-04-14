@@ -3858,6 +3858,91 @@ function smartSkillMatch(skill,cvLower){
   return implies.some(imp=>cvLower.includes(imp.toLowerCase()));
 }
 
+async function fetchSupabaseJdSignals(roleTitle, targetLevel, role, cvLower){
+  if(!_sb){
+    return { enabled:false, keywords:[], sources:0, totalKeywords:0, coveragePct:0, reason:'JD library is not connected for this run.' };
+  }
+  try{
+    let rows = [];
+    let primary = await _sb
+      .from('role_jd_library')
+      .select('role_title,target_level,extracted_keywords,jd_text')
+      .eq('role_title', roleTitle)
+      .eq('target_level', targetLevel)
+      .limit(120);
+    if(primary.error) throw primary.error;
+    rows = primary.data || [];
+
+    if(!rows.length){
+      const fallback = await _sb
+        .from('role_jd_library')
+        .select('role_title,target_level,extracted_keywords,jd_text')
+        .eq('role_title', roleTitle)
+        .limit(120);
+      if(fallback.error) throw fallback.error;
+      rows = fallback.data || [];
+    }
+
+    if(!rows.length){
+      return { enabled:true, keywords:[], sources:0, totalKeywords:0, coveragePct:0, reason:'No JD records found in your JD library for this role yet.' };
+    }
+
+    const counts = new Map();
+    const displayName = new Map();
+    rows.forEach(r=>{
+      const arr = Array.isArray(r.extracted_keywords) ? r.extracted_keywords : [];
+      arr.forEach(k=>{
+        const raw = String(k||'').trim();
+        const norm = raw.toLowerCase();
+        if(!norm) return;
+        counts.set(norm, (counts.get(norm)||0)+1);
+        if(!displayName.has(norm)) displayName.set(norm, raw);
+      });
+    });
+
+    // Fallback: if extracted_keywords are empty, estimate with known role skills from JD text.
+    if(!counts.size){
+      const pool = [...new Set([...(role.required||[]), ...(role.nice||[])])];
+      const corpus = rows.map(r=>String(r.jd_text||'').toLowerCase()).join(' ');
+      pool.forEach(s=>{
+        const raw = String(s||'').trim();
+        const norm = raw.toLowerCase();
+        if(!norm) return;
+        const esc = norm.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+        const c = (corpus.match(new RegExp(`\\b${esc}\\b`,'g'))||[]).length;
+        if(c>0){
+          counts.set(norm, c);
+          if(!displayName.has(norm)) displayName.set(norm, raw);
+        }
+      });
+    }
+
+    const scored = [...counts.entries()]
+      .map(([norm,count])=>{
+        const skill = displayName.get(norm) || norm;
+        const inCv = smartSkillMatch(skill, cvLower);
+        return { skill, count, inCv };
+      })
+      .sort((a,b)=>b.count-a.count);
+
+    const totalKeywords = scored.length;
+    const matched = scored.filter(x=>x.inCv).length;
+    const coveragePct = totalKeywords ? Math.round((matched/totalKeywords)*100) : 0;
+    const missing = scored.filter(x=>!x.inCv).slice(0,10);
+
+    return {
+      enabled:true,
+      keywords:missing,
+      sources:rows.length,
+      totalKeywords,
+      coveragePct,
+      reason:''
+    };
+  }catch(e){
+    return { enabled:true, keywords:[], sources:0, totalKeywords:0, coveragePct:0, reason:'Could not read JD library right now.' };
+  }
+}
+
 async function runSmartCvEvaluation(){
   if(!cvSelectedRole){showToast('Please select a target role first','err');return;}
   const cvText=cvInputMode==='paste'?document.getElementById('cvPasteInput').value.trim():cvExtractedText;
@@ -3939,8 +4024,8 @@ async function runSmartCvEvaluation(){
     : mustHaveCoveragePct>=55
       ? 'Your CV is in the competitive band, but stronger keyword depth can improve shortlist rate.'
       : 'Compared with current role expectations, your CV is missing multiple baseline keywords recruiters screen for first.';
-  document.getElementById('cvLoadingText').textContent='Finalizing report…';
-  const jdSignals = { enabled:false, keywords:[], sources:0, reason:'' };
+  document.getElementById('cvLoadingText').textContent='Comparing your CV against your JD library…';
+  const jdSignals = await fetchSupabaseJdSignals(role.title, targetLevel, role, cvLower);
 
   document.getElementById('cvLoadingState').style.display='none';
 
@@ -4008,6 +4093,12 @@ async function runSmartCvEvaluation(){
   ];
   const marketPointers = [
     marketSummary,
+    jdSignals.sources
+      ? `Compared against ${jdSignals.sources} JDs from your library. JD keyword coverage in your CV: ${jdSignals.coveragePct}% (${jdSignals.totalKeywords} tracked keywords).`
+      : (jdSignals.reason || 'JD library comparison is unavailable for this run.'),
+    (jdSignals.keywords||[]).length
+      ? `Top JD keywords missing in your CV: ${jdSignals.keywords.slice(0,6).map(k=>k.skill).join(', ')}.`
+      : (jdSignals.sources ? 'Your CV already covers the major repeated keywords from your JD library.' : 'Add JD rows to `role_jd_library` to enable deeper market-vs-resume comparison.'),
     missingReq.length ? `Must-have skills to add first: ${missingReq.slice(0,6).join(', ')}.` : 'All must-have skills found in your CV.',
     missingNice.length ? `Good-to-have skills to strengthen profile: ${missingNice.slice(0,6).join(', ')}.` : 'Nice-to-have coverage is in a good range.'
   ];
