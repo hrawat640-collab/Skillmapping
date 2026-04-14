@@ -4093,12 +4093,12 @@ async function runSmartCvEvaluation(){
   ];
   const marketPointers = [
     marketSummary,
-    jdSignals.sources
-      ? `Compared against ${jdSignals.sources} JDs from your library. JD keyword coverage in your CV: ${jdSignals.coveragePct}% (${jdSignals.totalKeywords} tracked keywords).`
-      : (jdSignals.reason || 'JD library comparison is unavailable for this run.'),
-    (jdSignals.keywords||[]).length
-      ? `Top JD keywords missing in your CV: ${jdSignals.keywords.slice(0,6).map(k=>k.skill).join(', ')}.`
-      : (jdSignals.sources ? 'Your CV already covers the major repeated keywords from your JD library.' : 'Add JD rows to `role_jd_library` to enable deeper market-vs-resume comparison.'),
+    ...(jdSignals.sources
+      ? [`Compared against ${jdSignals.sources} JDs from your library. JD keyword coverage in your CV: ${jdSignals.coveragePct}% (${jdSignals.totalKeywords} tracked keywords).`]
+      : []),
+    ...((jdSignals.keywords||[]).length
+      ? [`Top JD keywords missing in your CV: ${jdSignals.keywords.slice(0,6).map(k=>k.skill).join(', ')}.`]
+      : (jdSignals.sources ? ['Your CV already covers the major repeated keywords from your JD library.'] : [])),
     missingReq.length ? `Must-have skills to add first: ${missingReq.slice(0,6).join(', ')}.` : 'All must-have skills found in your CV.',
     missingNice.length ? `Good-to-have skills to strengthen profile: ${missingNice.slice(0,6).join(', ')}.` : 'Nice-to-have coverage is in a good range.'
   ];
