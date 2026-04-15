@@ -1767,7 +1767,7 @@ function runTitleMode(){
     }).join('');
     const defaultSal = defaultData ? `${defaultData[0]}–${defaultData[1]} yrs &nbsp;·&nbsp; <strong>${defaultData[2]||''}</strong>` : '';
     const reqSkills = (r.required||[]).map(s=>`<span class="skill-pill skill-matched">${s}</span>`).join('');
-    const niceSkills = (r.nice||[]).slice(0,6).map(s=>`<span class="skill-pill skill-missing">${s}</span>`).join('');
+    const niceSkills = (r.nice||[]).map(s=>`<span class="skill-pill skill-missing">${s}</span>`).join('');
     // Designation suggestions — all keywords except the first (canonical title)
     // If user searched by alias, show canonical title first in Also called
     let altNames = (r.keywords||[]).slice(1).slice(0,5);
@@ -2990,7 +2990,7 @@ function render(){
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;">
             <span style="font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-right:2px;">Nice to have</span>
-            ${(r.nice||[]).slice(0,6).map(s=>`<span class="skill-pill skill-missing">${s}</span>`).join('')}
+            ${(r.nice||[]).map(s=>`<span class="skill-pill skill-missing">${s}</span>`).join('')}
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between;">
             <div style="font-size:11.5px;color:var(--ink3);">Also called: <span style="color:var(--ink2);font-weight:500;">${(r.keywords||[r.title]).slice(0,3).join(' · ')}</span></div>
@@ -3687,7 +3687,7 @@ async function loadAppData(){
 function normaliseRole(r){
   function expArr(e){ return e?[e.min,e.max,(e.inr||'')+'|'+(e.usd||'')]:[null,null,null]; }
   return {
-    title:r.title, dept:r.dept, desc:r.description, hint:r.hint,
+    title:r.title, dept:r.dept, desc:(r.description || r.desc || ''), hint:r.hint,
     cvTip:r.cv_tip, keywords:r.keywords||[], required:r.required||[], nice:r.nice||[],
     exp:{ junior:expArr(r.exp_junior), mid:expArr(r.exp_mid),
           senior:expArr(r.exp_senior), lead:expArr(r.exp_lead) }
@@ -3978,7 +3978,7 @@ async function runSmartCvEvaluation(){
   const matchedReq=(role.required||[]).filter(s=>smartSkillMatch(s,cvLower));
   const missingReq=(role.required||[]).filter(s=>!smartSkillMatch(s,cvLower));
   const matchedNice=(role.nice||[]).filter(s=>smartSkillMatch(s,cvLower));
-  const missingNice=(role.nice||[]).filter(s=>!smartSkillMatch(s,cvLower)).slice(0,8);
+  const missingNice=(role.nice||[]).filter(s=>!smartSkillMatch(s,cvLower));
   const totalReq=(role.required||[]).length;
   const totalNice=(role.nice||[]).length;
   const mustHaveCoveragePct=totalReq?Math.round((matchedReq.length/totalReq)*100):100;
@@ -4016,7 +4016,8 @@ async function runSmartCvEvaluation(){
   if(/(team player|self.motivated|passionate about|results.driven)/i.test(cvText)) atsFlags.push({msg:'Generic buzzwords detected. Replace with specific achievements.',sev:'low'});
 
   const roleTips={'Data Engineer':'Mention specific tools by name (Airflow, dbt, Kafka) and data volumes handled.','Data Scientist':'Quantify model performance and name the business problem solved.','Product Manager':'Show metrics: DAU growth %, churn reduction %, revenue impact.','HR Business Partner':'Quantify: headcount managed, attrition % reduced, programmes launched.','Talent Acquisition Specialist':'Show funnel metrics: time-to-hire, offer acceptance rate. Name ATS tools used.','Financial Analyst':'Show modelling depth: DCF, LBO, scenario analysis. Name the industry.','Frontend Engineer':'Name frameworks and versions. Add portfolio or GitHub link.','Backend Engineer':'Mention scale: RPS, DB size, team size supported.','default':'Use exact keywords from the job description verbatim — ATS matches strings, not meanings.'};
-  const roleTip=roleTips[role.title]||roleTips['default'];
+  const roleDescFromDb = String(role.desc || role.description || '').trim();
+  const roleTip = roleDescFromDb || roleTips[role.title] || role.hint || roleTips['default'];
   const marketBand=mustHaveCoveragePct>=80?'Top-market ready':mustHaveCoveragePct>=55?'Mid-market competitive':'Below current market baseline';
   const marketBandColor=mustHaveCoveragePct>=80?'#0d7a4e':mustHaveCoveragePct>=55?'#0f766e':'#b45309';
   const marketSummary=mustHaveCoveragePct>=80
@@ -4099,8 +4100,8 @@ async function runSmartCvEvaluation(){
     ...((jdSignals.keywords||[]).length
       ? [`Top JD keywords missing in your CV: ${jdSignals.keywords.slice(0,6).map(k=>k.skill).join(', ')}.`]
       : (jdSignals.sources ? ['Your CV already covers the major repeated keywords from your JD library.'] : [])),
-    missingReq.length ? `Must-have skills to add first: ${missingReq.slice(0,6).join(', ')}.` : 'All must-have skills found in your CV.',
-    missingNice.length ? `Good-to-have skills to strengthen profile: ${missingNice.slice(0,6).join(', ')}.` : 'Nice-to-have coverage is in a good range.'
+    missingReq.length ? `Must-have skills to add first: ${missingReq.join(', ')}.` : 'All must-have skills found in your CV.',
+    missingNice.length ? `Good-to-have skills to strengthen profile: ${missingNice.join(', ')}.` : 'Nice-to-have coverage is in a good range.'
   ];
   const aiRecruiterPointers = [
     aiNarrative,
@@ -4176,8 +4177,8 @@ async function runSmartCvEvaluation(){
             <tr><td style="padding:6px;border-bottom:1px solid #f1f5f9;">Must-Have</td><td style="padding:6px;border-bottom:1px solid #f1f5f9;">${matchedReq.length}/${role.required.length}</td><td style="padding:6px;border-bottom:1px solid #f1f5f9;color:${missingReq.length?'#ef4444':'#16a34a'};">${missingReq.length?`<a href="javascript:void(0)" onclick="highlightCvMissing('must')" style="color:#dc2626;text-decoration:underline;">${missingReq.length} missing</a>`:'All clear'}</td></tr>
             <tr><td style="padding:6px;">Nice-to-Have</td><td style="padding:6px;">${matchedNice.length}/${role.nice.length}</td><td style="padding:6px;color:#475569;">${(role.nice.length-matchedNice.length)>0?`<a href="javascript:void(0)" onclick="highlightCvMissing('nice')" style="color:#475569;text-decoration:underline;">${Math.max(0,role.nice.length-matchedNice.length)} missing</a>`:'All clear'}</td></tr>
           </table>
-          ${missingReq.length?`<div id="cvMissingMust" style="margin-top:7px;font-size:11.5px;color:#475569;padding:4px 6px;border-radius:6px;transition:background-color .2s;"><strong>Must-have skills:</strong> ${escapeHtml(missingReq.slice(0,8).join(', '))}</div>`:''}
-          ${missingNice.length?`<div id="cvMissingNice" style="margin-top:3px;font-size:11.5px;color:#64748b;padding:4px 6px;border-radius:6px;transition:background-color .2s;"><strong>Good-to-have skills:</strong> ${escapeHtml(missingNice.slice(0,8).join(', '))}</div>`:''}
+          ${missingReq.length?`<div id="cvMissingMust" style="margin-top:7px;font-size:11.5px;color:#475569;padding:4px 6px;border-radius:6px;transition:background-color .2s;"><strong>Must-have skills:</strong> ${escapeHtml(missingReq.join(', '))}</div>`:''}
+          ${missingNice.length?`<div id="cvMissingNice" style="margin-top:3px;font-size:11.5px;color:#64748b;padding:4px 6px;border-radius:6px;transition:background-color .2s;"><strong>Good-to-have skills:</strong> ${escapeHtml(missingNice.join(', '))}</div>`:''}
         </div>
       </div>
 
