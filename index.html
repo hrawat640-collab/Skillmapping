@@ -1714,7 +1714,9 @@ function selectCvRole(title){cvSelectedRole=(ROLES||[]).find(r=>r.title===title)
 function clearCvRole(){cvSelectedRole=null;document.getElementById('cvRoleInput').value='';document.getElementById('cvSelectedRole').style.display='none';}
 function handleCvFile(e){const f=e.target.files[0];if(f)processCvFile(f);}
 function handleCvDrop(e){e.preventDefault();document.getElementById('cvUploadZone').style.borderColor='#CBD5E1';const f=e.dataTransfer.files[0];if(f)processCvFile(f);}
+var _cvUploadedFile = null; // store for Google Docs re-use
 async function processCvFile(file){
+  _cvUploadedFile = file;
   const status=document.getElementById('cvFileStatus');const thumbWrap=document.getElementById('cvThumbWrap');
   if(!file||!/\.pdf$/i.test(file.name)){showToast('Please upload a PDF file.','err');return;}
   thumbWrap.classList.add('show');status.textContent='Reading '+file.name+'...';
@@ -1789,7 +1791,7 @@ function buildCvResultHtml(data){
   const iTip=`<svg viewBox="0 0 16 16" fill="none"><path d="M8 1l1.5 4.5H14l-3.5 2.5L12 13 8 10l-4 3 1.5-5L2 5.5h4.5L8 1z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>`;
 
   const jdHtml=jdSignals.enabled?(()=>{
-    if(!jdSignals.sources)return`<div class="cv-jd-signal"><div class="cv-jd-row">${iInfo}<span>${escapeHtml(jdSignals.reason||'No JDs found for this role yet.')}</span></div></div>`;
+    if(!jdSignals.sources)return'';
     const missing=(jdSignals.keywords||[]).slice(0,10);
     return`<div class="cv-jd-signal"><div class="cv-jd-row">${iChart}<span><strong>JD Library match:</strong> Compared against <strong>${jdSignals.sources}</strong> real JDs · CV covers <strong>${jdSignals.coveragePct}%</strong> of ${jdSignals.totalKeywords} keywords</span></div>${missing.length?`<div><div style="font-size:10px;font-weight:700;color:var(--cv-teal-cv);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;">Top JD keywords missing</div><div class="cv-missing-pills">${missing.map(k=>`<span class="cv-missing-pill must-miss">${escapeHtml(k.skill)}</span>`).join('')}</div></div>`:`<span style="font-size:12px;color:var(--cv-green);font-weight:600;">CV covers the key JD keywords ✓</span>`}</div>`;
   })():'';
@@ -1940,79 +1942,217 @@ async function runSmartCvEvaluation(){
   setTimeout(()=>document.getElementById('cvResults').scrollIntoView({behavior:'smooth',block:'nearest'}),120);
 }
 
-function resetCvEvaluator(){document.getElementById('cvResults').innerHTML='';window._cvLastMissingSkills=[];cvLastReport=null;clearCvRole();document.getElementById('cvRoleInput').value='';cvExtractedText='';document.getElementById('cvUploadZone').style.borderColor='#CBD5E1';const tw=document.getElementById('cvThumbWrap');if(tw)tw.classList.remove('show');const y=document.getElementById('cvYearsExp');if(y)y.value='1';const tl=document.getElementById('cvTargetLevel');if(tl)tl.value='Entry Level';document.getElementById('cvCurrentRole').value='';}
+function resetCvEvaluator(){document.getElementById('cvResults').innerHTML='';window._cvLastMissingSkills=[];cvLastReport=null;_cvUploadedFile=null;clearCvRole();document.getElementById('cvRoleInput').value='';cvExtractedText='';document.getElementById('cvUploadZone').style.borderColor='#CBD5E1';const tw=document.getElementById('cvThumbWrap');if(tw)tw.classList.remove('show');const y=document.getElementById('cvYearsExp');if(y)y.value='1';const tl=document.getElementById('cvTargetLevel');if(tl)tl.value='Entry Level';document.getElementById('cvCurrentRole').value='';}
 
 function downloadCvReport(){
   if(!cvLastReport||!window.jspdf){showToast('Run an evaluation first.','err');return;}
-  const doc=new window.jspdf.jsPDF();let y=16;const lineGap=6,sectionGap=10;
-  function ensurePage(s){if(y+s>282){doc.addPage();y=16;}}
-  function addTitle(text){ensurePage(10);doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text(text,14,y);y+=7;doc.setFont('helvetica','normal');doc.setFontSize(11);}
-  function addBullet(text){const lines=doc.splitTextToSize(`- ${text}`,182);ensurePage((lines.length*lineGap)+2);doc.text(lines,16,y);y+=(lines.length*lineGap);}
-  function addLV(label,value){ensurePage(lineGap+2);doc.setFont('helvetica','bold');doc.text(`${label}:`,14,y);doc.setFont('helvetica','normal');doc.text(doc.splitTextToSize(String(value),150),45,y);y+=Math.max(lineGap,doc.splitTextToSize(String(value),150).length*lineGap);}
-  doc.setFont('helvetica','bold');doc.setFontSize(18);doc.text('CV Evaluation Report',14,y);y+=10;doc.setFont('helvetica','normal');doc.setFontSize(11);
-  addLV('Role',`${cvLastReport.role} (${cvLastReport.targetLevel||''})`);addLV('Overall Score',`${cvLastReport.overall}/100`);addLV('Skills Match',`${cvLastReport.skills}%`);addLV('Experience Fit',`${cvLastReport.exp}%`);addLV('ATS Compatibility',`${cvLastReport.ats}%`);y+=2;
-  if(cvLastReport.cvTip){addTitle('Role-Specific CV Tip');addBullet(cvLastReport.cvTip);y+=sectionGap-2;}
-  addTitle('Looks Good');(cvLastReport.looksGood||[]).forEach(addBullet);y+=sectionGap-2;
-  addTitle('Keyword Coverage');addBullet(`Must-Have: ${cvLastReport.matchedReqCount||0}/${cvLastReport.totalReqCount||0} matched`);addBullet(`Nice-to-Have: ${cvLastReport.matchedNiceCount||0}/${cvLastReport.totalNiceCount||0} matched`);
-  if((cvLastReport.missingReq||[]).length)addBullet(`Must-have skills to add: ${cvLastReport.missingReq.join(', ')}`);
-  if((cvLastReport.missingNice||[]).length)addBullet(`Good-to-have skills: ${cvLastReport.missingNice.join(', ')}`);
-  y+=sectionGap-2;addTitle('Market vs Resume Insights');(cvLastReport.marketInsights||[]).forEach(addBullet);y+=sectionGap-2;addTitle('AI Recruiter Pointers');(cvLastReport.aiPointers||[]).forEach(addBullet);
-  doc.save('cv-report.pdf');
+  const doc = new window.jspdf.jsPDF();
+  const W = 210, mg = 14;
+  let y = 0;
+
+  function ensurePage(need){
+    if(y + need > 278){ doc.addPage(); y = 18; }
+  }
+  function rRect(x,yy,w,h,r,fill){
+    // rounded rect helper
+    doc.setFillColor(...fill);
+    doc.roundedRect(x, yy, w, h, r, r, 'F');
+  }
+  function sectionTitle(label, iconColor){
+    ensurePage(14);
+    doc.setFillColor(...iconColor);
+    doc.roundedRect(mg, y, 4, 8, 1, 1, 'F');
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(10.5);
+    doc.setTextColor(15,23,42);
+    doc.text(label, mg+8, y+6);
+    y += 12;
+    doc.setDrawColor(228,234,240);
+    doc.line(mg, y-2, W-mg, y-2);
+    y += 3;
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(10);
+    doc.setTextColor(51,65,85);
+  }
+  function bullet(txt){
+    const lines = doc.splitTextToSize('• ' + txt, W - mg*2 - 6);
+    ensurePage(lines.length * 5.5 + 2);
+    doc.text(lines, mg+4, y);
+    y += lines.length * 5.5 + 2;
+  }
+  function metricRow(label, val, color){
+    ensurePage(10);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(9.5);
+    doc.setTextColor(100,116,139);
+    doc.text(label, mg+4, y);
+    // bar background
+    doc.setFillColor(226,232,240);
+    doc.roundedRect(mg+52, y-4, 100, 5, 1,1,'F');
+    // bar fill
+    doc.setFillColor(...color);
+    doc.roundedRect(mg+52, y-4, val, 5, 1,1,'F');
+    // value text
+    doc.setFont('helvetica','bold');
+    doc.setTextColor(...color);
+    doc.text(String(Math.round((val/100)*100))+'%', mg+156, y);
+    y += 8;
+    doc.setTextColor(51,65,85);
+  }
+
+  /* ── HEADER BAND ── */
+  doc.setFillColor(15,118,110);
+  doc.rect(0,0,W,28,'F');
+  // Talents Radar logo: circle + dot
+  doc.setDrawColor(20,184,166);
+  doc.setLineWidth(1.5);
+  doc.circle(mg+6, 14, 6);
+  doc.setFillColor(20,184,166);
+  doc.circle(mg+6, 14, 2, 'F');
+  // Title
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(14);
+  doc.setTextColor(255,255,255);
+  doc.text('CV Evaluation Report', mg+16, 13);
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(9);
+  doc.setTextColor(200,240,235);
+  doc.text('SkillMapper by Talents Radar  ·  talentsradar.com', mg+16, 21);
+  y = 36;
+
+  /* ── SCORE HERO CARD ── */
+  // Dark card background
+  doc.setFillColor(15,23,42);
+  doc.roundedRect(mg, y, W-mg*2, 38, 3,3,'F');
+  // Score circle (simulated with arcs)
+  const cx = mg+22, cy = y+19, r = 13;
+  // Track
+  doc.setDrawColor(255,255,255,20);
+  doc.setLineWidth(3);
+  doc.circle(cx, cy, r);
+  // Fill arc (approximate with colored circle overlay)
+  const score = cvLastReport.overall||0;
+  const scoreColor = score>=75?[20,184,166]:score>=50?[14,165,233]:[245,158,11];
+  doc.setDrawColor(...scoreColor);
+  doc.setLineWidth(3);
+  // Draw partial arc by drawing a full circle with white mask — approximate
+  doc.circle(cx, cy, r);
+  // Score number
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(13);
+  doc.setTextColor(255,255,255);
+  doc.text(String(score), cx - (score>=10?4:2), cy+5);
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(7);
+  doc.setTextColor(148,163,184);
+  doc.text('/100', cx-4, cy+11);
+  // Role + level + verdict
+  const verdict = score>=75?'Interview Ready':score>=50?'Close to Ready':'Needs Upskilling';
+  const vColor = score>=75?[52,211,153]:score>=50?[147,197,253]:[252,211,77];
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(11);
+  doc.setTextColor(255,255,255);
+  doc.text(cvLastReport.role||'', mg+40, y+12, {maxWidth: W-mg*2-42});
+  doc.setFontSize(8.5);
+  doc.setTextColor(148,163,184);
+  doc.text((cvLastReport.targetLevel||'') + '  ·  ' + verdict, mg+40, y+20);
+  // Verdict badge outline
+  doc.setDrawColor(...vColor);
+  doc.setLineWidth(0.5);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(8);
+  doc.setTextColor(...vColor);
+  doc.text(verdict, mg+40, y+31);
+  y += 46;
+
+  /* ── THREE METRIC BARS ── */
+  doc.setFillColor(248,250,252);
+  doc.roundedRect(mg, y, W-mg*2, 36, 2,2,'F');
+  doc.setDrawColor(226,232,240);
+  doc.roundedRect(mg, y, W-mg*2, 36, 2,2,'S');
+  y += 8;
+  const skillsColor = (cvLastReport.skills||0)>=75?[5,150,105]:(cvLastReport.skills||0)>=50?[14,165,233]:[245,158,11];
+  const expColor   = (cvLastReport.exp||0)>=75?[5,150,105]:(cvLastReport.exp||0)>=50?[14,165,233]:[245,158,11];
+  const atsColor   = (cvLastReport.ats||0)>=75?[5,150,105]:(cvLastReport.ats||0)>=50?[14,165,233]:[245,158,11];
+  metricRow('Skills Match', cvLastReport.skills||0, skillsColor);
+  metricRow('Experience Fit', cvLastReport.exp||0, expColor);
+  metricRow('ATS Score', cvLastReport.ats||0, atsColor);
+  y += 8;
+
+  /* ── ROLE CV TIP ── */
+  if(cvLastReport.cvTip){
+    ensurePage(20);
+    doc.setFillColor(240,253,250);
+    const tipLines = doc.splitTextToSize(cvLastReport.cvTip, W-mg*2-20);
+    doc.roundedRect(mg, y, W-mg*2, tipLines.length*5.5+14, 2,2,'F');
+    doc.setDrawColor(20,184,166);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(mg, y, W-mg*2, tipLines.length*5.5+14, 2,2,'S');
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(15,118,110);
+    doc.text('Role Tip', mg+6, y+7);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(9);
+    doc.setTextColor(51,65,85);
+    doc.text(tipLines, mg+6, y+13);
+    y += tipLines.length*5.5+18;
+  }
+
+  /* ── LOOKS GOOD ── */
+  sectionTitle('Looks Good', [5,150,105]);
+  (cvLastReport.looksGood||[]).forEach(bullet); y+=4;
+
+  /* ── KEYWORD COVERAGE ── */
+  sectionTitle('Keyword Coverage', [15,118,110]);
+  bullet('Must-Have: '+(cvLastReport.matchedReqCount||0)+'/'+(cvLastReport.totalReqCount||0)+' matched');
+  bullet('Nice-to-Have: '+(cvLastReport.matchedNiceCount||0)+'/'+(cvLastReport.totalNiceCount||0)+' matched');
+  if((cvLastReport.missingReq||[]).length) bullet('Missing must-have: '+cvLastReport.missingReq.join(', '));
+  if((cvLastReport.missingNice||[]).length) bullet('Consider adding: '+cvLastReport.missingNice.join(', '));
+  y+=4;
+
+  /* ── MARKET INSIGHTS ── */
+  sectionTitle('Market vs Resume Insights', [15,118,110]);
+  (cvLastReport.marketInsights||[]).forEach(bullet); y+=4;
+
+  /* ── ATS FLAGS ── */
+  if((cvLastReport.atsPointers||[]).length){
+    sectionTitle('ATS Compatibility', [217,119,6]);
+    (cvLastReport.atsPointers||[]).forEach(bullet); y+=4;
+  }
+
+  /* ── AI RECRUITER POINTERS ── */
+  sectionTitle('AI Recruiter Pointers', [15,118,110]);
+  (cvLastReport.aiPointers||[]).forEach(bullet);
+
+  /* ── FOOTER on every page ── */
+  const pageCount = doc.internal.getNumberOfPages();
+  for(let i=1;i<=pageCount;i++){
+    doc.setPage(i);
+    doc.setFillColor(15,23,42);
+    doc.rect(0,287,W,10,'F');
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(148,163,184);
+    doc.text('SkillMapper by Talents Radar  ·  talentsradar.com  ·  Free HR tool', mg, 293);
+    doc.text('Page '+i+' / '+pageCount, W-mg-14, 293);
+  }
+
+  doc.save('SkillMapper-CV-Report-'+(cvLastReport.role||'').replace(/[^a-z0-9]/gi,'-')+'.pdf');
 }
+
 
 function openCvInGoogleDocs(){
   if(!cvLastReport){showToast('Run an evaluation first.','err');return;}
-  if(!window.jspdf){showToast('PDF library not loaded yet.','err');return;}
-  // Build a Word-compatible PDF report then trigger Google Docs upload flow
-  const role=cvLastReport.role||'Unknown Role';
-  const doc=new window.jspdf.jsPDF();
-  let y=18;
-  function ensurePage(s){if(y+s>280){doc.addPage();y=18;}}
-  function h1(txt){ensurePage(12);doc.setFont('helvetica','bold');doc.setFontSize(16);doc.text(txt,14,y);y+=10;doc.setFont('helvetica','normal');doc.setFontSize(11);}
-  function h2(txt){ensurePage(10);doc.setFont('helvetica','bold');doc.setFontSize(12);doc.text(txt,14,y);y+=7;doc.setFont('helvetica','normal');doc.setFontSize(11);}
-  function line(txt,indent){const lines=doc.splitTextToSize((indent?'  ':'')+txt,indent?176:182);ensurePage(lines.length*6+2);doc.text(lines,indent?18:14,y);y+=lines.length*6;}
-  function spacer(){y+=4;}
-  // Header
-  doc.setFillColor(15,118,110);doc.rect(0,0,210,22,'F');
-  doc.setFont('helvetica','bold');doc.setFontSize(14);doc.setTextColor(255,255,255);
-  doc.text('CV Evaluation Report — '+role,14,14);
-  doc.setTextColor(0,0,0);doc.setFontSize(11);doc.setFont('helvetica','normal');
-  y=30;
-  // Score summary
-  doc.setFillColor(240,253,250);doc.rect(14,y-4,182,18,'F');
-  doc.setFont('helvetica','bold');
-  doc.text('Overall Score: '+cvLastReport.overall+'/100',16,y+3);
-  doc.text('Skills Match: '+cvLastReport.skills+'%',70,y+3);
-  doc.text('Exp Fit: '+cvLastReport.exp+'%',120,y+3);
-  doc.text('ATS: '+cvLastReport.ats+'%',158,y+3);
-  doc.setFont('helvetica','normal');y+=20;spacer();
-  // Suggestions section — the key value
-  h2('ACTION ITEMS — Apply these changes to your CV');
-  doc.setDrawColor(15,118,110);doc.line(14,y,196,y);y+=5;
-  const allPoints=[...(cvLastReport.aiPointers||[]),...(cvLastReport.marketInsights||[])];
-  allPoints.forEach(function(p,i){line('['+( i+1)+'] '+p);spacer();});
-  spacer();
-  // Missing skills
-  if((cvLastReport.missingReq||[]).length){
-    h2('MUST-HAVE SKILLS TO ADD');
-    doc.setDrawColor(220,38,38);doc.line(14,y,196,y);y+=5;
-    line((cvLastReport.missingReq||[]).join(', '));spacer();
-  }
-  if((cvLastReport.missingNice||[]).length){
-    h2('NICE-TO-HAVE SKILLS TO CONSIDER');
-    doc.setDrawColor(100,116,139);doc.line(14,y,196,y);y+=5;
-    line((cvLastReport.missingNice||[]).join(', '));spacer();
-  }
-  // Footer
-  const pageCount=doc.internal.getNumberOfPages();
-  for(let i=1;i<=pageCount;i++){doc.setPage(i);doc.setFontSize(9);doc.setTextColor(150);doc.text('Generated by SkillMapper · talentsradar.com',14,290);doc.text('Page '+i+'/'+pageCount,180,290);}
-  // Save PDF and open Google Docs
-  const filename='CV-Suggestions-'+role.replace(/[^a-z0-9]/gi,'-')+'.pdf';
-  doc.save(filename);
+  if(!_cvUploadedFile){showToast('No CV file — please re-upload your CV.','err');return;}
+  // Open the original uploaded PDF in a new tab so user can see it alongside suggestions
+  const fileUrl=URL.createObjectURL(_cvUploadedFile);
+  window.open(fileUrl,'_blank');
+  // Also open a new Google Doc in another tab
   setTimeout(function(){
-    window.open('https://docs.google.com/document/create','_blank');
-    showToast('PDF downloaded — in Google Docs click File → Import to edit','ok');
-  },600);
+    window.open('https://docs.new','_blank');
+    showToast('CV opened in tab 1 · New Google Doc in tab 2 — paste & edit there','ok');
+  },500);
 }
 
 function checkoutSalaryForTargetRole(){
