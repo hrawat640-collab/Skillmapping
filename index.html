@@ -34,6 +34,10 @@ var DB_SKILLS = {};
 var DB_DEPTS  = {};
 var DB_LOADED = false;
 </script>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230f766e'/%3E%3Cpath d='M6 16h20M16 6l10 10-10 10' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230f766e'/%3E%3Cpath d='M6 16h20M16 6l10 10-10 10' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230f766e'/%3E%3Cpath d='M6 16h20M16 6l10 10-10 10' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230f766e'/%3E%3Cpath d='M6 16h20M16 6l10 10-10 10' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>SkillMapper by Talents Radar — Find the Right Job Title, Skills & Salary</title>
@@ -93,6 +97,11 @@ var DB_LOADED = false;
   --shadow-md:0 4px 16px rgba(0,0,0,0.1),0 1px 4px rgba(0,0,0,0.06);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+/* iOS input zoom fix */
+@media screen and (-webkit-min-device-pixel-ratio:0){
+  input,select,textarea{font-size:16px!important;}
+}
+
 body{background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:100vh;font-size:15px;}
 .suite-steps{display:flex;align-items:center;gap:6px;}
 .suite-step{display:flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;font-size:11px;font-weight:500;color:var(--ink3);text-decoration:none;transition:all .15s;}
@@ -812,8 +821,12 @@ function dismissJourneyTips(){
   } else {
     const profile = getSmProfile();
     if(!profile.profession || !profile.country || !profile.name){
-      document.getElementById('loginModal').style.display='flex';
-      openSmProfileStep(localStorage.getItem('sm_user_email') || '', profile.name || '');
+      const _initEmail=localStorage.getItem('sm_user_email');
+      smRestoreSessionFromSupabase(_initEmail).then(function(ok){
+        const p2=getSmProfile();
+        if(ok&&p2.profession&&p2.country&&p2.name){checkTrialExpiry('');renderTrialBadgeSM();smUpdateNavLinks();updateUserJourneyUi();}
+        else{document.getElementById('loginModal').style.display='flex';openSmProfileStep(_initEmail||'',p2.name||'');}
+      });
       return;
     }
     checkTrialExpiry('');
@@ -824,17 +837,57 @@ function dismissJourneyTips(){
 })();
 
 function smHandleGoogle(response){
-  const payload = JSON.parse(atob(response.credential.split('.')[1]));
-  openSmProfileStep(payload.email, payload.name || '');
+  const payload=JSON.parse(atob(response.credential.split('.')[1]));
+  const email=payload.email;
+  if(email){
+    smRestoreSessionFromSupabase(email).then(function(restored){
+      const p=getSmProfile();
+      localStorage.setItem('sm_user_email',email);localStorage.setItem('tr_shared_email',email);
+      if(!localStorage.getItem('sm_login_date'))localStorage.setItem('sm_login_date',Date.now().toString());
+      if(restored&&p.profession&&p.country&&(p.name||payload.name)){
+        document.getElementById('loginModal').style.display='none';
+        checkTrialExpiry('');renderTrialBadgeSM();smUpdateNavLinks();updateUserJourneyUi();
+        smSaveUserToSupabase(email,p.name||payload.name,p.profession,p.country,true);
+      }else{openSmProfileStep(email,payload.name||p.name||'');}
+    });
+  }else{openSmProfileStep(payload.email,payload.name||'');}
 }
 
+
+/* ── Supabase session persistence ── */
+async function smSaveUserToSupabase(email,name,profession,country,consent){
+  if(!_sb||!email)return;
+  try{await _sb.from('sm_users').upsert({email,name:name||'',profession:profession||'',country:country||'',consent:consent?'yes':'no',last_login:new Date().toISOString(),login_date:localStorage.getItem('sm_login_date')?new Date(parseInt(localStorage.getItem('sm_login_date'))).toISOString():new Date().toISOString()},{onConflict:'email'});}catch(e){console.warn('smSaveUser:',e);}
+}
+async function smRestoreSessionFromSupabase(email){
+  if(!_sb||!email)return false;
+  try{
+    const{data,error}=await _sb.from('sm_users').select('*').eq('email',email).single();
+    if(error||!data)return false;
+    if(data.name)localStorage.setItem('sm_user_name',data.name);
+    if(data.profession)localStorage.setItem('sm_user_profession',data.profession);
+    if(data.country)localStorage.setItem('sm_user_country',data.country);
+    if(data.login_date&&!localStorage.getItem('sm_login_date'))localStorage.setItem('sm_login_date',new Date(data.login_date).getTime().toString());
+    _sb.from('sm_users').update({last_login:new Date().toISOString()}).eq('email',email).then(()=>{}).catch(()=>{});
+    return true;
+  }catch(e){console.warn('smRestoreSession:',e);return false;}
+}
 function smSendOtp(){
   const val = document.getElementById('smEmailInput').value.trim();
   const err = document.getElementById('smEmailErr');
   const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   if(!val || !emailRe.test(val)){ err.style.display='block'; err.textContent='Please enter a valid email address.'; document.getElementById('smEmailInput').focus(); return; }
   err.style.display='none';
-  smOtpCode = Math.floor(100000 + Math.random() * 900000).toString();
+  // Check returning user — skip OTP if registered in Supabase
+  smRestoreSessionFromSupabase(val).then(async function(_restored){
+    const _p=getSmProfile();
+    if(_restored&&_p.profession&&_p.country&&_p.name){
+      localStorage.setItem('sm_user_email',val);localStorage.setItem('tr_shared_email',val);
+      if(!localStorage.getItem('sm_login_date'))localStorage.setItem('sm_login_date',Date.now().toString());
+      document.getElementById('loginModal').style.display='none';
+      checkTrialExpiry('');renderTrialBadgeSM();smUpdateNavLinks();updateUserJourneyUi();showToast('Welcome back!','ok');return;
+    }
+    smOtpCode = Math.floor(100000 + Math.random() * 900000).toString();
   const btn = document.getElementById('smOtpBtn');
   btn.textContent = 'Sending...'; btn.disabled = true;
   emailjs.send('service_xi5bbol', 'template_kexeatw', { to_email: val, passcode: smOtpCode, tool_name: 'SkillMapper' }).then(function(){
@@ -843,6 +896,7 @@ function smSendOtp(){
     document.getElementById('smOtpEmail').textContent = val;
     document.getElementById('smOtpInput').focus();
   }, function(){ btn.textContent = 'Send verification code →'; btn.disabled = false; err.style.display='block'; err.textContent='Could not send code. Please try again.'; });
+  });
 }
 
 function smVerifyOtp(){
@@ -866,7 +920,7 @@ function smUpdateNavLinks(){
   const enc = encodeURIComponent(email);
   const el = document.getElementById('suiteNavTxr');
   if(el){ const base=el.href.split('?')[0]; const params=new URLSearchParams(el.href.includes('?')?el.href.split('?')[1]:''); params.set('au',enc); el.href=base+'?'+params.toString(); }
-  document.querySelectorAll('a[href*="talentxray.netlify.app"]').forEach(el=>{ if(!el.href.includes('au=')){ const sep=el.href.includes('?')?'&':'?'; el.href=el.href+sep+'au='+enc; } });
+  document.querySelectorAll('a[href*="talentxray"]').forEach(function(link){try{const u=new URL(link.href);u.searchParams.set('au',enc);link.href=u.toString();}catch(e){}});
   const label = document.getElementById('smTopbarLabel');
   const btn   = document.getElementById('smTopbarBtn');
   if(label && btn){
@@ -890,6 +944,7 @@ function smCompleteLogin(email, name, profileData){
   localStorage.setItem('tr_shared_name', name);
   if(!localStorage.getItem('sm_login_date')) localStorage.setItem('sm_login_date', Date.now().toString());
   document.getElementById('loginModal').style.display='none';
+  smSaveUserToSupabase(email,name,profession,country,consent);
   renderTrialBadgeSM();
   smUpdateNavLinks();
   setTimeout(function(){ if(isSalaryPromptEligible(profession) && !isSalaryUnlocked()){ const fp=document.getElementById('floatingPanda'); if(fp) fp.style.display='block'; } }, 2000);
@@ -1214,6 +1269,12 @@ function smSignOut(){
 <script>
 
 /* ── Trial ── */
+
+/* ── Search analytics ── */
+function logSearch(mode,query,resultCount,noResult){
+  if(!_sb)return;
+  try{_sb.from('search_logs').insert({email:localStorage.getItem('sm_user_email')||'anonymous',mode,query:String(query||'').slice(0,500),result_count:resultCount||0,no_result:noResult||false,profession:localStorage.getItem('sm_user_profession')||'',country:localStorage.getItem('sm_user_country')||'',created_at:new Date().toISOString()}).then(()=>{}).catch(()=>{});}catch(e){}
+}
 const TRIAL_DAYS = 30;
 function checkTrialExpiry(prefix){
   const email=localStorage.getItem((prefix?prefix+'_':'')+'user_email');
@@ -1293,7 +1354,9 @@ function renderSelectedTitleChips(){
   wrap.innerHTML=selectedTitleModeRoles.map(r=>`<span class="title-chip">${r.title}<button class="title-chip-x" onclick="toggleTitleMode('${r.title.replace(/'/g,"\\'")}')">×</button></span>`).join('');
 }
 function resetTitleMode(){selectedTitleModeRoles=[];renderSelectedTitleChips();const inp=document.getElementById('titleModeInput');if(inp){inp.value='';inp.focus();}closeTitleDrop();document.getElementById('deptFilter').style.display='none';const _cb=document.getElementById('currencyBar');if(_cb)_cb.style.display='none';document.getElementById('resultsArea').innerHTML='<div class="empty-state"><div class="empty-icon" style="font-size:36px;margin-bottom:10px;">&#x1F3AF;</div><div class="empty-title">Start above to see role matches</div><div class="empty-sub">Type skills, search by title, or describe what you need.</div></div>';}
-function getRoleActionHtml(title,altTitlesParam,allPassSkills){const titleParam=encodeURIComponent(title);return`<a class="btn-search" href="https://talentxray.netlify.app?title=${titleParam}&alt=${altTitlesParam}&skills=${encodeURIComponent(allPassSkills.join(','))}&from=skillmapper" target="_blank"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Search professional</a>`;}
+function getRoleActionHtml(title,altTitlesParam,allPassSkills){const titleParam=encodeURIComponent(title);const _auEmail=localStorage.getItem('sm_user_email')||'';
+  const _auParam=_auEmail?'&au='+encodeURIComponent(_auEmail):'';
+  return`<a class="btn-search" href="https://talentxray.netlify.app?title=${titleParam}&alt=${altTitlesParam}&skills=${encodeURIComponent(allPassSkills.join(','))}&from=skillmapper${_auParam}" target="_blank"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Search professional</a>`;}
 function isSalaryPromptEligible(professionValue){const p=normalizeProfession(professionValue||localStorage.getItem('sm_user_profession'));return p==='working professional'||p==='hr'||p==='management/founder';}
 
 function runTitleMode(){
@@ -1318,6 +1381,7 @@ function runTitleMode(){
     return`<div class="result-card match-high"><div class="rc-top"><div class="rc-left"><div class="rc-dept"><span style="background:${dcolor.bg};color:${dcolor.color};padding:2px 8px;border-radius:20px;font-size:11px;">${r.dept}</span></div><div class="rc-title">${r._searchedAs||r.title}</div><div class="rc-desc">${r.desc||''}</div>${r.hint?`<div class="rc-hint"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.4"/><path d="M8 7v4M8 5.5v.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg><span>${r.hint}</span></div>`:''}</div></div><div class="rc-bottom"><div style="width:100%;display:flex;flex-direction:column;gap:8px;"><div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;"><span style="font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-right:2px;">Experience &amp; Salary</span><div class="salary-selector" id="${cardId}">${salBtns}</div></div><div class="sal-display" id="${cardId}_sal">${defaultSal}</div><div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;"><span style="font-size:11px;font-weight:600;color:var(--teal);text-transform:uppercase;letter-spacing:.06em;margin-right:2px;">Required skills</span>${reqSkills}</div><div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;"><span style="font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-right:2px;">Nice to have</span>${niceSkills}</div>${alsoKnownAs}</div><div class="rc-actions" style="margin-top:10px;">${getRoleActionHtml(r.title,altTitlesParam,allPassSkills)}</div></div></div>`;
   }).join('');
   area.innerHTML=cardHtml||'<div class="empty-state">No roles selected</div>';document.getElementById('deptFilter').style.display='none';const _cb=document.getElementById('currencyBar');if(_cb)_cb.style.display='flex';
+  logSearch('title',selectedTitleModeRoles.map(r=>r.title).join(', '),selectedTitleModeRoles.length,false);
   setTimeout(()=>area.scrollIntoView({behavior:'smooth',block:'nearest'}),200);
 }
 
@@ -1512,15 +1576,15 @@ function runNL(){
   const nudge=document.getElementById('nudgeBanner');nudge.classList.remove('show');
   const extracted=extractSkillsFromText(query);const nlResult=interpretNL(query);const roleBoosts=nlResult.roles||[];
   const mergedSkills=[...new Set([...extracted,...nlResult.skills])];
-  if(!mergedSkills.length){document.getElementById('nudgeText').textContent=`No skills or roles matched. Try mentioning specific tools — e.g. "someone who knows Salesforce and Excel".`;nudge.classList.add('show');return;}
+  if(!mergedSkills.length){document.getElementById('nudgeText').textContent=`No skills or roles matched. Try mentioning specific tools — e.g. "someone who knows Salesforce and Excel".`;logSearch('nl',query,0,true);nudge.classList.add('show');return;}
   const testRoles=ROLES.map(r=>scoreRole(r,mergedSkills)).filter(Boolean);
-  if(!testRoles.length){document.getElementById('nudgeText').textContent=`We found skills but no matching role. Try adding more context.`;nudge.classList.add('show');return;}
+  if(!testRoles.length){document.getElementById('nudgeText').textContent=`We found skills but no matching role. Try adding more context.`;logSearch('nl',query,0,true);nudge.classList.add('show');return;}
   nudge.classList.remove('show');document.getElementById('aiBanner').classList.remove('show');document.getElementById('deptFilter').style.display='none';const _cb=document.getElementById('currencyBar');if(_cb)_cb.style.display='none';
   skills=mergedSkills;activeDept='all';window._aiTopRoles=roleBoosts.map(r=>r.toLowerCase());renderBubbles();
   const banner=document.getElementById('aiBanner');
   const skillNames=mergedSkills.slice(0,5).join(', ')+(mergedSkills.length>5?` +${mergedSkills.length-5} more`:'');
   document.getElementById('aiBannerText').innerHTML=`Matched skills: <strong>${skillNames}</strong>${roleBoosts.length?` · Boosting: ${roleBoosts.slice(0,2).join(', ')}`:''}`;
-  banner.classList.add('show');document.getElementById('skillCountLbl').textContent=skills.length?`${skills.length} skills found`:'';render();
+  banner.classList.add('show');document.getElementById('skillCountLbl').textContent=skills.length?`${skills.length} skills found`:'';logSearch('nl',query,ROLES.map(r=>scoreRole(r,mergedSkills)).filter(Boolean).length,false);render();
 }
 
 /* ══ Skill extraction ══ */
@@ -1594,6 +1658,7 @@ function render(){
   const matchNote=(activeDept!=='all'&&results.length>filtered.length)?`<div class="info-strip"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.4"/></svg>Showing <strong>${activeDept}</strong> roles only · <button onclick="filterDept('all')" style="background:none;border:none;color:var(--teal);cursor:pointer;font-size:13px;padding:0;font-weight:600;">Show all ${results.length} →</button></div>`:'';
   area.innerHTML=`<div class="results-header"><div class="results-title">${results.length} matching role${results.length!==1?'s':''}</div><div style="display:flex;align-items:center;gap:10px;"><div class="results-count">${skills.length} skill${skills.length!==1?'s':''} entered</div><button onclick="clearAndTryAgain()" style="padding:4px 10px;background:transparent;border:1.5px solid var(--border);border-radius:20px;font-size:11.5px;font-weight:600;color:var(--ink3);cursor:pointer;font-family:var(--sans);">&#x21A9; New search</button></div></div>${matchNote}<div class="result-grid">${html}</div>`;
   const bar=document.getElementById('currencyBar');if(bar)bar.style.display='flex';
+  logSearch('skills',skills.join(', '),filtered.length,filtered.length===0);
   if(isSalaryPromptEligible()&&!isSalaryUnlocked()){const fp=document.getElementById('floatingPanda');if(fp)fp.style.display='block';}
 }
 
@@ -1668,7 +1733,8 @@ function filterDept(dept){if(dept&&typeof dept==='object'&&dept.dataset)dept=dep
 function copyToClipboard(text){if(navigator.clipboard&&window.isSecureContext)return navigator.clipboard.writeText(text);const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;top:-9999px;left:-9999px;opacity:0;';document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand('copy');}catch(e){}document.body.removeChild(ta);return Promise.resolve();}
 function copyTitle(title,btn){copyToClipboard(title).then(()=>{btn.classList.add('ok');btn.textContent='Copied!';setTimeout(()=>{btn.classList.remove('ok');btn.textContent='Copy title';},2000);showToast('"'+title+'" copied','ok');});}
 function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(type||'');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
-function showSorryState(query){const area=document.getElementById('resultsArea');const reportEmail='contactus@talentsradar.com';const subject=encodeURIComponent('SkillMapper: Missing role for "'+query+'"');const body=encodeURIComponent('Hi,\n\nSkillMapper did not return results for:\n\n"'+query+'"\n\nPlease add this role/skills.\n\nThank you!');area.innerHTML=`<div class="sorry-state"><div class="sorry-dog">&#x1F436;</div><div class="sorry-title">Woof! We don't have this one yet.</div><div class="sorry-sub">Sorry, we couldn't find a matching role for <strong>"${query.slice(0,60)}"</strong>. Help us improve!</div><a class="btn-report" href="mailto:${reportEmail}?subject=${subject}&body=${body}" target="_blank"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 4h12v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4z" stroke="currentColor" stroke-width="1.4"/><path d="M2 4l6 5 6-5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Report to Developer</a><button class="btn-try-again" onclick="clearAndTryAgain()">&#x21A9; Try something else</button></div>`;}
+function showSorryState(query){
+  logSearch('skills',query,0,true);const area=document.getElementById('resultsArea');const reportEmail='contactus@talentsradar.com';const subject=encodeURIComponent('SkillMapper: Missing role for "'+query+'"');const body=encodeURIComponent('Hi,\n\nSkillMapper did not return results for:\n\n"'+query+'"\n\nPlease add this role/skills.\n\nThank you!');area.innerHTML=`<div class="sorry-state"><div class="sorry-dog">&#x1F436;</div><div class="sorry-title">Woof! We don't have this one yet.</div><div class="sorry-sub">Sorry, we couldn't find a matching role for <strong>"${query.slice(0,60)}"</strong>. Help us improve!</div><a class="btn-report" href="mailto:${reportEmail}?subject=${subject}&body=${body}" target="_blank"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 4h12v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4z" stroke="currentColor" stroke-width="1.4"/><path d="M2 4l6 5 6-5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Report to Developer</a><button class="btn-try-again" onclick="clearAndTryAgain()">&#x21A9; Try something else</button></div>`;}
 function clearAndTryAgain(){skills=[];window._aiTopRoles=[];renderBubbles();document.getElementById('nudgeBanner')?.classList.remove('show');document.getElementById('aiBanner').classList.remove('show');document.getElementById('deptFilter').style.display='none';const _cb=document.getElementById('currencyBar');if(_cb)_cb.style.display='none';const fp=document.getElementById('floatingPanda');if(fp)fp.style.display=(isSalaryPromptEligible()&&!isSalaryUnlocked())?'block':'none';document.getElementById('resultsArea').innerHTML=`<div class="empty-state"><div class="empty-icon" style="font-size:36px;margin-bottom:10px;">&#x1F3AF;</div><div class="empty-title">Start above to see role matches</div><div class="empty-sub">Type skills, search by title, or describe what you need.</div></div>`;document.getElementById('nlInput').value='';document.getElementById('mainInput').value='';const am=document.querySelector('.mode-tab.active');if(am&&am.textContent.includes('Describe'))document.getElementById('nlInput').focus();else document.getElementById('mainInput').focus();}
 function selectLevel(btn){const lvl=btn.dataset.lvl;if(isSalaryPromptEligible()&&lvl!=='junior'&&!isSalaryUnlocked()){showSalaryContrib(btn);return;}applySelectLevel(btn);}
 function applySelectLevel(btn){const cardId=btn.dataset.card;const yrsMin=btn.dataset.min;const yrsMax=btn.dataset.max;const sal=btn.dataset.sal;const group=document.getElementById(cardId);if(group){group.querySelectorAll('.sal-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}const el=document.getElementById(cardId+'_sal');if(!el)return;const yrsStr=yrsMin+'–'+yrsMax+' yrs';const displaySal=getSalaryDisplay(sal);el.innerHTML=displaySal?yrsStr+' &nbsp;·&nbsp; <strong>'+displaySal+'</strong>':yrsStr;}
@@ -2375,7 +2441,7 @@ function submitSalaryContrib(){
   const designation=document.getElementById('salRole').value.trim();const dept=document.getElementById('salDept').value;const subDeptSel=document.getElementById('salSubDept').value;const customDept=document.getElementById('salCustomDept')?.value.trim()||'';const subDeptOther=document.getElementById('salSubOther')?.value.trim()||'';const effectiveDept=dept==='Other'?(customDept||'Other'):dept;const subDept=(dept==='Other'||subDeptSel==='Other')?subDeptOther:subDeptSel;const yrs=document.getElementById('salYrs').value;const cur=document.getElementById('salCurrency').value;const country=document.getElementById('salCountry').value;const roleDesc=document.getElementById('salRoleDesc')?.value.trim()||'';const company=document.getElementById('salCompany')?.value.trim()||'';const notifyPref=document.getElementById('salNotifyChange')?.checked?'yes':'no';
   localStorage.setItem('sm_salary_notify',notifyPref);
   try{fetch('/',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'form-name=salary-contrib&designation='+encodeURIComponent(designation)+'&dept='+encodeURIComponent(effectiveDept)+'&sub_dept='+encodeURIComponent(subDept)+'&experience='+encodeURIComponent(yrs)+'&ctc='+encodeURIComponent(ctc)+'&currency='+encodeURIComponent(cur)+'&country='+encodeURIComponent(country)+'&role_desc='+encodeURIComponent(roleDesc)+'&company='+encodeURIComponent(company)+'&notify_salary='+encodeURIComponent(notifyPref)+'&loc_detected='+encodeURIComponent(USER_LOCATION)});}catch(e){}
-  document.getElementById('salContribModal').style.display='none';document.getElementById('floatingPanda').style.display='none';document.getElementById('salThanksModal').style.display='flex';
+  if(_sb){try{_sb.from('salary_contributions').insert({email:localStorage.getItem('sm_user_email')||'anonymous',designation,dept:effectiveDept,sub_dept:subDept,experience_range:yrs,ctc,currency:cur,country,company:company||null,role_desc:roleDesc||null,notify_salary:notifyPref,loc_detected:USER_LOCATION,created_at:new Date().toISOString()}).then(()=>{}).catch(()=>{});}catch(e){}}  document.getElementById('salContribModal').style.display='none';document.getElementById('floatingPanda').style.display='none';document.getElementById('salThanksModal').style.display='flex';
   unlockSalary();if(_pendingSalBtn){applySelectLevel(_pendingSalBtn);_pendingSalBtn=null;}
   setTimeout(()=>{document.getElementById('salThanksModal').style.display='none';},3200);
 }
