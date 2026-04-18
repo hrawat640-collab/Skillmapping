@@ -836,7 +836,7 @@ function isSalaryUnlocked(){
   }
   return false;
 }
-function smSaveUserToSupabase(email,name,profession,country,consent){
+async function smSaveUserToSupabase(email,name,profession,country,consent){
   if(!_sb||!email)return;
   try{
     const _payload={email,name:name||'',profession:profession||'',country:country||'',consent:consent?'yes':'no',last_login:new Date().toISOString()};
@@ -845,7 +845,7 @@ function smSaveUserToSupabase(email,name,profession,country,consent){
     if(r.error)console.error('smSaveUser error:',JSON.stringify(r.error));
   }catch(e){console.error('smSaveUser catch:',e.message||e);}
 }
-function smRestoreSessionFromSupabase(email){
+async function smRestoreSessionFromSupabase(email){
   if(!_sb||!email)return false;
   try{
     const{data,error}=await _sb.from('sm_users').select('*').eq('email',email).single();
