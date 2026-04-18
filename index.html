@@ -794,7 +794,71 @@ function dismissJourneyTips(){
 }
 
 (function(){
-  window.addEventListener('load', function(){
+  
+/* ── Early defs ── */
+const SAL_UNLOCK_KEY='sm_sal_unlocked_until';
+const SAL_SALARY_YEAR_KEY='sm_sal_year';
+
+/* ── Early definitions (hoisted to Block 8) ── */
+function checkTrialExpiry(prefix){
+  const email=localStorage.getItem((prefix?prefix+'_':'')+'user_email');
+  const loginDate=localStorage.getItem((prefix?prefix+'_':'')+'login_date');
+  if(!email||!loginDate)return;
+  const daysSince=(Date.now()-parseInt(loginDate))/(1000*60*60*24);
+  if(daysSince>=TRIAL_DAYS)document.getElementById('upgradeWall').classList.add('show');
+}
+function renderTrialBadgeSM(){
+  const loginDate=localStorage.getItem('sm_login_date');
+  const badge=document.getElementById('trialBadge');
+  if(!badge)return;
+  if(!loginDate){badge.style.display='none';return;}
+  const daysLeft=Math.max(0,30-Math.floor((Date.now()-parseInt(loginDate))/(1000*60*60*24)));
+  badge.style.display='inline-flex';
+  if(daysLeft>10){badge.className='trial-badge';badge.innerHTML='<span class="trial-dot"></span> '+daysLeft+' days free trial left';}
+  else if(daysLeft>3){badge.className='trial-badge warning';badge.innerHTML='<span class="trial-dot"></span> '+daysLeft+' days left';}
+  else if(daysLeft>0){badge.className='trial-badge urgent';badge.innerHTML='<span class="trial-dot"></span> '+daysLeft+' day'+(daysLeft===1?'':'s')+' left';}
+  else{badge.className='trial-badge urgent';badge.innerHTML='<span class="trial-dot"></span> Trial ended';}
+}
+function isSalaryUnlocked(){
+  const until=parseInt(localStorage.getItem(SAL_UNLOCK_KEY)||'0');
+  if(until>Date.now())return true;
+  // Auto-show "salary changed?" prompt on July 1 if was previously unlocked
+  const yr=parseInt(localStorage.getItem(SAL_SALARY_YEAR_KEY)||'0');
+  const now=new Date();
+  if(yr>0&&yr<now.getFullYear()&&now.getMonth()>=6){
+    // Show update banner once per year
+    const bannerKey='sm_sal_update_banner_'+now.getFullYear();
+    if(!localStorage.getItem(bannerKey)){
+      localStorage.setItem(bannerKey,'shown');
+      setTimeout(function(){showSalaryUpdatePrompt();},2000);
+    }
+  }
+  return false;
+}
+function smSaveUserToSupabase(email,name,profession,country,consent){
+  if(!_sb||!email)return;
+  try{
+    const _payload={email,name:name||'',profession:profession||'',country:country||'',consent:consent?'yes':'no',last_login:new Date().toISOString()};
+    if(localStorage.getItem('sm_login_date'))_payload.login_date=new Date(parseInt(localStorage.getItem('sm_login_date'))).toISOString();
+    const r=await _sb.from('sm_users').upsert(_payload,{onConflict:'email'});
+    if(r.error)console.error('smSaveUser error:',JSON.stringify(r.error));
+  }catch(e){console.error('smSaveUser catch:',e.message||e);}
+}
+function smRestoreSessionFromSupabase(email){
+  if(!_sb||!email)return false;
+  try{
+    const{data,error}=await _sb.from('sm_users').select('*').eq('email',email).single();
+    if(error||!data)return false;
+    if(data.name)localStorage.setItem('sm_user_name',data.name);
+    if(data.profession)localStorage.setItem('sm_user_profession',data.profession);
+    if(data.country)localStorage.setItem('sm_user_country',data.country);
+    if(data.login_date&&!localStorage.getItem('sm_login_date'))localStorage.setItem('sm_login_date',new Date(data.login_date).getTime().toString());
+    _sb.from('sm_users').update({last_login:new Date().toISOString()}).eq('email',email).then(()=>{}).catch(()=>{});
+    return true;
+  }catch(e){console.warn('smRestoreSession:',e);return false;}
+}
+
+window.addEventListener('load', function(){
     setTimeout(function(){
       if(isSalaryPromptEligible() && !isSalaryUnlocked()){
         const fp = document.getElementById('floatingPanda');
@@ -858,29 +922,7 @@ function smHandleGoogle(response){
 }
 
 
-/* ── Supabase session persistence ── */
-async function smSaveUserToSupabase(email,name,profession,country,consent){
-  if(!_sb||!email)return;
-  try{
-    const _payload={email,name:name||'',profession:profession||'',country:country||'',consent:consent?'yes':'no',last_login:new Date().toISOString()};
-    if(localStorage.getItem('sm_login_date'))_payload.login_date=new Date(parseInt(localStorage.getItem('sm_login_date'))).toISOString();
-    const r=await _sb.from('sm_users').upsert(_payload,{onConflict:'email'});
-    if(r.error)console.error('smSaveUser error:',JSON.stringify(r.error));
-  }catch(e){console.error('smSaveUser catch:',e.message||e);}
-}
-async function smRestoreSessionFromSupabase(email){
-  if(!_sb||!email)return false;
-  try{
-    const{data,error}=await _sb.from('sm_users').select('*').eq('email',email).single();
-    if(error||!data)return false;
-    if(data.name)localStorage.setItem('sm_user_name',data.name);
-    if(data.profession)localStorage.setItem('sm_user_profession',data.profession);
-    if(data.country)localStorage.setItem('sm_user_country',data.country);
-    if(data.login_date&&!localStorage.getItem('sm_login_date'))localStorage.setItem('sm_login_date',new Date(data.login_date).getTime().toString());
-    _sb.from('sm_users').update({last_login:new Date().toISOString()}).eq('email',email).then(()=>{}).catch(()=>{});
-    return true;
-  }catch(e){console.warn('smRestoreSession:',e);return false;}
-}
+
 function smSendOtp(){
   const val = document.getElementById('smEmailInput').value.trim();
   const err = document.getElementById('smEmailErr');
@@ -1279,6 +1321,30 @@ function smSignOut(){
 
 <div class="toast" id="toast"></div>
 <script>
+
+/* ── Supabase session persistence ── */
+async function smSaveUserToSupabase(email,name,profession,country,consent){
+  if(!_sb||!email)return;
+  try{
+    const _payload={email,name:name||'',profession:profession||'',country:country||'',consent:consent?'yes':'no',last_login:new Date().toISOString()};
+    if(localStorage.getItem('sm_login_date'))_payload.login_date=new Date(parseInt(localStorage.getItem('sm_login_date'))).toISOString();
+    const r=await _sb.from('sm_users').upsert(_payload,{onConflict:'email'});
+    if(r.error)console.error('smSaveUser error:',JSON.stringify(r.error));
+  }catch(e){console.error('smSaveUser catch:',e.message||e);}
+}
+async function smRestoreSessionFromSupabase(email){
+  if(!_sb||!email)return false;
+  try{
+    const{data,error}=await _sb.from('sm_users').select('*').eq('email',email).single();
+    if(error||!data)return false;
+    if(data.name)localStorage.setItem('sm_user_name',data.name);
+    if(data.profession)localStorage.setItem('sm_user_profession',data.profession);
+    if(data.country)localStorage.setItem('sm_user_country',data.country);
+    if(data.login_date&&!localStorage.getItem('sm_login_date'))localStorage.setItem('sm_login_date',new Date(data.login_date).getTime().toString());
+    _sb.from('sm_users').update({last_login:new Date().toISOString()}).eq('email',email).then(()=>{}).catch(()=>{});
+    return true;
+  }catch(e){console.warn('smRestoreSession:',e);return false;}
+}
 
 /* ── Trial ── */
 
