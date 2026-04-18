@@ -752,6 +752,7 @@ function isSalaryPromptEligible(professionValue){
 function smMaybeShowSalaryPrompt(profession){ if(isSalaryPromptEligible(profession)) showSalaryContrib(null); }
 
 function openSmLoginModal(){
+  const _lm=document.getElementById('loginModal');if(!_lm)return;
   document.getElementById('smEmailStep').style.display='block';
   document.getElementById('smOtpStep').style.display='none';
   document.getElementById('smProfileStep').style.display='none';
@@ -1016,7 +1017,7 @@ function toggleProfileMenu(){
   if(document.getElementById('smProfileNameRow')) document.getElementById('smProfileNameRow').textContent=localStorage.getItem('sm_user_name')||'Not provided';
   if(document.getElementById('smProfileProfessionRow')) document.getElementById('smProfileProfessionRow').textContent=localStorage.getItem('sm_user_profession')||'Not provided';
   if(document.getElementById('smProfileCountryRow')) document.getElementById('smProfileCountryRow').textContent=localStorage.getItem('sm_user_country')||'Not provided';
-  if(document.getElementById('smProfileSalaryRow')) document.getElementById('smProfileSalaryRow').textContent=isSalaryUnlocked()?'Filled':'Not filled';
+  if(document.getElementById('smProfileSalaryRow')) document.getElementById('smProfileSalaryRow').textContent=(typeof isSalaryUnlocked==='function'&&isSalaryUnlocked())?'Filled':'Not filled';
   if(document.getElementById('smProfileNotifyRow')) document.getElementById('smProfileNotifyRow').textContent=(localStorage.getItem('sm_salary_notify')||'no')==='yes'?'Enabled':'Not enabled';
   if(menu) menu.style.display=menu.style.display==='none'?'block':'none';
 }
