@@ -1457,6 +1457,40 @@ function getRoleActionHtml(title,altTitlesParam,allPassSkills){
   // HR / management / founders → TalentXRay tool (they need the full tool)
   return`<a class="btn-search" href="https://talentxray.netlify.app?title=${titleParam}&alt=${altTitlesParam}&skills=${encodeURIComponent(allPassSkills.join(','))}&from=skillmapper${_auParam}" target="_blank"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Search professional</a>`;
 }
+function isSalaryPromptEligible(professionValue){
+  const p=normalizeProfession(professionValue||localStorage.getItem('sm_user_profession'));
+  return p==='working professional'||p==='hr'||p==='management/founder';
+}
+
+function runTitleMode(){
+  if(!selectedTitleModeRoles.length){showToast('Select at least one job title first','err');return;}
+  closeTitleDrop();document.getElementById('titleModeInput').value='';
+  const allSkills=[];selectedTitleModeRoles.forEach(r=>{(r.required||[]).forEach(s=>{if(!allSkills.includes(s))allSkills.push(s);});});
+  skills=allSkills.length?allSkills:[''];activeDept='all';window._aiTopRoles=selectedTitleModeRoles.map(r=>r.title.toLowerCase());renderBubbles();
+  const area=document.getElementById('resultsArea');const dc=DEPT_COLORS;
+  const cardHtml=selectedTitleModeRoles.map((r,i)=>{
+    const dcolor=dc[r.dept]||{bg:'#f3f4f6',color:'#374151'};
+    const expLevels=Object.entries(r.exp||{}).filter(([,d])=>d&&d[0]!==null);
+    const defaultLvl=(r.exp&&r.exp.junior&&r.exp.junior[0]!==null)?'junior':expLevels[0]?.[0]||'junior';
+    const defaultData=r.exp?.[defaultLvl]||expLevels[0]?.[1];
+    const cardId='tc_'+i;
+    const salBtns=expLevels.map(([lvl,data])=>{if(!data||data[0]===null)return'';const label={junior:'Junior',mid:'Mid',senior:'Senior',lead:'Lead'}[lvl]||lvl;const isActive=lvl===defaultLvl?' active':'';const sal=(data[2]||'').replace(/'/g,'&apos;');return`<button class="sal-btn ${lvl}${isActive}" data-card="${cardId}" data-lvl="${lvl}" data-min="${data[0]}" data-max="${data[1]}" data-sal="${sal}" onclick="selectLevel(this)">${label}</button>`;}).join('');
+    const defaultSal=defaultData?`${defaultData[0]}–${defaultData[1]} yrs &nbsp;·&nbsp; <strong>${defaultData[2]||''}</strong>`:'';
+    const reqSkills=(r.required||[]).map(s=>`<span class="skill-pill skill-matched">${s}</span>`).join('');
+    const niceSkills=(r.nice||[]).map(s=>`<span class="skill-pill skill-missing">${s}</span>`).join('');
+    let altNames=(r.keywords||[]).slice(1).slice(0,5);if(r._searchedAs&&r._searchedAs!==r.title)altNames=[r.title,...altNames.filter(k=>k!==r._searchedAs)].slice(0,5);
+    const alsoKnownAs=altNames.length?`<div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:2px;"><span style="font-size:10.5px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-right:2px;white-space:nowrap;">Also called</span>${altNames.map(k=>`<span style="font-size:11px;color:var(--ink2);background:var(--bg);border:1px solid var(--border);padding:2px 8px;border-radius:20px;font-family:var(--mono);">${k}</span>`).join('')}</div>`:'';
+    const altTitlesParam=encodeURIComponent((r.keywords||[]).slice(1,2).join(','));
+    const allPassSkills=[...new Set([...(r.required||[]).slice(0,2)])].slice(0,4);
+    return`<div class="result-card match-high"><div class="rc-top"><div class="rc-left"><div class="rc-dept"><span style="background:${dcolor.bg};color:${dcolor.color};padding:2px 8px;border-radius:20px;font-size:11px;">${r.dept}</span></div><div class="rc-title">${r._searchedAs||r.title}</div><div class="rc-desc">${r.desc||''}</div>${r.hint?`<div class="rc-hint"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.4"/><path d="M8 7v4M8 5.5v.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg><span>${r.hint}</span></div>`:''}</div></div><div class="rc-bottom"><div style="width:100%;display:flex;flex-direction:column;gap:8px;"><div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;"><span style="font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-right:2px;">Experience &amp; Salary</span><div class="salary-selector" id="${cardId}">${salBtns}</div></div><div class="sal-display" id="${cardId}_sal">${defaultSal}</div><div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;"><span style="font-size:11px;font-weight:600;color:var(--teal);text-transform:uppercase;letter-spacing:.06em;margin-right:2px;">Required skills</span>${reqSkills}</div><div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;"><span style="font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-right:2px;">Nice to have</span>${niceSkills}</div>${alsoKnownAs}</div><div class="rc-actions" style="margin-top:10px;">${getRoleActionHtml(r.title,altTitlesParam,allPassSkills)}</div></div></div>`;
+  }).join('');
+  area.innerHTML=cardHtml||'<div class="empty-state">No roles selected</div>';
+  document.getElementById('deptFilter').style.display='none';
+  const _cb=document.getElementById('currencyBar');if(_cb)_cb.style.display='flex';
+  logSearch('title',selectedTitleModeRoles.map(r=>r.title).join(', '),selectedTitleModeRoles.length,false);
+  setTimeout(()=>area.scrollIntoView({behavior:'smooth',block:'nearest'}),200);
+}
+
 
 /* ══ Location & Currency ══ */
 function detectUserLocation(){try{const tz=Intl.DateTimeFormat().resolvedOptions().timeZone||'';if(tz.includes('Asia/Kolkata')||tz.includes('Asia/Calcutta'))return'IN';if(tz.includes('America/')||tz.includes('US/'))return'US';return'OTHER';}catch(e){return'OTHER';}}
