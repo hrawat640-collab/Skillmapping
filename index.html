@@ -858,6 +858,7 @@ async function smRestoreSessionFromSupabase(email){
     return false;
   }catch(e){console.warn('smRestoreSession:',e);return false;}
 }
+window.smRestoreSessionFromSupabase = smRestoreSessionFromSupabase;
 
 window.addEventListener('load', function(){
     setTimeout(function(){
@@ -907,7 +908,7 @@ function smHandleGoogle(response){
   const payload=JSON.parse(atob(response.credential.split('.')[1]));
   const email=payload.email;
   if(email){
-    smRestoreSessionFromSupabase(email).then(function(restored){
+    window.smRestoreSessionFromSupabase(email).then(function(restored){
       const p=getSmProfile();
       localStorage.setItem('sm_user_email',email);localStorage.setItem('tr_shared_email',email);
       if(!localStorage.getItem('sm_login_date'))localStorage.setItem('sm_login_date',Date.now().toString());
@@ -928,7 +929,7 @@ function smStartEmailAuth(mode){
   const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   if(!val || !emailRe.test(val)){ err.style.display='block'; err.textContent='Please enter a valid email address.'; document.getElementById('smEmailInput').focus(); return; }
   err.style.display='none';
-  smRestoreSessionFromSupabase(val).then(function(restored){
+  window.smRestoreSessionFromSupabase(val).then(function(restored){
     const p=getSmProfile();
     const hasProfile=!!(p.profession&&p.country&&p.name);
     const finishLogin=function(){
