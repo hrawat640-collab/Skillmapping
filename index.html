@@ -625,16 +625,12 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:10
     <div id="smGoogleBtn" style="margin-bottom:14px;"><div id="g_sm_signin" style="display:flex;justify-content:center;"></div></div>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;"><div style="flex:1;height:1px;background:#e4e2db;"></div><span style="font-size:11.5px;color:#aaa;font-family:Outfit,sans-serif;">or continue with email</span><div style="flex:1;height:1px;background:#e4e2db;"></div></div>
     <div id="smEmailStep">
-      <input type="email" id="smEmailInput" placeholder="your@email.com" style="width:100%;padding:13px 16px;margin-bottom:10px;border-radius:9px;border:1.5px solid #e4e2db;font-family:Outfit,sans-serif;font-size:14px;outline:none;box-sizing:border-box;" onkeydown="if(event.key==='Enter')smSendOtp()">
-      <button onclick="smSendOtp()" id="smOtpBtn" style="width:100%;padding:13px;background:#0f766e;color:#fff;border:none;border-radius:9px;font-weight:700;font-family:Outfit,sans-serif;font-size:14px;cursor:pointer;">Send verification code &rarr;</button>
+      <input type="email" id="smEmailInput" placeholder="your@email.com" style="width:100%;padding:13px 16px;margin-bottom:10px;border-radius:9px;border:1.5px solid #e4e2db;font-family:Outfit,sans-serif;font-size:14px;outline:none;box-sizing:border-box;" onkeydown="if(event.key==='Enter')smStartEmailAuth('signin')">
+      <div style="display:flex;gap:8px;">
+        <button onclick="smStartEmailAuth('signup')" id="smSignupBtn" style="flex:1;padding:13px;background:#0f766e;color:#fff;border:none;border-radius:9px;font-weight:700;font-family:Outfit,sans-serif;font-size:14px;cursor:pointer;">Sign up</button>
+        <button onclick="smStartEmailAuth('signin')" id="smSigninBtn" style="flex:1;padding:13px;background:#111827;color:#fff;border:none;border-radius:9px;font-weight:700;font-family:Outfit,sans-serif;font-size:14px;cursor:pointer;">Sign in</button>
+      </div>
       <p id="smEmailErr" style="font-size:12px;color:#b91c1c;margin-top:8px;display:none;">Please enter a valid email address.</p>
-    </div>
-    <div id="smOtpStep" style="display:none;">
-      <p style="font-size:13px;color:#4a4843;margin-bottom:12px;font-family:Outfit,sans-serif;">Code sent to <strong id="smOtpEmail"></strong></p>
-      <input type="text" id="smOtpInput" placeholder="Enter 6-digit code" maxlength="6" style="width:100%;padding:13px 16px;margin-bottom:10px;border-radius:9px;border:1.5px solid #e4e2db;font-family:Outfit,sans-serif;font-size:18px;outline:none;box-sizing:border-box;text-align:center;letter-spacing:6px;font-weight:700;" oninput="this.value=this.value.replace(/[^0-9]/g,'')" onkeydown="if(event.key==='Enter')smVerifyOtp()">
-      <button onclick="smVerifyOtp()" id="smVerifyBtn" style="width:100%;padding:13px;background:#0f766e;color:#fff;border:none;border-radius:9px;font-weight:700;font-family:Outfit,sans-serif;font-size:14px;cursor:pointer;margin-bottom:8px;">Verify &amp; Get Access &rarr;</button>
-      <p id="smOtpErr" style="font-size:12px;color:#b91c1c;margin-top:4px;display:none;">Incorrect code. Please try again.</p>
-      <button onclick="smBackToEmail()" style="background:none;border:none;font-size:12px;color:#aaa;cursor:pointer;font-family:Outfit,sans-serif;">&larr; Use a different email</button>
     </div>
     <div id="smProfileStep" style="display:none;text-align:left;">
       <div style="font-size:12px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;font-family:Outfit,sans-serif;">Tell us a little about you</div>
@@ -682,13 +678,8 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:10
     google.accounts.id.renderButton(document.getElementById('g_sm_signin'),{theme:'outline',size:'large',width:356,text:'continue_with',shape:'rectangular'});
   };
   document.head.appendChild(gs);
-  const ej = document.createElement('script');
-  ej.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js';
-  ej.onload = function(){ emailjs.init('fJHhZObCpSxH0HS4P'); };
-  document.head.appendChild(ej);
 })();
 
-let smOtpCode = '';
 let smPendingProfile = { email:'', name:'' };
 
 function getSmProfile(){
@@ -718,7 +709,6 @@ function toggleSmCountryOther(val){
 function openSmProfileStep(email, name){
   smPendingProfile = { email:email || '', name:name || '' };
   document.getElementById('smEmailStep').style.display='none';
-  document.getElementById('smOtpStep').style.display='none';
   document.getElementById('smProfileStep').style.display='block';
   const consentWrap = document.getElementById('smConsent')?.closest('label');
   if(consentWrap) consentWrap.style.display = 'none';
@@ -754,7 +744,6 @@ function smMaybeShowSalaryPrompt(profession){ if(isSalaryPromptEligible(professi
 function openSmLoginModal(){
   const _lm=document.getElementById('loginModal');if(!_lm)return;
   document.getElementById('smEmailStep').style.display='block';
-  document.getElementById('smOtpStep').style.display='none';
   document.getElementById('smProfileStep').style.display='none';
   const consentWrap = document.getElementById('smConsent')?.closest('label');
   if(consentWrap) consentWrap.style.display = 'flex';
@@ -937,46 +926,37 @@ function smHandleGoogle(response){
 
 
 
-function smSendOtp(){
+function smStartEmailAuth(mode){
   const val = document.getElementById('smEmailInput').value.trim();
   const err = document.getElementById('smEmailErr');
   const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   if(!val || !emailRe.test(val)){ err.style.display='block'; err.textContent='Please enter a valid email address.'; document.getElementById('smEmailInput').focus(); return; }
   err.style.display='none';
-  // Check returning user — skip OTP if registered in Supabase
-  smRestoreSessionFromSupabase(val).then(async function(_restored){
-    const _p=getSmProfile();
-    if(_restored){
+  smRestoreSessionFromSupabase(val).then(function(restored){
+    const p=getSmProfile();
+    const isKnown=restored || !!(p.profession&&p.country&&p.name);
+    if(mode==='signin'){
+      if(!isKnown){
+        err.style.display='block';
+        err.textContent='No account found for this email. Please use Sign up or Google Sign in.';
+        return;
+      }
       localStorage.setItem('sm_user_email',val);localStorage.setItem('tr_shared_email',val);
       if(!localStorage.getItem('sm_login_date'))localStorage.setItem('sm_login_date',Date.now().toString());
       document.getElementById('loginModal').style.display='none';
-      checkTrialExpiry('');renderTrialBadgeSM();smUpdateNavLinks();updateUserJourneyUi();showToast('Welcome back!','ok');return;
+      checkTrialExpiry('');renderTrialBadgeSM();smUpdateNavLinks();updateUserJourneyUi();showToast('Welcome back!','ok');
+      return;
     }
-    smOtpCode = Math.floor(100000 + Math.random() * 900000).toString();
-  const btn = document.getElementById('smOtpBtn');
-  btn.textContent = 'Sending...'; btn.disabled = true;
-  emailjs.send('service_xi5bbol', 'template_kexeatw', { to_email: val, passcode: smOtpCode, tool_name: 'SkillMapper' }).then(function(){
-    document.getElementById('smEmailStep').style.display='none';
-    document.getElementById('smOtpStep').style.display='block';
-    document.getElementById('smOtpEmail').textContent = val;
-    document.getElementById('smOtpInput').focus();
-  }, function(){ btn.textContent = 'Send verification code →'; btn.disabled = false; err.style.display='block'; err.textContent='Could not send code. Please try again.'; });
+    // Sign up path
+    localStorage.setItem('sm_user_email',val);
+    localStorage.setItem('tr_shared_email',val);
+    if(restored && p.profession && p.country && p.name){
+      document.getElementById('loginModal').style.display='none';
+      checkTrialExpiry('');renderTrialBadgeSM();smUpdateNavLinks();updateUserJourneyUi();showToast('Welcome back!','ok');
+      return;
+    }
+    openSmProfileStep(val,p.name||'');
   });
-}
-
-function smVerifyOtp(){
-  const entered = document.getElementById('smOtpInput').value.trim();
-  const err = document.getElementById('smOtpErr');
-  if(entered !== smOtpCode){ err.style.display='block'; document.getElementById('smOtpInput').value=''; document.getElementById('smOtpInput').focus(); return; }
-  err.style.display='none';
-  openSmProfileStep(document.getElementById('smEmailInput').value.trim(), '');
-}
-
-function smBackToEmail(){
-  document.getElementById('smOtpStep').style.display='none';
-  document.getElementById('smEmailStep').style.display='block';
-  document.getElementById('smOtpInput').value='';
-  smOtpCode = '';
 }
 
 function smUpdateNavLinks(){
