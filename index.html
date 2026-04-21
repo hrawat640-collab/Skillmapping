@@ -623,12 +623,12 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:10
     <h2 style="margin-bottom:6px;font-size:22px;letter-spacing:-0.02em;font-family:Outfit,sans-serif;">Welcome to SkillMapper</h2>
     <p style="color:#6b6963;margin-bottom:20px;font-size:13px;line-height:1.6;font-family:Outfit,sans-serif;">Free to use</p>
     <div id="smGoogleBtn" style="margin-bottom:14px;"><div id="g_sm_signin" style="display:flex;justify-content:center;"></div></div>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;"><div style="flex:1;height:1px;background:#e4e2db;"></div><span style="font-size:11.5px;color:#aaa;font-family:Outfit,sans-serif;">or continue with email</span><div style="flex:1;height:1px;background:#e4e2db;"></div></div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;"><div style="flex:1;height:1px;background:#e4e2db;"></div><span style="font-size:11.5px;color:#aaa;font-family:Outfit,sans-serif;">or sign in with email</span><div style="flex:1;height:1px;background:#e4e2db;"></div></div>
     <div id="smEmailStep">
       <input type="email" id="smEmailInput" placeholder="your@email.com" style="width:100%;padding:13px 16px;margin-bottom:10px;border-radius:9px;border:1.5px solid #e4e2db;font-family:Outfit,sans-serif;font-size:14px;outline:none;box-sizing:border-box;" onkeydown="if(event.key==='Enter')smStartEmailAuth('signin')">
       <div style="display:flex;gap:8px;">
-        <button onclick="smStartEmailAuth('signup')" id="smSignupBtn" style="flex:1;padding:13px;background:#0f766e;color:#fff;border:none;border-radius:9px;font-weight:700;font-family:Outfit,sans-serif;font-size:14px;cursor:pointer;">Sign up</button>
-        <button onclick="smStartEmailAuth('signin')" id="smSigninBtn" style="flex:1;padding:13px;background:#111827;color:#fff;border:none;border-radius:9px;font-weight:700;font-family:Outfit,sans-serif;font-size:14px;cursor:pointer;">Sign in</button>
+        <button type="button" onclick="smStartEmailAuth('signup')" id="smSignupBtn" style="flex:1;padding:13px;background:#0f766e;color:#fff;border:none;border-radius:9px;font-weight:700;font-family:Outfit,sans-serif;font-size:14px;cursor:pointer;">Sign up</button>
+        <button type="button" onclick="smStartEmailAuth('signin')" id="smSigninBtn" style="flex:1;padding:13px;background:#111827;color:#fff;border:none;border-radius:9px;font-weight:700;font-family:Outfit,sans-serif;font-size:14px;cursor:pointer;">Sign in</button>
       </div>
       <p id="smEmailErr" style="font-size:12px;color:#b91c1c;margin-top:8px;display:none;">Please enter a valid email address.</p>
     </div>
@@ -783,8 +783,6 @@ function dismissJourneyTips(){
   if(node) node.style.display = 'none';
 }
 
-(function(){
-  
 /* ── Early defs ── */
 const SAL_UNLOCK_KEY='sm_sal_unlocked_until';
 const SAL_SALARY_YEAR_KEY='sm_sal_year';
@@ -905,8 +903,6 @@ window.addEventListener('load', function(){
     smUpdateNavLinks();
     updateUserJourneyUi();
   }
-})();
-
 function smHandleGoogle(response){
   const payload=JSON.parse(atob(response.credential.split('.')[1]));
   const email=payload.email;
@@ -934,28 +930,34 @@ function smStartEmailAuth(mode){
   err.style.display='none';
   smRestoreSessionFromSupabase(val).then(function(restored){
     const p=getSmProfile();
-    const isKnown=restored || !!(p.profession&&p.country&&p.name);
+    const hasProfile=!!(p.profession&&p.country&&p.name);
+    const finishLogin=function(){
+      localStorage.setItem('sm_user_email',val);
+      localStorage.setItem('tr_shared_email',val);
+      if(!localStorage.getItem('sm_login_date'))localStorage.setItem('sm_login_date',Date.now().toString());
+      document.getElementById('loginModal').style.display='none';
+      checkTrialExpiry('');renderTrialBadgeSM();smUpdateNavLinks();updateUserJourneyUi();
+    };
     if(mode==='signin'){
-      if(!isKnown){
+      if(!(restored||hasProfile)){
         err.style.display='block';
         err.textContent='No account found for this email. Please use Sign up or Google Sign in.';
         return;
       }
-      localStorage.setItem('sm_user_email',val);localStorage.setItem('tr_shared_email',val);
-      if(!localStorage.getItem('sm_login_date'))localStorage.setItem('sm_login_date',Date.now().toString());
-      document.getElementById('loginModal').style.display='none';
-      checkTrialExpiry('');renderTrialBadgeSM();smUpdateNavLinks();updateUserJourneyUi();showToast('Welcome back!','ok');
+      finishLogin();showToast('Welcome back!','ok');
       return;
     }
-    // Sign up path
+    // Sign up path (no OTP)
     localStorage.setItem('sm_user_email',val);
     localStorage.setItem('tr_shared_email',val);
-    if(restored && p.profession && p.country && p.name){
-      document.getElementById('loginModal').style.display='none';
-      checkTrialExpiry('');renderTrialBadgeSM();smUpdateNavLinks();updateUserJourneyUi();showToast('Welcome back!','ok');
+    if(restored && hasProfile){
+      finishLogin();showToast('Welcome back!','ok');
       return;
     }
     openSmProfileStep(val,p.name||'');
+  }).catch(function(){
+    err.style.display='block';
+    err.textContent='Could not connect right now. Please try again.';
   });
 }
 
