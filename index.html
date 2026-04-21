@@ -799,6 +799,7 @@ function dismissJourneyTips(){
 /* ── Early defs ── */
 const SAL_UNLOCK_KEY='sm_sal_unlocked_until';
 const SAL_SALARY_YEAR_KEY='sm_sal_year';
+const SM_SALARY_SUBMITTED_AT_KEY='sm_salary_submitted_at';
 
 /* ── Early definitions (hoisted to Block 8) ── */
 function checkTrialExpiry(prefix){
@@ -821,6 +822,7 @@ function renderTrialBadgeSM(){
   else{badge.className='trial-badge urgent';badge.innerHTML='<span class="trial-dot"></span> Trial ended';}
 }
 function isSalaryUnlocked(){
+  if(localStorage.getItem(SM_SALARY_SUBMITTED_AT_KEY))return true;
   const until=parseInt(localStorage.getItem(SAL_UNLOCK_KEY)||'0');
   if(until>Date.now())return true;
   // Auto-show "salary changed?" prompt on July 1 if was previously unlocked
@@ -849,13 +851,24 @@ async function smRestoreSessionFromSupabase(email){
   if(!_sb||!email)return false;
   try{
     const{data,error}=await _sb.from('sm_users').select('*').eq('email',email).single();
-    if(error||!data)return false;
-    if(data.name)localStorage.setItem('sm_user_name',data.name);
-    if(data.profession)localStorage.setItem('sm_user_profession',data.profession);
-    if(data.country)localStorage.setItem('sm_user_country',data.country);
-    if(data.login_date&&!localStorage.getItem('sm_login_date'))localStorage.setItem('sm_login_date',new Date(data.login_date).getTime().toString());
-    _sb.from('sm_users').update({last_login:new Date().toISOString()}).eq('email',email).then(()=>{}).catch(()=>{});
-    return true;
+    if(!error&&data){
+      localStorage.setItem('sm_known_user','yes');
+      if(data.name)localStorage.setItem('sm_user_name',data.name);
+      if(data.profession)localStorage.setItem('sm_user_profession',data.profession);
+      if(data.country)localStorage.setItem('sm_user_country',data.country);
+      if(data.salary_submitted_at)localStorage.setItem(SM_SALARY_SUBMITTED_AT_KEY,new Date(data.salary_submitted_at).toISOString());
+      if(data.login_date&&!localStorage.getItem('sm_login_date'))localStorage.setItem('sm_login_date',new Date(data.login_date).getTime().toString());
+      _sb.from('sm_users').update({last_login:new Date().toISOString()}).eq('email',email).then(()=>{}).catch(()=>{});
+      return true;
+    }
+    // Backward compatibility: some historical users exist only in txr_user.
+    const legacy=await _sb.from('txr_user').select('email,name').eq('email',email).maybeSingle();
+    if(!legacy.error&&legacy.data){
+      localStorage.setItem('sm_known_user','yes');
+      if(legacy.data.name&&!localStorage.getItem('sm_user_name'))localStorage.setItem('sm_user_name',legacy.data.name);
+      return true;
+    }
+    return false;
   }catch(e){console.warn('smRestoreSession:',e);return false;}
 }
 
@@ -893,7 +906,7 @@ window.addEventListener('load', function(){
       const _initEmail=localStorage.getItem('sm_user_email');
       smRestoreSessionFromSupabase(_initEmail).then(function(ok){
         const p2=getSmProfile();
-        if(ok&&p2.profession&&p2.country&&p2.name){checkTrialExpiry('');renderTrialBadgeSM();smUpdateNavLinks();updateUserJourneyUi();}
+        if(ok){checkTrialExpiry('');renderTrialBadgeSM();smUpdateNavLinks();updateUserJourneyUi();}
         else{document.getElementById('loginModal').style.display='flex';openSmProfileStep(_initEmail||'',p2.name||'');}
       });
       return;
@@ -913,10 +926,10 @@ function smHandleGoogle(response){
       const p=getSmProfile();
       localStorage.setItem('sm_user_email',email);localStorage.setItem('tr_shared_email',email);
       if(!localStorage.getItem('sm_login_date'))localStorage.setItem('sm_login_date',Date.now().toString());
-      if(restored&&p.profession&&p.country&&(p.name||payload.name)){
+      if(restored){
         document.getElementById('loginModal').style.display='none';
         checkTrialExpiry('');renderTrialBadgeSM();smUpdateNavLinks();updateUserJourneyUi();
-        smSaveUserToSupabase(email,p.name||payload.name,p.profession,p.country,true);
+        smSaveUserToSupabase(email,p.name||payload.name,p.profession||'',p.country||'',true);
       }else{openSmProfileStep(email,payload.name||p.name||'');}
     });
   }else{openSmProfileStep(payload.email,payload.name||'');}
@@ -933,7 +946,7 @@ function smSendOtp(){
   // Check returning user — skip OTP if registered in Supabase
   smRestoreSessionFromSupabase(val).then(async function(_restored){
     const _p=getSmProfile();
-    if(_restored&&_p.profession&&_p.country&&_p.name){
+    if(_restored){
       localStorage.setItem('sm_user_email',val);localStorage.setItem('tr_shared_email',val);
       if(!localStorage.getItem('sm_login_date'))localStorage.setItem('sm_login_date',Date.now().toString());
       document.getElementById('loginModal').style.display='none';
@@ -976,12 +989,15 @@ function smUpdateNavLinks(){
   const label = document.getElementById('smTopbarLabel');
   const btn   = document.getElementById('smTopbarBtn');
   if(label && btn){
-    const _name=localStorage.getItem('sm_user_name')||'';
-    const _initials=_name.trim().split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase()||'?';
+    const _name=(localStorage.getItem('sm_user_name')||'').trim();
+    const _initialsFromName=_name ? _name.split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase() : '';
+    const _emailUser=(email.split('@')[0]||'').replace(/[^a-zA-Z]/g,'');
+    const _initialsFromEmail=_emailUser.slice(0,2).toUpperCase();
+    const _initials=_initialsFromName||_initialsFromEmail||'?';
     label.textContent = '';
     btn.innerHTML = '<span style="font-size:13px;font-weight:700;letter-spacing:.02em;">'+_initials+'</span>';
     btn.style.cssText='background:var(--teal);color:#fff;border:none;border-radius:50%;width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:var(--sans);';
-    btn.title = _name||email;
+    btn.title = _name || email;
     btn.onclick = function(){ toggleProfileMenu(); };
   }
 }
@@ -1009,6 +1025,43 @@ function smCompleteLogin(email, name, profileData){
 }
 
 function smDoLogin(){ document.getElementById('smEmailInput').focus(); }
+function smToggleSettings(){
+  const panel=document.getElementById('smSettingsPanel');
+  if(!panel) return;
+  const willOpen=panel.style.display==='none'||!panel.style.display;
+  panel.style.display=willOpen?'block':'none';
+  if(willOpen){
+    const nm=document.getElementById('smSettingsName');
+    if(nm){
+      nm.value=(localStorage.getItem('sm_user_name')||'').trim();
+      nm.focus();
+    }
+    const st=document.getElementById('smSettingsSalaryStatus');
+    if(st) st.textContent=(typeof isSalaryUnlocked==='function'&&isSalaryUnlocked())?'Filled':'Not filled';
+    const msg=document.getElementById('smSettingsMsg');
+    if(msg){msg.style.display='none';msg.textContent='';}
+  }
+}
+async function smSaveSettings(){
+  const email=(localStorage.getItem('sm_user_email')||'').trim();
+  if(!email){openSmLoginModal();return;}
+  const nameInput=document.getElementById('smSettingsName');
+  const msg=document.getElementById('smSettingsMsg');
+  const name=(nameInput?nameInput.value:'').trim();
+  if(!name){
+    if(msg){msg.style.display='block';msg.style.color='#b91c1c';msg.textContent='Name cannot be empty.';}
+    return;
+  }
+  localStorage.setItem('sm_user_name',name);
+  localStorage.setItem('tr_shared_name',name);
+  if(msg){msg.style.display='block';msg.style.color='#0d7a4e';msg.textContent='Saved.';}
+  const profession=(localStorage.getItem('sm_user_profession')||'').trim();
+  const country=(localStorage.getItem('sm_user_country')||'').trim();
+  const consent=(localStorage.getItem('sm_consent')||'yes')==='yes';
+  await smSaveUserToSupabase(email,name,profession,country,consent);
+  smUpdateNavLinks();
+  toggleProfileMenu();
+}
 function toggleProfileMenu(){
   const menu=document.getElementById('smProfileMenu');
   const email=localStorage.getItem('sm_user_email');
@@ -1019,6 +1072,8 @@ function toggleProfileMenu(){
   if(document.getElementById('smProfileCountryRow')) document.getElementById('smProfileCountryRow').textContent=localStorage.getItem('sm_user_country')||'Not provided';
   if(document.getElementById('smProfileSalaryRow')) document.getElementById('smProfileSalaryRow').textContent=(typeof isSalaryUnlocked==='function'&&isSalaryUnlocked())?'Filled':'Not filled';
   if(document.getElementById('smProfileNotifyRow')) document.getElementById('smProfileNotifyRow').textContent=(localStorage.getItem('sm_salary_notify')||'no')==='yes'?'Enabled':'Not enabled';
+  const panel=document.getElementById('smSettingsPanel');
+  if(panel) panel.style.display='none';
   if(menu) menu.style.display=menu.style.display==='none'?'block':'none';
 }
 document.addEventListener('click',function(e){
@@ -1028,7 +1083,7 @@ document.addEventListener('click',function(e){
 });
 function smSignOut(){
   if(!confirm('Sign out of SkillMapper?')) return;
-  ['sm_user_email','sm_user_name','sm_user_profession','sm_user_country','sm_salary_notify','sm_login_date','sm_consent','sm_sal_unlocked_until','tr_shared_email','tr_shared_name'].forEach(k=>localStorage.removeItem(k));
+  ['sm_user_email','sm_user_name','sm_user_profession','sm_user_country','sm_salary_notify','sm_salary_submitted_at','sm_login_date','sm_consent','sm_sal_unlocked_until','sm_known_user','tr_shared_email','tr_shared_name'].forEach(k=>localStorage.removeItem(k));
   document.getElementById('smProfileMenu').style.display='none';
   location.reload();
 }
@@ -1042,7 +1097,7 @@ function smSignOut(){
   <div class="suite-steps">
     <span class="suite-step active"><span class="suite-step-num">1</span>SkillMapper</span>
     <span class="suite-arrow">›</span>
-    <a class="suite-step" id="suiteNavTxr" href="https://talentxray.netlify.app"><span class="suite-step-num">2</span>TalentXRay</a>
+    <a class="suite-step" id="suiteNavTxr" href="https://talentxray.talentsradar.com/"><span class="suite-step-num">2</span>TalentXRay</a>
   </div>
   <div class="topbar-right">
     <span id="trialBadge" style="display:none!important;"></span>
@@ -1059,6 +1114,14 @@ function smSignOut(){
           <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;"><span style="color:#6b7280;">Country</span><strong id="smProfileCountryRow" style="color:#111827;"></strong></div>
           <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;"><span style="color:#6b7280;">Salary details</span><strong id="smProfileSalaryRow" style="color:#111827;"></strong></div>
           <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;"><span style="color:#6b7280;">Salary alerts</span><strong id="smProfileNotifyRow" style="color:#111827;"></strong></div>
+        </div>
+        <button onclick="smToggleSettings()" style="width:100%;padding:10px 16px;text-align:left;background:none;border:none;font-size:12.5px;color:#0f766e;cursor:pointer;border-bottom:1px solid #f3f4f6;font-family:var(--sans);font-weight:600;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='none'">Account settings</button>
+        <div id="smSettingsPanel" style="display:none;padding:10px 16px;border-bottom:1px solid #f3f4f6;background:#f8fafc;">
+          <label style="display:block;font-size:11px;color:#6b7280;font-weight:700;margin-bottom:5px;">Name</label>
+          <input id="smSettingsName" type="text" placeholder="Your name" style="width:100%;padding:8px 10px;border:1.5px solid #dbe2ea;border-radius:8px;font-size:12.5px;box-sizing:border-box;font-family:var(--sans);margin-bottom:8px;">
+          <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;margin-bottom:9px;"><span style="color:#6b7280;">Salary details</span><strong id="smSettingsSalaryStatus" style="color:#111827;">Not filled</strong></div>
+          <button onclick="smSaveSettings()" style="width:100%;padding:9px;background:#0f766e;color:#fff;border:none;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:var(--sans);">Save settings</button>
+          <div id="smSettingsMsg" style="display:none;margin-top:7px;font-size:11.5px;font-weight:600;"></div>
         </div>
         <button onclick="smSignOut()" style="width:100%;padding:11px 16px;text-align:left;background:none;border:none;font-size:13px;color:#6b7280;cursor:pointer;font-family:var(--sans);" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='none'">Sign out</button>
       </div>
@@ -1323,30 +1386,6 @@ function smSignOut(){
 <div class="toast" id="toast"></div>
 <script>
 
-/* ── Supabase session persistence ── */
-async function smSaveUserToSupabase(email,name,profession,country,consent){
-  if(!_sb||!email)return;
-  try{
-    const _payload={email,name:name||'',profession:profession||'',country:country||'',consent:consent?'yes':'no',last_login:new Date().toISOString()};
-    if(localStorage.getItem('sm_login_date'))_payload.login_date=new Date(parseInt(localStorage.getItem('sm_login_date'))).toISOString();
-    const r=await _sb.from('sm_users').upsert(_payload,{onConflict:'email'});
-    if(r.error)console.error('smSaveUser error:',JSON.stringify(r.error));
-  }catch(e){console.error('smSaveUser catch:',e.message||e);}
-}
-async function smRestoreSessionFromSupabase(email){
-  if(!_sb||!email)return false;
-  try{
-    const{data,error}=await _sb.from('sm_users').select('*').eq('email',email).single();
-    if(error||!data)return false;
-    if(data.name)localStorage.setItem('sm_user_name',data.name);
-    if(data.profession)localStorage.setItem('sm_user_profession',data.profession);
-    if(data.country)localStorage.setItem('sm_user_country',data.country);
-    if(data.login_date&&!localStorage.getItem('sm_login_date'))localStorage.setItem('sm_login_date',new Date(data.login_date).getTime().toString());
-    _sb.from('sm_users').update({last_login:new Date().toISOString()}).eq('email',email).then(()=>{}).catch(()=>{});
-    return true;
-  }catch(e){console.warn('smRestoreSession:',e);return false;}
-}
-
 /* ── Trial ── */
 
 /* ── Search analytics ── */
@@ -1455,7 +1494,7 @@ function getRoleActionHtml(title,altTitlesParam,allPassSkills){
     return`<a class="btn-search" href="${googleUrl}" target="_blank"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>${label}</a>`;
   }
   // HR / management / founders → TalentXRay tool (they need the full tool)
-  return`<a class="btn-search" href="https://talentxray.netlify.app?title=${titleParam}&alt=${altTitlesParam}&skills=${encodeURIComponent(allPassSkills.join(','))}&from=skillmapper${_auParam}" target="_blank"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Search professional</a>`;
+  return`<a class="btn-search" href="https://talentxray.talentsradar.com/?title=${titleParam}&alt=${altTitlesParam}&skills=${encodeURIComponent(allPassSkills.join(','))}&from=skillmapper${_auParam}" target="_blank"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Search professional</a>`;
 }
 function isSalaryPromptEligible(professionValue){
   const p=normalizeProfession(professionValue||localStorage.getItem('sm_user_profession'));
@@ -1499,26 +1538,8 @@ const CURRENCIES={INR:{label:'INR',prefix:'₹'},USD:{label:'USD',prefix:'$'}};
 function parseSalarySegments(raw){if(!raw)return{};const map={};raw.split('|').forEach(seg=>{seg=seg.trim();if(seg.startsWith('₹'))map['INR']=seg;else if(seg.startsWith('$'))map['USD']=seg;});return map;}
 let selectedCurrencies=['INR','USD'];
 function getSalaryDisplay(rawSal){if(!rawSal)return'';const segs=parseSalarySegments(rawSal);return selectedCurrencies.map(cur=>segs[cur]||'').filter(Boolean).join(' · ');}
-const SAL_UNLOCK_KEY='sm_sal_unlocked_until';
-const SAL_SALARY_YEAR_KEY='sm_sal_year';
 function _getJune30Ts(year){return new Date(year+'-06-30T23:59:59').getTime();}
 function _getCurrentSalaryYear(){const now=new Date();return now.getMonth()>=6?now.getFullYear()+1:now.getFullYear();}
-function isSalaryUnlocked(){
-  const until=parseInt(localStorage.getItem(SAL_UNLOCK_KEY)||'0');
-  if(until>Date.now())return true;
-  // Auto-show "salary changed?" prompt on July 1 if was previously unlocked
-  const yr=parseInt(localStorage.getItem(SAL_SALARY_YEAR_KEY)||'0');
-  const now=new Date();
-  if(yr>0&&yr<now.getFullYear()&&now.getMonth()>=6){
-    // Show update banner once per year
-    const bannerKey='sm_sal_update_banner_'+now.getFullYear();
-    if(!localStorage.getItem(bannerKey)){
-      localStorage.setItem(bannerKey,'shown');
-      setTimeout(function(){showSalaryUpdatePrompt();},2000);
-    }
-  }
-  return false;
-}
 function showSalaryUpdatePrompt(){
   const fp=document.getElementById('floatingPanda');
   if(fp)fp.style.display='block';
@@ -2572,9 +2593,18 @@ function closeSalaryContrib(){skipSalaryContrib();}
 function submitSalaryContrib(){
   const ctc=document.getElementById('salCtc').value.trim();const err=document.getElementById('salErr');if(!ctc){err.textContent='Please enter your CTC — even a rough number helps!';err.style.display='block';return;}err.style.display='none';
   const designation=document.getElementById('salRole').value.trim();const dept=document.getElementById('salDept').value;const subDeptSel=document.getElementById('salSubDept').value;const customDept=document.getElementById('salCustomDept')?.value.trim()||'';const subDeptOther=document.getElementById('salSubOther')?.value.trim()||'';const effectiveDept=dept==='Other'?(customDept||'Other'):dept;const subDept=(dept==='Other'||subDeptSel==='Other')?subDeptOther:subDeptSel;const yrs=document.getElementById('salYrs').value;const cur=document.getElementById('salCurrency').value;const country=document.getElementById('salCountry').value;const roleDesc=document.getElementById('salRoleDesc')?.value.trim()||'';const company=document.getElementById('salCompany')?.value.trim()||'';const notifyPref=document.getElementById('salNotifyChange')?.checked?'yes':'no';
+  const salarySubmittedAt=new Date().toISOString();
   localStorage.setItem('sm_salary_notify',notifyPref);
+  localStorage.setItem('sm_salary_submitted_at',salarySubmittedAt);
   try{fetch('/',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'form-name=salary-contrib&designation='+encodeURIComponent(designation)+'&dept='+encodeURIComponent(effectiveDept)+'&sub_dept='+encodeURIComponent(subDept)+'&experience='+encodeURIComponent(yrs)+'&ctc='+encodeURIComponent(ctc)+'&currency='+encodeURIComponent(cur)+'&country='+encodeURIComponent(country)+'&role_desc='+encodeURIComponent(roleDesc)+'&company='+encodeURIComponent(company)+'&notify_salary='+encodeURIComponent(notifyPref)+'&loc_detected='+encodeURIComponent(USER_LOCATION)});}catch(e){}
-  if(_sb){try{_sb.from('salary_contributions').insert({email:localStorage.getItem('sm_user_email')||'anonymous',designation,dept:effectiveDept,sub_dept:subDept,experience_range:yrs,ctc,currency:cur,country,company:company||null,role_desc:roleDesc||null,notify_salary:notifyPref,loc_detected:USER_LOCATION,created_at:new Date().toISOString()}).then(()=>{}).catch(()=>{});}catch(e){}}  document.getElementById('salContribModal').style.display='none';document.getElementById('floatingPanda').style.display='none';document.getElementById('salThanksModal').style.display='flex';
+  if(_sb){try{
+    const email=localStorage.getItem('sm_user_email')||'anonymous';
+    _sb.from('salary_contributions').insert({email,designation,dept:effectiveDept,sub_dept:subDept,experience_range:yrs,ctc,currency:cur,country,company:company||null,role_desc:roleDesc||null,notify_salary:notifyPref,loc_detected:USER_LOCATION,created_at:salarySubmittedAt}).then(()=>{}).catch(()=>{});
+    if(email!=='anonymous'){
+      _sb.from('sm_users').upsert({email,notify_salary:notifyPref,salary_submitted_at:salarySubmittedAt,last_login:new Date().toISOString()},{onConflict:'email'}).then(()=>{}).catch(()=>{});
+    }
+  }catch(e){}}
+  document.getElementById('salContribModal').style.display='none';document.getElementById('floatingPanda').style.display='none';document.getElementById('salThanksModal').style.display='flex';
   unlockSalary();if(_pendingSalBtn){applySelectLevel(_pendingSalBtn);_pendingSalBtn=null;}
   setTimeout(()=>{document.getElementById('salThanksModal').style.display='none';},3200);
 }
