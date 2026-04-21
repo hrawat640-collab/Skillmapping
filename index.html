@@ -860,6 +860,7 @@ async function smRestoreSessionFromSupabase(email){
 }
 window.smRestoreSessionFromSupabase = smRestoreSessionFromSupabase;
 
+(function(){
 window.addEventListener('load', function(){
     setTimeout(function(){
       if(isSalaryPromptEligible() && !isSalaryUnlocked()){
@@ -904,6 +905,7 @@ window.addEventListener('load', function(){
     smUpdateNavLinks();
     updateUserJourneyUi();
   }
+})();
 function smHandleGoogle(response){
   const payload=JSON.parse(atob(response.credential.split('.')[1]));
   const email=payload.email;
