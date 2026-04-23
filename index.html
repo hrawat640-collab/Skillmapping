@@ -848,6 +848,25 @@ function smApplyUserRowFromSupabase(data){
   if(data.profession) localStorage.setItem('sm_user_profession',data.profession);
   if(data.country) localStorage.setItem('sm_user_country',data.country);
 }
+async function smSyncSalaryStatusFromContributions(userId,email){
+  if(!_sb||(!userId&&!email)) return false;
+  const tables=['sm_salary_contribution','sm_salary_contributions','salary_contributions'];
+  for(const tbl of tables){
+    try{
+      let q=_sb.from(tbl).select('created_at').order('created_at',{ascending:false}).limit(1);
+      if(userId) q=q.eq('user_id',userId);
+      else q=q.eq('email',email);
+      const r=await q;
+      if(!r.error&&Array.isArray(r.data)&&r.data.length){
+        const ts=r.data[0].created_at||new Date().toISOString();
+        localStorage.setItem(SM_SALARY_SUBMITTED_AT_KEY,new Date(ts).toISOString());
+        return true;
+      }
+      if(r.error&&String(r.error.message||'').toLowerCase().includes('does not exist')) continue;
+    }catch(e){}
+  }
+  return false;
+}
 async function smSaveUserToSupabase(email,name,profession,country,consent){
   if(!_sb||!email)return;
   try{
@@ -863,6 +882,7 @@ async function smRestoreSessionFromSupabase(email){
     const{data,error}=await _sb.from('sm_users').select('*').eq('email',email).single();
     if(!error&&data){
       smApplyUserRowFromSupabase(data);
+      await smSyncSalaryStatusFromContributions(data.id||null,email);
       _sb.from('sm_users').update({last_login:new Date().toISOString()}).eq('email',email).then(()=>{}).catch(()=>{});
       return true;
     }
@@ -872,6 +892,7 @@ async function smRestoreSessionFromSupabase(email){
       localStorage.setItem('sm_known_user','yes');
       localStorage.removeItem(SM_USER_ID_KEY);
       if(legacy.data.name&&!localStorage.getItem('sm_user_name'))localStorage.setItem('sm_user_name',legacy.data.name);
+      await smSyncSalaryStatusFromContributions(null,email);
       return true;
     }
     return false;
@@ -2602,7 +2623,8 @@ function submitSalaryContrib(){
   try{fetch('/',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'form-name=salary-contrib&designation='+encodeURIComponent(designation)+'&dept='+encodeURIComponent(effectiveDept)+'&sub_dept='+encodeURIComponent(subDept)+'&experience='+encodeURIComponent(yrs)+'&ctc='+encodeURIComponent(ctc)+'&currency='+encodeURIComponent(cur)+'&country='+encodeURIComponent(country)+'&role_desc='+encodeURIComponent(roleDesc)+'&company='+encodeURIComponent(company)+'&notify_salary='+encodeURIComponent(notifyPref)+'&loc_detected='+encodeURIComponent(USER_LOCATION)});}catch(e){}
   if(_sb){try{
     const email=localStorage.getItem('sm_user_email')||'anonymous';
-    _sb.from('salary_contributions').insert({email,designation,dept:effectiveDept,sub_dept:subDept,experience_range:yrs,ctc,currency:cur,country,company:company||null,role_desc:roleDesc||null,notify_salary:notifyPref,loc_detected:USER_LOCATION,created_at:salarySubmittedAt}).then(()=>{}).catch(()=>{});
+    const userId=localStorage.getItem(SM_USER_ID_KEY)||null;
+    _sb.from('salary_contributions').insert({user_id:userId,email,designation,dept:effectiveDept,sub_dept:subDept,experience_range:yrs,ctc,currency:cur,country,company:company||null,role_desc:roleDesc||null,notify_salary:notifyPref,loc_detected:USER_LOCATION,created_at:salarySubmittedAt}).then(()=>{}).catch(()=>{});
     if(email!=='anonymous'){
       _sb.from('sm_users').upsert({email,notify_salary:notifyPref,salary_submitted_at:salarySubmittedAt,last_login:new Date().toISOString()},{onConflict:'email'}).then(()=>{}).catch(()=>{});
     }
