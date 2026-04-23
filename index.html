@@ -2322,7 +2322,11 @@ async function runSmartCvEvaluation(){
   const aiNarrative=score>=75?'Apply now — you should pass most first-level screening. Add quantified impact to improve interview conversion.':score>=50?'Credible profile; add exact tool names and measurable outcomes in each experience bullet.':'Treat this as a targeted rewrite: prioritize must-have skills, mirror JD wording, highlight one result per project.';
   const hasEmail=/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i.test(cvText);
   const cvNorm=cvText.toLowerCase().replace(/\s+/g,'');
-  const hasLinkedin=/linkedin\.com\/(in|pub|company)\//i.test(cvText)||cvNorm.includes('linkedin.com/in/')||cvNorm.includes('linkedin.com/');
+  const hasLinkedin=
+    /linkedin\.com\/(in|pub|company)\//i.test(cvText)||
+    cvNorm.includes('linkedin.com/in/')||
+    cvNorm.includes('linkedin.com/')||
+    /\blinked[\s-]?in\b/i.test(cvText);
   const hasMobile=/(\+?\d[\d\s().-]{8,}\d)/.test(cvText);
   const hasEducation=/(education|b\.tech|btech|b\.e|be|mba|m\.tech|mtech|bachelor|master|degree)/i.test(cvText);
   const hasCertificates=/(certificate|certification|certified)/i.test(cvText);
@@ -2342,9 +2346,8 @@ async function runSmartCvEvaluation(){
   },60);
   /* AI analysis — silent, non-blocking, appends extra pointers when ready */
   runGeminiCvAnalysis(cvText,role.title,missingReq,missingNice,jdSignals.keywords||[]).then(function(extraPoints){
-    if(!extraPoints||!extraPoints.length)return;
     const aiGrid=document.querySelector('.cv-ai-grid');
-    if(aiGrid){extraPoints.forEach(function(p){const div=document.createElement('div');div.className='cv-bullet-item';div.innerHTML='<div class="cv-bullet-dot teal"></div><span>'+escapeHtml(p)+'</span>';aiGrid.appendChild(div);});}
+    if(aiGrid&&extraPoints&&extraPoints.length){extraPoints.forEach(function(p){const div=document.createElement('div');div.className='cv-bullet-item';div.innerHTML='<div class="cv-bullet-dot teal"></div><span>'+escapeHtml(p)+'</span>';aiGrid.appendChild(div);});}
   });
   if(_sb)void _sb.from('cv_evaluations').insert({role_title:role.title,total_skills:(totalReq+totalNice),matched_skills:(matchedReq.length+matchedNice.length),missing_required:missingReq.length,missing_nice:missingNice.length,final_score:score,word_count:wordCount,user_years_exp:userYears||null}).then(()=>{}).catch(()=>{});
   setTimeout(()=>document.getElementById('cvResults').scrollIntoView({behavior:'smooth',block:'nearest'}),120);
