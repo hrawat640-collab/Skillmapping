@@ -1417,6 +1417,24 @@ function logSearch(mode,query,resultCount,noResult){
   if(!_sb)return;
   try{_sb.from('search_logs').insert({email:localStorage.getItem('sm_user_email')||'anonymous',mode,query:String(query||'').slice(0,500),result_count:resultCount||0,no_result:noResult||false,profession:localStorage.getItem('sm_user_profession')||'',country:localStorage.getItem('sm_user_country')||'',created_at:new Date().toISOString()}).then(r=>{if(r.error)console.error('logSearch:',r.error);}).catch(e=>console.error('logSearch catch:',e));}catch(e){console.error('logSearch outer:',e);}
 }
+function logNlSearchOutcome(sentence,status,resultCount,usedGemini){
+  if(!_sb)return;
+  const payload={
+    email:localStorage.getItem('sm_user_email')||'anonymous',
+    sentence:String(sentence||'').slice(0,1000),
+    status:status==='success'?'success':'failed',
+    result_count:resultCount||0,
+    used_gemini:!!usedGemini,
+    profession:localStorage.getItem('sm_user_profession')||'',
+    country:localStorage.getItem('sm_user_country')||'',
+    created_at:new Date().toISOString()
+  };
+  try{
+    _sb.from('nl_search_logs').insert(payload).then(function(res){
+      if(res&&res.error)console.warn('nl_search_logs insert:',res.error.message||res.error);
+    }).catch(function(){});
+  }catch(e){}
+}
 const TRIAL_DAYS = 30;
 function checkTrialExpiry(prefix){
   const email=localStorage.getItem((prefix?prefix+'_':'')+'user_email');
@@ -1749,20 +1767,107 @@ function interpretNL(query){
   else interpretation=`No strong match found — try rewording or use the Skills tab`;
   return{skills:extractedSkills.slice(0,10),roles:[...new Set(boostedRoles)],interpretation};
 }
-function runNL(){
+const NL_GEMINI_DAILY_LIMIT=200;
+const NL_GEMINI_GLOBAL_DAILY_LIMIT=200;
+const NL_GEMINI_LIMIT_DATE_KEY='sm_nl_gemini_limit_date';
+const NL_GEMINI_LIMIT_COUNT_KEY='sm_nl_gemini_limit_count';
+function canUseNlGemini(){
+  const today=(new Date()).toISOString().slice(0,10);
+  const saved=localStorage.getItem(NL_GEMINI_LIMIT_DATE_KEY);
+  if(saved!==today){
+    localStorage.setItem(NL_GEMINI_LIMIT_DATE_KEY,today);
+    localStorage.setItem(NL_GEMINI_LIMIT_COUNT_KEY,'0');
+    return true;
+  }
+  const count=parseInt(localStorage.getItem(NL_GEMINI_LIMIT_COUNT_KEY)||'0',10);
+  return count<NL_GEMINI_DAILY_LIMIT;
+}
+function consumeNlGeminiQuota(){
+  const today=(new Date()).toISOString().slice(0,10);
+  if(localStorage.getItem(NL_GEMINI_LIMIT_DATE_KEY)!==today){
+    localStorage.setItem(NL_GEMINI_LIMIT_DATE_KEY,today);
+    localStorage.setItem(NL_GEMINI_LIMIT_COUNT_KEY,'0');
+  }
+  const count=parseInt(localStorage.getItem(NL_GEMINI_LIMIT_COUNT_KEY)||'0',10);
+  localStorage.setItem(NL_GEMINI_LIMIT_COUNT_KEY,String(count+1));
+}
+async function tryConsumeNlGeminiQuota(){
+  if(_sb){
+    try{
+      const rpc=await _sb.rpc('consume_gemini_nl_quota',{p_limit:NL_GEMINI_GLOBAL_DAILY_LIMIT});
+      if(!rpc.error){
+        const row=Array.isArray(rpc.data)?rpc.data[0]:rpc.data;
+        if(row&&typeof row.allowed!=='undefined'){
+          return{allowed:!!row.allowed,global:true,used:parseInt(row.used_count||'0',10)};
+        }
+      }else{
+        console.warn('consume_gemini_nl_quota rpc:',rpc.error.message||rpc.error);
+      }
+    }catch(e){
+      console.warn('consume_gemini_nl_quota catch:',e.message||e);
+    }
+  }
+  // Fallback for environments where RPC/table is not deployed yet.
+  if(canUseNlGemini()){
+    consumeNlGeminiQuota();
+    return{allowed:true,global:false,used:parseInt(localStorage.getItem(NL_GEMINI_LIMIT_COUNT_KEY)||'0',10)};
+  }
+  return{allowed:false,global:false,used:parseInt(localStorage.getItem(NL_GEMINI_LIMIT_COUNT_KEY)||'0',10)};
+}
+async function runGeminiNlRoleSuggestion(query){
+  if(typeof GEMINI_KEY==='undefined'||!GEMINI_KEY)return null;
+  if(!ROLES||!ROLES.length)return null;
+  const roleCatalog=ROLES.slice(0,220).map(function(r){
+    const kws=[...(r.keywords||[]),...(r.required||[]),...(r.nice||[])].slice(0,8).join(', ');
+    return `- ${r.title} [${r.dept||'General'}] keywords: ${kws}`;
+  }).join('\n');
+  const prompt=`You are matching a hiring description to a fixed role database.\nDescription: "${query}"\n\nRole catalog:\n${roleCatalog}\n\nReturn STRICT JSON only:\n{"roles":["Role A","Role B","Role C"],"skills":["Skill 1","Skill 2","Skill 3"]}\nRules:\n- roles must be exact titles from role catalog only\n- max 3 roles, max 8 skills\n- prefer concrete tools/skills from the description`;
+  try{
+    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.2,maxOutputTokens:400}})
+    });
+    if(!res.ok)throw new Error('Gemini HTTP '+res.status);
+    const data=await res.json();
+    const text=(data.candidates?.[0]?.content?.parts?.[0]?.text||'').trim();
+    const clean=text.replace(/```json|```/g,'').trim();
+    const parsed=JSON.parse(clean);
+    const titleSet=new Set((ROLES||[]).map(function(r){return String(r.title||'').toLowerCase();}));
+    const roles=(Array.isArray(parsed.roles)?parsed.roles:[]).map(function(t){return String(t||'').trim();}).filter(function(t){return titleSet.has(t.toLowerCase());}).slice(0,3);
+    const skills=(Array.isArray(parsed.skills)?parsed.skills:[]).map(function(s){return String(s||'').trim();}).filter(Boolean).slice(0,8);
+    return{roles,skills};
+  }catch(e){
+    console.warn('Gemini NL fallback:',e.message||e);
+    return null;
+  }
+}
+async function runNL(){
   const query=document.getElementById('nlInput').value.trim();if(!query){document.getElementById('nlInput').focus();return;}
   const nudge=document.getElementById('nudgeBanner');nudge.classList.remove('show');
-  const extracted=extractSkillsFromText(query);const nlResult=interpretNL(query);const roleBoosts=nlResult.roles||[];
-  const mergedSkills=[...new Set([...extracted,...nlResult.skills])];
-  if(!mergedSkills.length){document.getElementById('nudgeText').textContent=`No skills or roles matched. Try mentioning specific tools — e.g. "someone who knows Salesforce and Excel".`;logSearch('nl',query,0,true);nudge.classList.add('show');return;}
+  const extracted=extractSkillsFromText(query);const nlResult=interpretNL(query);let roleBoosts=nlResult.roles||[];
+  let geminiNlUsed=false;
+  let geminiRoles=[],geminiSkills=[];
+  const quota=await tryConsumeNlGeminiQuota();
+  if(quota.allowed){
+    const aiResult=await runGeminiNlRoleSuggestion(query);
+    if(aiResult){
+      geminiNlUsed=true;
+      geminiRoles=aiResult.roles||[];
+      geminiSkills=aiResult.skills||[];
+    }
+  }
+  roleBoosts=[...new Set([...(roleBoosts||[]),...(geminiRoles||[])])];
+  const mergedSkills=[...new Set([...extracted,...nlResult.skills,...geminiSkills])];
+  if(!mergedSkills.length){document.getElementById('nudgeText').textContent=`No skills or roles matched. Try mentioning specific tools — e.g. "someone who knows Salesforce and Excel".`;logSearch('nl',query,0,true);logNlSearchOutcome(query,'failed',0,geminiNlUsed);nudge.classList.add('show');return;}
   const testRoles=ROLES.map(r=>scoreRole(r,mergedSkills)).filter(Boolean);
-  if(!testRoles.length){document.getElementById('nudgeText').textContent=`We found skills but no matching role. Try adding more context.`;logSearch('nl',query,0,true);nudge.classList.add('show');return;}
+  if(!testRoles.length){document.getElementById('nudgeText').textContent=`We found skills but no matching role. Try adding more context.`;logSearch('nl',query,0,true);logNlSearchOutcome(query,'failed',0,geminiNlUsed);nudge.classList.add('show');return;}
   nudge.classList.remove('show');document.getElementById('aiBanner').classList.remove('show');document.getElementById('deptFilter').style.display='none';const _cb=document.getElementById('currencyBar');if(_cb)_cb.style.display='none';
   skills=mergedSkills;activeDept='all';window._aiTopRoles=roleBoosts.map(r=>r.toLowerCase());renderBubbles();
   const banner=document.getElementById('aiBanner');
   const skillNames=mergedSkills.slice(0,5).join(', ')+(mergedSkills.length>5?` +${mergedSkills.length-5} more`:'');
-  document.getElementById('aiBannerText').innerHTML=`Matched skills: <strong>${skillNames}</strong>${roleBoosts.length?` · Boosting: ${roleBoosts.slice(0,2).join(', ')}`:''}`;
-  banner.classList.add('show');document.getElementById('skillCountLbl').textContent=skills.length?`${skills.length} skills found`:'';logSearch('nl',query,ROLES.map(r=>scoreRole(r,mergedSkills)).filter(Boolean).length,false);render();
+  document.getElementById('aiBannerText').innerHTML=`Matched skills: <strong>${skillNames}</strong>${roleBoosts.length?` · Boosting: ${roleBoosts.slice(0,2).join(', ')}`:''}${geminiNlUsed?' · <strong>AI assisted</strong>':''}`;
+  banner.classList.add('show');document.getElementById('skillCountLbl').textContent=skills.length?`${skills.length} skills found`:'';const _nlCount=ROLES.map(r=>scoreRole(r,mergedSkills)).filter(Boolean).length;logSearch('nl',query,_nlCount,false);logNlSearchOutcome(query,'success',_nlCount,geminiNlUsed);render();
 }
 
 /* ══ Skill extraction ══ */
@@ -2017,7 +2122,7 @@ async function runGeminiCvAnalysis(cvText,roleTitle,missingReq,missingNice,jdKey
 
 /* ══ buildCvResultHtml ══ */
 function buildCvResultHtml(data){
-  const{role,targetLevel,overallPct,reqCoveragePct,expFit,atsScore,matchedReq,missingReq,matchedNice,missingNice,totalReq,totalNice,positivePointers,marketPointers,aiRecruiterPointers,atsFlags,jdSignals,levelAligned,levelByYears,cvTip,geminiPoints}=data;
+  const{role,targetLevel,overallPct,reqCoveragePct,expFit,atsScore,matchedReq,missingReq,matchedNice,missingNice,totalReq,totalNice,positivePointers,marketPointers,aiRecruiterPointers,atsFlags,jdSignals,levelAligned,levelByYears,cvTip,geminiPoints,suggestedRoles}=data;
   const verdict=overallPct>=75?{cls:'ready',label:'Interview Ready',icon:'M3 8l4 4 6-6'}:overallPct>=50?{cls:'close',label:'Close to Ready',icon:'M8 5v3.5l2 2M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2z'}:{cls:'needs-work',label:'Needs Upskilling',icon:'M8 2L14.9 14H1.1L8 2zM8 7v3M8 11.5v.5'};
   const mc=p=>p>=75?'#14b8a6':p>=50?'#0d9488':'#f59e0b';
   const mustPct=totalReq?Math.round((matchedReq.length/totalReq)*100):100;const nicePct=totalNice?Math.round((matchedNice.length/totalNice)*100):100;
@@ -2048,6 +2153,29 @@ function buildCvResultHtml(data){
   const allAiPoints=[...aiRecruiterPointers,...(geminiPoints||[])];
   const aiHtml=allAiPoints.map(p=>`<div class="cv-bullet-item"><div class="cv-bullet-dot teal"></div><span>${escapeHtml(p)}</span></div>`).join('');
   const atsFlagsHtml=atsFlags.length?atsFlags.map(f=>`<div class="cv-ats-flag ${f.sev}">${f.sev==='high'?iWarn:iInfo}<span>${escapeHtml(f.msg)}</span></div>`).join(''):`<div class="cv-ats-flag low">${iCheck}<span style="color:var(--cv-green);">No ATS formatting issues detected.</span></div>`;
+  const suggestedRolesHtml=(suggestedRoles&&suggestedRoles.length)?`<div class="cv-section-card">
+    <div class="cv-section-header"><div class="cv-section-icon teal">${iSearch}</div><span class="cv-section-title">Other Roles You Can Apply For</span><span class="cv-section-badge" style="background:var(--cv-teal-lt-cv);color:var(--cv-teal-cv);">${suggestedRoles.length} suggestions</span></div>
+    <div class="cv-section-body">
+      <div style="font-size:12px;color:var(--cv-ink3-cv);margin-bottom:10px;">Based on CV keyword overlap with role keywords from SkillMapper database.</div>
+      <div style="display:grid;grid-template-columns:1fr;gap:10px;">
+        ${suggestedRoles.map(function(item){
+          const pct=Math.max(0,Math.min(100,parseInt(item.matchPct||0,10)));
+          const barColor='var(--cv-green)';
+          const safeTitle=String(item.title||'').replace(/'/g,"\\'");
+          return `<div onclick="openSuggestedRoleInTitleMode('${safeTitle}')" style="border:1px solid #E2E8F0;border-radius:10px;padding:10px 12px;background:#fff;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor='#10b981';this.style.boxShadow='0 2px 10px rgba(5,150,105,0.12)'" onmouseout="this.style.borderColor='#E2E8F0';this.style.boxShadow='none'">
+            <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:6px;">
+              <div style="font-size:13px;font-weight:700;color:var(--cv-ink-cv);">${escapeHtml(item.title||'')}</div>
+              <div style="font-size:12px;font-weight:800;color:${barColor};">${pct}% match</div>
+            </div>
+            <div style="height:6px;background:#EEF2F7;border-radius:999px;overflow:hidden;margin-bottom:7px;">
+              <div style="height:100%;width:${pct}%;background:${barColor};"></div>
+            </div>
+            <div style="font-size:11.5px;color:var(--cv-ink3-cv);">${escapeHtml(item.matchCount||0)} / ${escapeHtml(item.keywordCount||0)} role keywords matched</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  </div>`:'';
   const C=2*Math.PI*45;
 
   return`<div class="cv-results-wrap">
@@ -2105,7 +2233,41 @@ function buildCvResultHtml(data){
       <button onclick="resetCvEvaluator()" class="cv-action-btn ghost">&#x21A9; New evaluation</button>
     </div>
   </div>
+  ${suggestedRolesHtml}
 </div>`;
+}
+
+function getCvSuggestedRoles(cvLower, selectedRoleTitle){
+  const out=[];
+  (ROLES||[]).forEach(function(r){
+    const title=String((r&&r.title)||'').trim();
+    if(!title) return;
+    if(String(selectedRoleTitle||'').toLowerCase()===title.toLowerCase()) return;
+    const roleKeywords=[...(r.required||[]),...(r.nice||[]),...(r.keywords||[])].map(function(k){return String(k||'').trim();}).filter(function(k){return k&&k.length>1;});
+    const uniqKeywords=[...new Set(roleKeywords.map(function(k){return k.toLowerCase();}))];
+    if(!uniqKeywords.length) return;
+    const matched=uniqKeywords.filter(function(k){return smartSkillMatch(k,cvLower);});
+    const pct=Math.round((matched.length/uniqKeywords.length)*100);
+    if(matched.length<4||pct<20) return;
+    out.push({title:title,matchPct:pct,matchCount:matched.length,keywordCount:uniqKeywords.length});
+  });
+  out.sort(function(a,b){return b.matchPct-a.matchPct||b.matchCount-a.matchCount||a.title.localeCompare(b.title);});
+  return out.slice(0,8);
+}
+function openSuggestedRoleInTitleMode(roleTitle){
+  const title=String(roleTitle||'').trim();
+  if(!title) return;
+  const toolTab=document.querySelector(".tab-btn[onclick*=\"switchTab('tool'\"]");
+  if(toolTab) switchTab('tool',toolTab);
+  const titleTab=document.getElementById('modeTabTitle')||document.querySelector('.mode-tab[onclick*="switchMode(\'title\'"]');
+  if(titleTab) switchMode('title',titleTab);
+  selectedTitleModeRoles=[];
+  renderSelectedTitleChips();
+  const allSuggested=(window._cvSuggestedRoleTitles||[]).map(function(t){return String(t||'').trim();}).filter(Boolean);
+  const ordered=[title].concat(allSuggested.filter(function(t){return t.toLowerCase()!==title.toLowerCase();}));
+  const toLoad=[...new Set(ordered.map(function(t){return t.toLowerCase();}))].map(function(lc){return ordered.find(function(t){return t.toLowerCase()===lc;});}).filter(Boolean).slice(0,3);
+  toLoad.forEach(function(t){toggleTitleMode(t,t);});
+  runTitleMode();
 }
 
 /* ══ runSmartCvEvaluation ══ */
@@ -2146,6 +2308,8 @@ async function runSmartCvEvaluation(){
   const marketSummary=mustHaveCoveragePct>=80?'Your CV covers most must-have skills commonly listed in live job descriptions for this role.':mustHaveCoveragePct>=55?'Your CV is in the competitive band, but stronger keyword depth can improve shortlist rate.':'Compared with current role expectations, your CV is missing multiple baseline keywords recruiters screen for first.';
   document.getElementById('cvLoadingText').textContent='Checking JD library…';
   const jdSignals=await fetchSupabaseJdSignals(role.title,targetLevel,role,cvLower);
+  const suggestedRoles=getCvSuggestedRoles(cvLower, role.title);
+  window._cvSuggestedRoleTitles=(suggestedRoles||[]).map(function(r){return r.title;});
   const atsScore=Math.max(40,100-Math.min(60,atsFlags.length*12));
   const levelAligned=targetLevel===levelByYears;
   let expWarning=false;
@@ -2167,9 +2331,9 @@ async function runSmartCvEvaluation(){
   const marketPointers=[marketSummary,...(jdSignals.sources?[`Compared against ${jdSignals.sources} JDs. JD keyword coverage: ${jdSignals.coveragePct}% (${jdSignals.totalKeywords} keywords).`]:[]),...((jdSignals.keywords||[]).length?[`Top JD keywords missing: ${jdSignals.keywords.slice(0,5).map(k=>k.skill).join(', ')}.`]:(jdSignals.sources?['Your CV already covers major repeated JD keywords.']:[])),missingReq.length?`Must-have skills to add: ${missingReq.join(', ')}.`:'All must-have skills found.',missingNice.length?`Good-to-have skills to strengthen profile: ${missingNice.slice(0,4).join(', ')}.`:'Nice-to-have coverage is in a good range.'];
   const aiRecruiterPointers=[aiNarrative,levelIndustryTips[targetLevel]||levelIndustryTips['Entry Level'],...(!hasEmail?['Add a professional email at the top of your CV.']:[]),...(!hasLinkedin?['Add your LinkedIn profile URL.']:[]),...(!hasMobile?['Add a reachable mobile number.']:[]),...(!hasEducation?['Add education details with degree and year.']:[]),...(!hasCertificates?['Add relevant certifications if you hold any.']:[]),...(!hasImpactNumbers?['Add measurable impact: %, counts, revenue, team size.']:[]),...(atsFlags.filter(f=>f.sev==='high'||f.sev==='medium').slice(0,2).map(f=>f.msg))];
   document.getElementById('cvLoadingState').classList.remove('show');
-  cvLastReport={role:role.title,targetLevel,overall:score,skills:reqCoveragePct,exp:expFit,ats:atsScore,looksGood:positivePointers,marketInsights:marketPointers,aiPointers:aiRecruiterPointers,matchedReqCount:matchedReq.length,totalReqCount:totalReq,matchedNiceCount:matchedNice.length,totalNiceCount:totalNice,missingReq,missingNice,missing:[...missingReq,...missingNice],cvTip:role.cvTip||''};
+  cvLastReport={role:role.title,targetLevel,overall:score,skills:reqCoveragePct,exp:expFit,ats:atsScore,looksGood:positivePointers,marketInsights:marketPointers,aiPointers:aiRecruiterPointers,matchedReqCount:matchedReq.length,totalReqCount:totalReq,matchedNiceCount:matchedNice.length,totalNiceCount:totalNice,missingReq,missingNice,missing:[...missingReq,...missingNice],cvTip:role.cvTip||'',suggestedRoles:suggestedRoles};
   window._cvLastMissingSkills=[...missingReq,...missingNice];
-  document.getElementById('cvResults').innerHTML=buildCvResultHtml({role:role.title,targetLevel,overallPct:score,reqCoveragePct,expFit,atsScore,matchedReq,missingReq,matchedNice,missingNice,totalReq,totalNice,positivePointers,marketPointers,aiRecruiterPointers,atsFlags,jdSignals,levelAligned,levelByYears,cvTip:role.cvTip||'',geminiPoints:[]});
+  document.getElementById('cvResults').innerHTML=buildCvResultHtml({role:role.title,targetLevel,overallPct:score,reqCoveragePct,expFit,atsScore,matchedReq,missingReq,matchedNice,missingNice,totalReq,totalNice,positivePointers,marketPointers,aiRecruiterPointers,atsFlags,jdSignals,levelAligned,levelByYears,cvTip:role.cvTip||'',geminiPoints:[],suggestedRoles:suggestedRoles});
   /* Animate ring */
   setTimeout(()=>{
     const ring=document.getElementById('cvRingFill');const numEl=document.getElementById('cvScoreAnimNum');
