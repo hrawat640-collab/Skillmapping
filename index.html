@@ -1353,12 +1353,14 @@ function _onLoginSuccess(isNewUser){
     if(hasProfile && isKnown){ _onLoginSuccess(false); return; }
     const exists = await smShouldAutoLoginReturningUser(storedEmail).catch(function(){ return false; });
     if(exists){ _onLoginSuccess(false); return; }
-    // Release lock: if a session email exists, trust local session and auto-enter.
-    // Login prompt should appear only after explicit sign-out clears local session.
-    _onLoginSuccess(false);
+    // New/unknown user must complete profile details first.
+    openSmProfileStep(storedEmail, profile.name || '');
   }).catch(function(){
-    // On restore errors, still auto-enter when session email exists.
-    _onLoginSuccess(false);
+    const profile  = getSmProfile();
+    const hasLocal = !!(profile.profession && profile.country && profile.name);
+    const isKnown  = localStorage.getItem('sm_known_user') === 'yes';
+    if(hasLocal && isKnown) _onLoginSuccess(false);
+    else openSmProfileStep(storedEmail, profile.name || '');
   });
 })();
 
@@ -1391,20 +1393,10 @@ function smHandleGoogle(response){
       }
     }catch(e){}
     const exists = await smShouldAutoLoginReturningUser(email).catch(function(){ return false; });
-    if(exists){
-      _onLoginSuccess(false);
-    } else {
-      // Existing users can be missed here due transient/network/RLS edge-cases.
-      // Do not block Google success behind profile form.
-      localStorage.setItem('sm_known_user','yes');
-      smSaveUserToSupabase(email, profile.name || payload.name || '', profile.profession || '', profile.country || '', true);
-      _onLoginSuccess(false);
-    }
+    if(exists){ _onLoginSuccess(false); }
+    else{ openSmProfileStep(email, payload.name || profile.name || ''); }
   }).catch(function(){
-    // Fallback: complete Google login without forcing profile details.
-    localStorage.setItem('sm_known_user','yes');
-    smSaveUserToSupabase(email, localStorage.getItem('sm_user_name') || payload.name || '', localStorage.getItem('sm_user_profession') || '', localStorage.getItem('sm_user_country') || '', true);
-    _onLoginSuccess(false);
+    openSmProfileStep(email, payload.name || '');
   });
 }
 
