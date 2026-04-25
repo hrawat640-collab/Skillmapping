@@ -1087,7 +1087,7 @@ async function smFetchSmUsersRowByEmail(em0){
     const fetchByEmail=async function(emailValue){
       const base=await sb.from(SM_USER_TABLE).select('id,email').eq('email',emailValue).maybeSingle();
       if(base.data&&!base.error){
-        const full=await sb.from(SM_USER_TABLE).select('id,email,name,profession,country,notify_salary,salary_country,salary_currency,salary_submitted_at,login_date,last_login').eq('email',base.data.email||emailValue).limit(1);
+        const full=await sb.from(SM_USER_TABLE).select('id,email,name,profession,country,notify_salary,salary_submitted_at,login_date,last_login').eq('email',base.data.email||emailValue).limit(1);
         if(!full.error&&Array.isArray(full.data)&&full.data.length) return full.data[0];
         return base.data;
       }
