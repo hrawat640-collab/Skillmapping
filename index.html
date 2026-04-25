@@ -27,6 +27,31 @@
     : null;
 })();
 var _sb = window._sb;
+function smEnsureSupabaseClient(){
+  if(_sb) return _sb;
+  if(window._sb){ _sb = window._sb; return _sb; }
+  try{
+    var cfg = window.__SKILLMAPPER_SUPABASE__ || {};
+    var url = (cfg.url || '').trim();
+    var key = (cfg.anonKey || '').trim();
+    if(url && key && typeof supabase !== 'undefined'){
+      _sb = supabase.createClient(url, key);
+      window._sb = _sb;
+      return _sb;
+    }
+  }catch(e){}
+  return null;
+}
+async function smWaitForSupabaseClient(waitMs){
+  var maxMs = typeof waitMs === 'number' ? waitMs : 1200;
+  var start = Date.now();
+  while(Date.now() - start < maxMs){
+    var sb = smEnsureSupabaseClient();
+    if(sb) return sb;
+    await new Promise(function(resolve){ setTimeout(resolve, 120); });
+  }
+  return smEnsureSupabaseClient();
+}
 var GOOGLE_CSE_KEY = (window.__SKILLMAPPER_GOOGLE__ && window.__SKILLMAPPER_GOOGLE__.cseKey) || '';
 var GOOGLE_CSE_ID  = (window.__SKILLMAPPER_GOOGLE__ && window.__SKILLMAPPER_GOOGLE__.cseId) || '';
 var DB_ROLES  = [];
@@ -1051,27 +1076,46 @@ async function smSaveUserToSupabase(email,name,profession,country,consent){
   }catch(e){console.error('smSaveUser catch:',e.message||e);}
 }
 async function smFetchSmUsersRowByEmail(em0){
-  if(!_sb||!em0)return null;
+  const sb=smEnsureSupabaseClient();
+  if(!sb||!em0)return null;
   const s=String(em0).trim();
   if(!s)return null;
   try{
+    const fetchByEmail=async function(emailValue){
+      const base=await sb.from(SM_USER_TABLE).select('id,email').eq('email',emailValue).maybeSingle();
+      if(base.data&&!base.error){
+        const full=await sb.from(SM_USER_TABLE).select('id,email,name,profession,country,notify_salary,salary_submitted_at,login_date,last_login').eq('email',base.data.email||emailValue).limit(1);
+        if(!full.error&&Array.isArray(full.data)&&full.data.length) return full.data[0];
+        return base.data;
+      }
+      return null;
+    };
     const lo=s.toLowerCase();
-    const a=await _sb.from(SM_USER_TABLE).select('*').eq('email',s).maybeSingle();
-    if(a.data&&!a.error)return a.data;
+    const a=await fetchByEmail(s);
+    if(a) return a;
     if(lo!==s){
-      const b=await _sb.from(SM_USER_TABLE).select('*').eq('email',lo).maybeSingle();
-      if(b.data&&!b.error)return b.data;
+      const b=await fetchByEmail(lo);
+      if(b) return b;
     }
-    const c=await _sb.from(SM_USER_TABLE).select('*').in('email',[s,lo]).limit(1);
-    if(!c.error&&c.data&&c.data.length)return c.data[0];
-    const d=await _sb.from(SM_USER_TABLE).select('*').ilike('email',s).limit(1);
-    if(!d.error&&d.data&&d.data.length)return d.data[0];
+    const c=await sb.from(SM_USER_TABLE).select('id,email').in('email',[s,lo]).limit(1);
+    if(!c.error&&c.data&&c.data.length){
+      const em=String(c.data[0].email||s);
+      const f=await fetchByEmail(em);
+      return f||c.data[0];
+    }
+    const d=await sb.from(SM_USER_TABLE).select('id,email').ilike('email',s).limit(1);
+    if(!d.error&&d.data&&d.data.length){
+      const em=String(d.data[0].email||s);
+      const f=await fetchByEmail(em);
+      return f||d.data[0];
+    }
   }catch(e){}
   return null;
 }
 /** Rich restore for auth flows: found + profile; also hydrates localStorage and unlock state from sm_users + contributions. */
 async function _smRestoreInternal(email){
-  if(!_sb||!email) return { found:false, profile:null };
+  const sb=smEnsureSupabaseClient();
+  if(!sb||!email) return { found:false, profile:null };
   const em0=String(email).trim();
   if(!em0) return { found:false, profile:null };
   try{
@@ -1084,12 +1128,12 @@ async function _smRestoreInternal(email){
       localStorage.setItem('tr_shared_email',rowEmail);
       await smSyncSalaryStatusFromContributions(rowEmail);
       await smHydrateSalaryPrefsFromContributions(rowEmail);
-      _sb.from(SM_USER_TABLE).update({last_login:new Date().toISOString()}).eq('email',rowEmail).then(()=>{}).catch(()=>{});
+      sb.from(SM_USER_TABLE).update({last_login:new Date().toISOString()}).eq('email',rowEmail).then(()=>{}).catch(()=>{});
       return { found:true, profile:data };
     }
-    let leg=await _sb.from('txr_user').select('email,name').eq('email',em0).maybeSingle();
+    let leg=await sb.from('txr_user').select('email,name').eq('email',em0).maybeSingle();
     if((leg.error||!leg.data)&&em0.toLowerCase()!==em0)
-      leg=await _sb.from('txr_user').select('email,name').eq('email',em0.toLowerCase()).maybeSingle();
+      leg=await sb.from('txr_user').select('email,name').eq('email',em0.toLowerCase()).maybeSingle();
     if(leg.data&&!leg.error){
       const le=String(leg.data.email||em0);
       smMarkSeenUser(le);
@@ -1121,15 +1165,16 @@ async function smRestoreSessionFromSupabase(email){
 }
 /** True if this email already has a record in sm_users or legacy txr_user (returning / active user, not a first-time registration). */
 async function smUserExistsInSupabase(email){
-  if(!_sb||!email)return false;
+  const sb=smEnsureSupabaseClient();
+  if(!sb||!email)return false;
   const em=String(email).trim();
   if(!em)return false;
   try{
     if(await smFetchSmUsersRowByEmail(em))return true;
-    const b=await _sb.from('txr_user').select('email').eq('email',em).maybeSingle();
+    const b=await sb.from('txr_user').select('email').eq('email',em).maybeSingle();
     if(b && b.data && !b.error && b.data.email)return true;
     if(em.toLowerCase()!==em){
-      const c=await _sb.from('txr_user').select('email').eq('email',em.toLowerCase()).maybeSingle();
+      const c=await sb.from('txr_user').select('email').eq('email',em.toLowerCase()).maybeSingle();
       if(c && c.data && !c.error && c.data.email)return true;
     }
   }catch(e){}
@@ -1139,6 +1184,7 @@ async function smShouldAutoLoginReturningUser(email){
   const em=String(email||'').trim();
   if(!em) return false;
   try{
+    await smWaitForSupabaseClient(1400);
     if(await smUserExistsInSupabase(em)) return true;
   }catch(e){}
   return false;
@@ -1250,7 +1296,9 @@ function _onLoginSuccess(isNewUser){
     openSmLoginModal();
     return;
   }
-  _smRestoreInternal(storedEmail).then(function(result){
+  smWaitForSupabaseClient(1400).then(function(){
+    return _smRestoreInternal(storedEmail);
+  }).then(function(result){
     const profile    = getSmProfile();
     const hasProfile = !!(profile.profession && profile.country && profile.name);
     const isKnown    = localStorage.getItem('sm_known_user') === 'yes';
@@ -1283,7 +1331,9 @@ function smHandleGoogle(response){
   localStorage.setItem('tr_shared_email', email);
   if(!localStorage.getItem('sm_login_date'))
     localStorage.setItem('sm_login_date', Date.now().toString());
-  _smRestoreInternal(email).then(function(result){
+  smWaitForSupabaseClient(1400).then(function(){
+    return _smRestoreInternal(email);
+  }).then(function(result){
     const profile    = getSmProfile();
     const hasProfile = !!(profile.profession && profile.country && profile.name);
     if(result.found){
@@ -1317,7 +1367,9 @@ function smStartEmailAuth(mode){
     return;
   }
   err.style.display = 'none';
-  _smRestoreInternal(val).then(function(result){
+  smWaitForSupabaseClient(1400).then(function(){
+    return _smRestoreInternal(val);
+  }).then(function(result){
     const profile    = getSmProfile();
     const hasProfile = !!(profile.profession && profile.country && profile.name);
     localStorage.setItem('sm_user_email',   val);
