@@ -1157,6 +1157,21 @@ async function smFetchSmUsersRowByEmail(em0){
   }catch(e){}
   return null;
 }
+async function smGetCanonicalUserUuid(emailOpt){
+  const localUuid=String(localStorage.getItem(SM_USER_UUID_KEY)||'').trim();
+  if(localUuid) return localUuid;
+  const em=String(emailOpt||localStorage.getItem('sm_user_email')||'').trim();
+  if(!em) return '';
+  try{
+    const row=await smFetchSmUsersRowByEmail(em);
+    const uuid=String((row&&row.user_uuid)||'').trim();
+    if(uuid){
+      localStorage.setItem(SM_USER_UUID_KEY,uuid);
+      return uuid;
+    }
+  }catch(e){}
+  return '';
+}
 /** Rich restore for auth flows: found + profile; also hydrates localStorage and unlock state from sm_users + contributions. */
 async function _smRestoreInternal(email){
   const sb=smEnsureSupabaseClient();
@@ -3976,10 +3991,15 @@ async function submitSalaryContrib(){
   if(_sb){try{
     const email=localStorage.getItem('sm_user_email')||'anonymous';
     const authUid=await smGetSupabaseAuthUid();
-    const userUuid=(localStorage.getItem(SM_USER_UUID_KEY)||smEnsureLocalUserUuid()||'').trim();
+    const userUuid=await smGetCanonicalUserUuid(email);
     const row={email,designation,dept:effectiveDept,sub_dept:subDept,experience_range:yrs,ctc,currency:cur,country,company:company||null,role_desc:roleDesc||null,notify_salary:notifyPref,loc_detected:USER_LOCATION,created_at:salarySubmittedAt};
     if(authUid)row.user_id=authUid;
     if(userUuid)row.user_uuid=userUuid;
+    if(!userUuid){
+      err.textContent='Could not map your account ID. Please sign out and sign in once, then try again.';
+      err.style.display='block';
+      return;
+    }
     const ins=await smInsertSalaryContributionRow(row);
     if(!ins.ok){
       localStorage.removeItem('sm_salary_submitted_at');
