@@ -802,8 +802,15 @@ function isSalaryPromptEligible(professionValue){
   const p = normalizeProfession(professionValue || localStorage.getItem('sm_user_profession'));
   return p === 'working professional' || p === 'hr' || p === 'management/founder';
 }
+function smShouldShowSalaryRobot(){
+  const hasEmail=!!(localStorage.getItem('sm_user_email')||'').trim();
+  return hasEmail
+    && isSalaryPromptEligible()
+    && typeof isSalaryUnlocked==='function'
+    && !isSalaryUnlocked();
+}
 function smMaybeShowSalaryPrompt(profession){
-  if(isSalaryPromptEligible(profession) && typeof isSalaryUnlocked==='function' && !isSalaryUnlocked()){
+  if(smShouldShowSalaryRobot()){
     const fp = document.getElementById('floatingPanda');
     if(fp) fp.style.display = 'block';
   }
@@ -885,7 +892,7 @@ function smRefreshSalaryGatingFromSession(delayMs){
   const go=function(){
     const fp=document.getElementById('floatingPanda');
     if(!fp) return;
-    if(typeof isSalaryPromptEligible==='function'&&isSalaryPromptEligible()&&typeof isSalaryUnlocked==='function'&&!isSalaryUnlocked())fp.style.display='block';
+    if(smShouldShowSalaryRobot())fp.style.display='block';
     else fp.style.display='none';
   };
   if(typeof delayMs==='number'&&delayMs>0)setTimeout(go,delayMs);
@@ -893,7 +900,7 @@ function smRefreshSalaryGatingFromSession(delayMs){
   if(!window._smFloatRobotNudgeId&&typeof isSalaryPromptEligible==='function'&&typeof isSalaryUnlocked==='function'){
     window._smFloatRobotNudgeId=setInterval(function(){
       var m=document.getElementById('salContribModal');if(m&&m.style.display==='flex')return;
-      if(!isSalaryPromptEligible()||isSalaryUnlocked())return;
+      if(!smShouldShowSalaryRobot())return;
       if(typeof ensureFloatingRobotVisible==='function'){ensureFloatingRobotVisible();}else{var fp0=document.getElementById('floatingPanda');if(fp0)fp0.style.display='block';}
       var fp2=document.getElementById('floatingPanda');
       if(fp2&&fp2.style.display!=='none'&&fp2.firstElementChild){fp2.firstElementChild.classList.remove('sm-robot-bump');void fp2.offsetWidth;fp2.firstElementChild.classList.add('sm-robot-bump');setTimeout(function(){if(fp2&&fp2.firstElementChild)fp2.firstElementChild.classList.remove('sm-robot-bump');},800);}
@@ -1282,7 +1289,7 @@ function _onLoginSuccess(isNewUser){
     setTimeout(function(){
       if(typeof isSalaryPromptEligible==='function' &&
           typeof isSalaryUnlocked==='function' &&
-          isSalaryPromptEligible() && !isSalaryUnlocked()){
+          smShouldShowSalaryRobot()){
         const fp = document.getElementById('floatingPanda');
         if(fp) fp.style.display = 'block';
       }
@@ -2763,7 +2770,7 @@ function render(){
   area.innerHTML=`<div class="results-header"><div class="results-title">${results.length} matching role${results.length!==1?'s':''}</div><div style="display:flex;align-items:center;gap:10px;"><div class="results-count">${skills.length} skill${skills.length!==1?'s':''} entered</div><button onclick="clearAndTryAgain()" style="padding:4px 10px;background:transparent;border:1.5px solid var(--border);border-radius:20px;font-size:11.5px;font-weight:600;color:var(--ink3);cursor:pointer;font-family:var(--sans);">&#x21A9; New search</button></div></div>${matchNote}<div class="result-grid">${html}</div>`;
   const bar=document.getElementById('currencyBar');if(bar)bar.style.display='flex';
   logSearch('skills',skills.join(', '),filtered.length,filtered.length===0);
-  if(isSalaryPromptEligible()&&!isSalaryUnlocked()){const fp=document.getElementById('floatingPanda');if(fp)fp.style.display='block';}
+  if(smShouldShowSalaryRobot()){const fp=document.getElementById('floatingPanda');if(fp)fp.style.display='block';}
 }
 
 /* ══ SKILL_ALIASES ══ */
@@ -2962,8 +2969,8 @@ function copyTitle(title,btn){copyToClipboard(title).then(()=>{btn.classList.add
 function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(type||'');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 function showSorryState(query){
   logSearch('skills',query,0,true);const area=document.getElementById('resultsArea');const reportEmail='contactus@talentsradar.com';const subject=encodeURIComponent('SkillMapper: Missing role for "'+query+'"');const body=encodeURIComponent('Hi,\n\nSkillMapper did not return results for:\n\n"'+query+'"\n\nPlease add this role/skills.\n\nThank you!');area.innerHTML=`<div class="sorry-state"><div class="sorry-bot">&#x1F916;</div><div class="sorry-title">No role found yet</div><div class="sorry-sub">Sorry, we couldn't find a matching role for <strong>"${query.slice(0,60)}"</strong>. Help us improve!</div><a class="btn-report" href="mailto:${reportEmail}?subject=${subject}&body=${body}" target="_blank"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 4h12v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4z" stroke="currentColor" stroke-width="1.4"/><path d="M2 4l6 5 6-5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Report to Developer</a><button class="btn-try-again" onclick="clearAndTryAgain()">&#x21A9; Try something else</button></div>`;}
-function clearAndTryAgain(){skills=[];window._aiTopRoles=[];renderBubbles();document.getElementById('nudgeBanner')?.classList.remove('show');document.getElementById('aiBanner').classList.remove('show');document.getElementById('deptFilter').style.display='none';const _cb=document.getElementById('currencyBar');if(_cb)_cb.style.display='none';const fp=document.getElementById('floatingPanda');if(fp)fp.style.display=(isSalaryPromptEligible()&&!isSalaryUnlocked())?'block':'none';document.getElementById('resultsArea').innerHTML=`<div class="empty-state"><div class="empty-icon" style="font-size:36px;margin-bottom:10px;">&#x1F3AF;</div><div class="empty-title">Start above to see role matches</div><div class="empty-sub">Type skills, search by title, or describe what you need.</div></div>`;document.getElementById('nlInput').value='';document.getElementById('mainInput').value='';const am=document.querySelector('.mode-tab.active');if(am&&am.textContent.includes('Describe'))document.getElementById('nlInput').focus();else document.getElementById('mainInput').focus();}
-function selectLevel(btn){const lvl=btn.dataset.lvl;if(isSalaryPromptEligible()&&lvl!=='junior'&&!isSalaryUnlocked()){showSalaryContrib(btn);return;}applySelectLevel(btn);}
+function clearAndTryAgain(){skills=[];window._aiTopRoles=[];renderBubbles();document.getElementById('nudgeBanner')?.classList.remove('show');document.getElementById('aiBanner').classList.remove('show');document.getElementById('deptFilter').style.display='none';const _cb=document.getElementById('currencyBar');if(_cb)_cb.style.display='none';const fp=document.getElementById('floatingPanda');if(fp)fp.style.display=smShouldShowSalaryRobot()?'block':'none';document.getElementById('resultsArea').innerHTML=`<div class="empty-state"><div class="empty-icon" style="font-size:36px;margin-bottom:10px;">&#x1F3AF;</div><div class="empty-title">Start above to see role matches</div><div class="empty-sub">Type skills, search by title, or describe what you need.</div></div>`;document.getElementById('nlInput').value='';document.getElementById('mainInput').value='';const am=document.querySelector('.mode-tab.active');if(am&&am.textContent.includes('Describe'))document.getElementById('nlInput').focus();else document.getElementById('mainInput').focus();}
+function selectLevel(btn){const lvl=btn.dataset.lvl;if(lvl!=='junior'&&smShouldShowSalaryRobot()){showSalaryContrib(btn);return;}applySelectLevel(btn);}
 function applySelectLevel(btn){const cardId=btn.dataset.card;const yrsMin=btn.dataset.min;const yrsMax=btn.dataset.max;const sal=btn.dataset.sal;const group=document.getElementById(cardId);if(group){group.querySelectorAll('.sal-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}const el=document.getElementById(cardId+'_sal');if(!el)return;const yrsStr=yrsMin+'–'+yrsMax+' yrs';const displaySal=getSalaryDisplay(sal);el.innerHTML=displaySal?yrsStr+' &nbsp;·&nbsp; <strong>'+displaySal+'</strong>':yrsStr;}
 function toggleCurrency(cur){const idx=selectedCurrencies.indexOf(cur);if(idx>-1){if(selectedCurrencies.length===1)return;selectedCurrencies.splice(idx,1);}else selectedCurrencies.push(cur);document.querySelectorAll('#currencyBar .cur-chip').forEach(chip=>{chip.classList.toggle('active',selectedCurrencies.includes(chip.dataset.cur));});document.querySelectorAll('.sal-btn.active').forEach(btn=>applySelectLevel(btn));}
 
@@ -3926,7 +3933,7 @@ function _hideBubble(){const b=_pandaEl('pandaBubble');if(!b)return;b.style.opac
 function ensureFloatingRobotVisible(){
   const fp=document.getElementById('floatingPanda');
   if(!fp)return;
-  fp.style.display=(isSalaryPromptEligible()&&!isSalaryUnlocked())?'block':'none';
+  fp.style.display=smShouldShowSalaryRobot()?'block':'none';
 }
 function setPandaMood(mood){
   if(_pandaImpatientTimer){clearTimeout(_pandaImpatientTimer);_pandaImpatientTimer=null;}
