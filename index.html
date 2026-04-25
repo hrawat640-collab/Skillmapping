@@ -956,6 +956,44 @@ async function smSyncSalaryStatusFromContributions(emailOpt){
   }
   return false;
 }
+async function smFetchLatestSalaryContribution(emailOpt){
+  if(!_sb) return null;
+  const em=emailOpt?String(emailOpt).trim():'';
+  let authUid='';
+  try{
+    if(typeof smGetSupabaseAuthUid==='function') authUid=await smGetSupabaseAuthUid()||'';
+  }catch(e){}
+  if(!em&&!authUid) return null;
+  const tables=SM_SALARY_CONTRIB_TABLES;
+  for(const tbl of tables){
+    try{
+      if(authUid){
+        const r0=await _sb.from(tbl).select('created_at,country,currency,notify_salary').order('created_at',{ascending:false}).limit(1).eq('user_id',authUid);
+        if(!r0.error&&Array.isArray(r0.data)&&r0.data.length) return r0.data[0];
+      }
+      if(em){
+        let r=await _sb.from(tbl).select('created_at,country,currency,notify_salary').order('created_at',{ascending:false}).limit(1).eq('email',em);
+        if((!r.data||!r.data.length)&&em.toLowerCase()!==em)
+          r=await _sb.from(tbl).select('created_at,country,currency,notify_salary').order('created_at',{ascending:false}).limit(1).eq('email',em.toLowerCase());
+        if(!r.data||!r.data.length)
+          r=await _sb.from(tbl).select('created_at,country,currency,notify_salary').order('created_at',{ascending:false}).limit(1).ilike('email',em);
+        if(!r.error&&Array.isArray(r.data)&&r.data.length) return r.data[0];
+      }
+    }catch(e){}
+  }
+  return null;
+}
+async function smHydrateSalaryPrefsFromContributions(emailOpt){
+  const row=await smFetchLatestSalaryContribution(emailOpt);
+  if(!row) return false;
+  if(row.created_at) localStorage.setItem(SM_SALARY_SUBMITTED_AT_KEY,new Date(row.created_at).toISOString());
+  const n=String(row.notify_salary||'').trim().toLowerCase();
+  if(n==='yes'||n==='true'||n==='1') localStorage.setItem('sm_salary_notify','yes');
+  else if(n==='no'||n==='false'||n==='0') localStorage.setItem('sm_salary_notify','no');
+  if(row.country) localStorage.setItem('sm_salary_country',String(row.country).trim());
+  if(row.currency) localStorage.setItem('sm_salary_currency',String(row.currency).trim());
+  return true;
+}
 function smUpdateSalaryStatusDisplays(){
   const fill=(typeof isSalaryUnlocked==='function'&&isSalaryUnlocked())?'Filled':'Not filled';
   const st=document.getElementById('smSettingsSalaryStatus');
@@ -1045,6 +1083,7 @@ async function _smRestoreInternal(email){
       localStorage.setItem('sm_user_email',rowEmail);
       localStorage.setItem('tr_shared_email',rowEmail);
       await smSyncSalaryStatusFromContributions(rowEmail);
+      await smHydrateSalaryPrefsFromContributions(rowEmail);
       _sb.from(SM_USER_TABLE).update({last_login:new Date().toISOString()}).eq('email',rowEmail).then(()=>{}).catch(()=>{});
       return { found:true, profile:data };
     }
@@ -1060,7 +1099,15 @@ async function _smRestoreInternal(email){
       localStorage.removeItem(SM_USER_ID_KEY);
       if(leg.data.name&&!localStorage.getItem('sm_user_name')) localStorage.setItem('sm_user_name',leg.data.name);
       await smSyncSalaryStatusFromContributions(le);
+      await smHydrateSalaryPrefsFromContributions(le);
       return { found:true, profile:leg.data };
+    }
+    const hasSalaryHistory=await smHydrateSalaryPrefsFromContributions(em0);
+    if(hasSalaryHistory){
+      localStorage.setItem('sm_user_email',em0);
+      localStorage.setItem('tr_shared_email',em0);
+      localStorage.setItem('sm_known_user','yes');
+      return { found:true, profile:null };
     }
     return { found:false, profile:null };
   }catch(e){
@@ -1085,6 +1132,14 @@ async function smUserExistsInSupabase(email){
       const c=await _sb.from('txr_user').select('email').eq('email',em.toLowerCase()).maybeSingle();
       if(c && c.data && !c.error && c.data.email)return true;
     }
+  }catch(e){}
+  return false;
+}
+async function smShouldAutoLoginReturningUser(email){
+  const em=String(email||'').trim();
+  if(!em) return false;
+  try{
+    if(await smUserExistsInSupabase(em)) return true;
   }catch(e){}
   return false;
 }
@@ -1129,12 +1184,20 @@ async function smFinalizeReturningUserLogin(email){
 
 function _prefillSalaryFields(){
   const _userCountry = localStorage.getItem('sm_user_country') || '';
+  const _savedSalCountry = localStorage.getItem('sm_salary_country') || '';
+  const _savedSalCurrency = localStorage.getItem('sm_salary_currency') || '';
   const _countryMap = {'India':'India','United States':'USA','UAE':'UAE','United Kingdom':'UK','Canada':'Canada','Singapore':'Singapore','Australia':'Australia'};
   const _curMap = {'India':'INR','United States':'USD','UAE':'AED','United Kingdom':'GBP','Canada':'CAD','Singapore':'SGD','Australia':'AUD'};
   const _salC = document.getElementById('salCountry');
-  if(_salC && _userCountry && _countryMap[_userCountry]) _salC.value = _countryMap[_userCountry];
+  if(_salC){
+    if(_savedSalCountry) _salC.value = _savedSalCountry;
+    else if(_userCountry && _countryMap[_userCountry]) _salC.value = _countryMap[_userCountry];
+  }
   const _salCur = document.getElementById('salCurrency');
-  if(_salCur && _userCountry && _curMap[_userCountry]) _salCur.value = _curMap[_userCountry];
+  if(_salCur){
+    if(_savedSalCurrency) _salCur.value = _savedSalCurrency;
+    else if(_userCountry && _curMap[_userCountry]) _salCur.value = _curMap[_userCountry];
+  }
   const notifyEl = document.getElementById('salNotifyChange');
   if(notifyEl) notifyEl.checked = (localStorage.getItem('sm_salary_notify') || 'no') === 'yes';
 }
@@ -1196,7 +1259,12 @@ function _onLoginSuccess(isNewUser){
     } else if(!result.found && hasProfile && isKnown){
       _onLoginSuccess(false);
     } else {
-      openSmProfileStep(storedEmail, profile.name || '');
+      smShouldAutoLoginReturningUser(storedEmail).then(function(exists){
+        if(exists) _onLoginSuccess(false);
+        else openSmProfileStep(storedEmail, profile.name || '');
+      }).catch(function(){
+        openSmProfileStep(storedEmail, profile.name || '');
+      });
     }
   }).catch(function(){
     const profile  = getSmProfile();
@@ -1223,7 +1291,15 @@ function smHandleGoogle(response){
       smSaveUserToSupabase(emNow, profile.name || payload.name, profile.profession || '', profile.country || '', true);
       _onLoginSuccess(false);
     } else {
-      openSmProfileStep(email, payload.name || profile.name || '');
+      smShouldAutoLoginReturningUser(email).then(function(exists){
+        if(exists){
+          _onLoginSuccess(false);
+        }else{
+          openSmProfileStep(email, payload.name || profile.name || '');
+        }
+      }).catch(function(){
+        openSmProfileStep(email, payload.name || profile.name || '');
+      });
     }
   }).catch(function(){
     openSmProfileStep(email, payload.name || '');
@@ -1250,8 +1326,18 @@ function smStartEmailAuth(mode){
       localStorage.setItem('sm_login_date', Date.now().toString());
     if(mode === 'signin'){
       if(!result.found && !hasProfile){
-        err.style.display = 'block';
-        err.textContent   = 'No account found for this email. Please Sign up or use Google.';
+        smShouldAutoLoginReturningUser(val).then(function(exists){
+          if(exists){
+            _onLoginSuccess(false);
+            showToast('Welcome back!','ok');
+          }else{
+            err.style.display = 'block';
+            err.textContent   = 'No account found for this email. Please Sign up or use Google.';
+          }
+        }).catch(function(){
+          err.style.display = 'block';
+          err.textContent   = 'No account found for this email. Please Sign up or use Google.';
+        });
         return;
       }
       _onLoginSuccess(false);
@@ -1393,7 +1479,7 @@ document.addEventListener('click',function(e){
 });
 function smSignOut(){
   if(!confirm('Sign out of SkillMapper?')) return;
-  ['sm_user_email','sm_user_name','sm_user_profession','sm_user_country','sm_salary_notify','sm_salary_submitted_at','sm_login_date','sm_consent','sm_sal_unlocked_until','sm_known_user','tr_shared_email','tr_shared_name'].forEach(k=>localStorage.removeItem(k));
+  ['sm_user_email','sm_user_name','sm_user_profession','sm_user_country','sm_salary_notify','sm_salary_submitted_at','sm_salary_country','sm_salary_currency','sm_login_date','sm_consent','sm_sal_unlocked_until','sm_known_user','tr_shared_email','tr_shared_name'].forEach(k=>localStorage.removeItem(k));
   document.getElementById('smProfileMenu').style.display='none';
   location.reload();
 }
@@ -3789,6 +3875,8 @@ async function submitSalaryContrib(){
   const salarySubmittedAt=new Date().toISOString();
   localStorage.setItem('sm_salary_notify',notifyPref);
   localStorage.setItem('sm_salary_submitted_at',salarySubmittedAt);
+  localStorage.setItem('sm_salary_country',country||'');
+  localStorage.setItem('sm_salary_currency',cur||'');
   try{fetch('/',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'form-name=salary-contrib&designation='+encodeURIComponent(designation)+'&dept='+encodeURIComponent(effectiveDept)+'&sub_dept='+encodeURIComponent(subDept)+'&experience='+encodeURIComponent(yrs)+'&ctc='+encodeURIComponent(ctc)+'&currency='+encodeURIComponent(cur)+'&country='+encodeURIComponent(country)+'&role_desc='+encodeURIComponent(roleDesc)+'&company='+encodeURIComponent(company)+'&notify_salary='+encodeURIComponent(notifyPref)+'&loc_detected='+encodeURIComponent(USER_LOCATION)});}catch(e){}
   if(_sb){try{
     const email=localStorage.getItem('sm_user_email')||'anonymous';
