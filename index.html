@@ -1315,13 +1315,14 @@ function _onLoginSuccess(isNewUser){
     if(hasProfile && isKnown){ _onLoginSuccess(false); return; }
     const exists = await smShouldAutoLoginReturningUser(storedEmail).catch(function(){ return false; });
     if(exists){ _onLoginSuccess(false); return; }
-    openSmProfileStep(storedEmail, profile.name || '');
+    // Avoid forcing profile form on uncertain startup state; show login step instead.
+    openSmLoginModal();
   }).catch(function(){
     const profile  = getSmProfile();
     const hasLocal = !!(profile.profession && profile.country && profile.name);
     const isKnown  = localStorage.getItem('sm_known_user') === 'yes';
     if(hasLocal && isKnown) _onLoginSuccess(false);
-    else openSmProfileStep(storedEmail, profile.name || '');
+    else openSmLoginModal();
   });
 })();
 
@@ -1352,10 +1353,20 @@ function smHandleGoogle(response){
       }
     }catch(e){}
     const exists = await smShouldAutoLoginReturningUser(email).catch(function(){ return false; });
-    if(exists){ _onLoginSuccess(false); }
-    else{ openSmProfileStep(email, payload.name || profile.name || ''); }
+    if(exists){
+      _onLoginSuccess(false);
+    } else {
+      // Existing users can be missed here due transient/network/RLS edge-cases.
+      // Do not block Google success behind profile form.
+      localStorage.setItem('sm_known_user','yes');
+      smSaveUserToSupabase(email, profile.name || payload.name || '', profile.profession || '', profile.country || '', true);
+      _onLoginSuccess(false);
+    }
   }).catch(function(){
-    openSmProfileStep(email, payload.name || '');
+    // Fallback: complete Google login without forcing profile details.
+    localStorage.setItem('sm_known_user','yes');
+    smSaveUserToSupabase(email, localStorage.getItem('sm_user_name') || payload.name || '', localStorage.getItem('sm_user_profession') || '', localStorage.getItem('sm_user_country') || '', true);
+    _onLoginSuccess(false);
   });
 }
 
