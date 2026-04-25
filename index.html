@@ -888,7 +888,13 @@ function smEnsureLocalUserUuid(){
   try{
     if(typeof crypto!=='undefined'&&crypto.randomUUID) v=crypto.randomUUID();
   }catch(e){}
-  if(!v) v='sm-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);
+  if(!v){
+    const rnd=function(){
+      return Math.floor(Math.random()*0x100000000).toString(16).padStart(8,'0');
+    };
+    const a=rnd(), b=rnd(), c=rnd(), d=rnd();
+    v=(a.slice(0,8)+'-'+b.slice(0,4)+'-4'+b.slice(5,8)+'-'+((parseInt(c.slice(0,2),16)&0x3f)|0x80).toString(16).padStart(2,'0')+c.slice(2,4)+'-'+c.slice(4,8)+d).toLowerCase();
+  }
   localStorage.setItem(SM_USER_UUID_KEY,v);
   return v;
 }
@@ -1112,6 +1118,11 @@ async function smInsertSalaryContributionRow(row){
         if(!r3.error)return{ok:true,table:tbl,error:null};
         r=r3; msg=String(r3.error.message||'').toLowerCase();
       }
+      if(msg.includes('foreign key')&&msg.includes('user_uuid')){
+        const r4=await _sb.from(tbl).insert(Object.assign({},row,{user_uuid:undefined}));
+        if(!r4.error)return{ok:true,table:tbl,error:null};
+        r=r4; msg=String(r4.error.message||'').toLowerCase();
+      }
       lastErr=r.error;
       if(msg.includes('does not exist')||msg.includes('could not find the table')||msg.includes('schema cache'))continue;
       if(msg.includes('column')&&msg.includes('does not exist'))continue;
@@ -1121,6 +1132,36 @@ async function smInsertSalaryContributionRow(row){
     }
   }
   return{ok:false,table:'',error:lastErr};
+}
+async function smEnsureSmUsersRowForSalary(email,userUuid){
+  if(!_sb||!email)return{ok:false,error:new Error('missing email')};
+  const payload={email,last_login:new Date().toISOString()};
+  if(userUuid) payload.user_uuid=userUuid;
+  try{
+    // 1) If user exists (case-insensitive), patch last_login and ensure uuid is present.
+    const existing=await smFetchSmUsersRowByEmail(email);
+    if(existing){
+      const patch={last_login:new Date().toISOString()};
+      const existingUuid=String(existing.user_uuid||'').trim();
+      if(!existingUuid&&userUuid) patch.user_uuid=userUuid;
+      const rowId=existing.id;
+      let u=null;
+      if(rowId) u=await _sb.from(SM_USER_TABLE).update(patch).eq('id',rowId);
+      else u=await _sb.from(SM_USER_TABLE).update(patch).ilike('email',email);
+      if(u&&!u.error){
+        const finalUuid=String(existingUuid||userUuid||'').trim();
+        if(finalUuid) localStorage.setItem(SM_USER_UUID_KEY,finalUuid);
+        return{ok:true,error:null};
+      }
+      return{ok:false,error:(u&&u.error)||new Error('failed to update existing user')};
+    }
+    // 2) Else insert a new row with required uuid.
+    const i=await _sb.from(SM_USER_TABLE).insert(payload);
+    if(!i.error)return{ok:true,error:null};
+    return{ok:false,error:i.error};
+  }catch(e){
+    return{ok:false,error:e};
+  }
 }
 async function smSaveUserToSupabase(email,name,profession,country,consent){
   if(!_sb||!email)return;
@@ -4005,14 +4046,19 @@ async function submitSalaryContrib(){
   if(_sb){try{
     const email=localStorage.getItem('sm_user_email')||'anonymous';
     const authUid=await smGetSupabaseAuthUid();
-    const userUuid=await smGetCanonicalUserUuid(email);
+    let userUuid=await smGetCanonicalUserUuid(email);
+    if(!userUuid) userUuid=smEnsureLocalUserUuid();
     const row={email,designation,dept:effectiveDept,sub_dept:subDept,experience_range:yrs,ctc,currency:cur,country,company:company||null,role_desc:roleDesc||null,notify_salary:notifyPref,loc_detected:USER_LOCATION,created_at:salarySubmittedAt};
     if(authUid)row.user_id=authUid;
     if(userUuid)row.user_uuid=userUuid;
-    if(!userUuid){
-      err.textContent='Could not map your account ID. Please sign out and sign in once, then try again.';
-      err.style.display='block';
-      return;
+    if(email!=='anonymous'){
+      const ensured=await smEnsureSmUsersRowForSalary(email,userUuid||'');
+      if(!ensured.ok){
+        const emsg=(ensured.error&&ensured.error.message)?String(ensured.error.message):'Please try again.';
+        err.textContent='Could not prepare your account for salary save: '+emsg;
+        err.style.display='block';
+        return;
+      }
     }
     const ins=await smInsertSalaryContributionRow(row);
     if(!ins.ok){
