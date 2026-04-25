@@ -959,6 +959,11 @@ function smApplyUserRowFromSupabase(data){
   if(data.id) localStorage.setItem(SM_USER_ID_KEY,String(data.id));
   if(data.salary_submitted_at) localStorage.setItem(SM_SALARY_SUBMITTED_AT_KEY,new Date(data.salary_submitted_at).toISOString());
   else localStorage.removeItem(SM_SALARY_SUBMITTED_AT_KEY);
+  if(Object.prototype.hasOwnProperty.call(data,'notify_salary')){
+    const n=String(data.notify_salary||'').trim().toLowerCase();
+    if(n==='yes'||n==='true'||n==='1')localStorage.setItem('sm_salary_notify','yes');
+    else if(n==='no'||n==='false'||n==='0')localStorage.setItem('sm_salary_notify','no');
+  }
   if(data.login_date&&!localStorage.getItem('sm_login_date')) localStorage.setItem('sm_login_date',new Date(data.login_date).getTime().toString());
   localStorage.setItem('sm_known_user','yes');
   if(data.name) localStorage.setItem('sm_user_name',data.name);
@@ -1320,7 +1325,11 @@ function smStartSignUp(){
   }
   smUserExistsInSupabase(em).then(function(exists){
     if(exists){
-      if(err){ err.textContent='This email is already registered. Use Sign in.'; err.style.display='block'; }
+      const si=document.getElementById('smEmailSignin');
+      if(si) si.value=em;
+      if(err){ err.textContent='Account already exists. Signing you in directly.'; err.style.display='block'; }
+      smSetAuthMode('signin');
+      smStartSignIn();
       return;
     }
     const fullName=(fn+' '+ln).replace(/\s+/g,' ').trim();
