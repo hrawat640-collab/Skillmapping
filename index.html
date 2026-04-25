@@ -4050,7 +4050,6 @@ async function submitSalaryContrib(){
     if(!userUuid) userUuid=smEnsureLocalUserUuid();
     const row={email,designation,dept:effectiveDept,sub_dept:subDept,experience_range:yrs,ctc,currency:cur,country,company:company||null,role_desc:roleDesc||null,notify_salary:notifyPref,loc_detected:USER_LOCATION,created_at:salarySubmittedAt};
     if(authUid)row.user_id=authUid;
-    if(userUuid)row.user_uuid=userUuid;
     if(email!=='anonymous'){
       const ensured=await smEnsureSmUsersRowForSalary(email,userUuid||'');
       if(!ensured.ok){
@@ -4059,6 +4058,14 @@ async function submitSalaryContrib(){
         err.style.display='block';
         return;
       }
+      // Re-resolve canonical UUID after ensure to avoid stale local UUID causing FK failures.
+      userUuid=await smGetCanonicalUserUuid(email);
+    }
+    if(userUuid)row.user_uuid=userUuid;
+    if(!row.user_uuid){
+      err.textContent='Could not map your account ID. Please sign out and sign in once, then try again.';
+      err.style.display='block';
+      return;
     }
     const ins=await smInsertSalaryContributionRow(row);
     if(!ins.ok){
