@@ -800,7 +800,8 @@ function smSaveProfileAndFinish(){
 
 function isSalaryPromptEligible(professionValue){
   const p = normalizeProfession(professionValue || localStorage.getItem('sm_user_profession'));
-  return p === 'working professional' || p === 'hr' || p === 'management/founder';
+  if(p === 'fresher/student') return false;
+  return p === 'working professional' || p === 'hr' || p === 'management/founder' || !p;
 }
 function smMaybeShowSalaryPrompt(profession){
   if(isSalaryPromptEligible(profession) && typeof isSalaryUnlocked==='function' && !isSalaryUnlocked()){
@@ -2309,7 +2310,8 @@ function getRoleActionHtml(title,altTitlesParam,allPassSkills){
 }
 function isSalaryPromptEligible(professionValue){
   const p=normalizeProfession(professionValue||localStorage.getItem('sm_user_profession'));
-  return p==='working professional'||p==='hr'||p==='management/founder';
+  if(p==='fresher/student') return false;
+  return p==='working professional'||p==='hr'||p==='management/founder'||!p;
 }
 
 function runTitleMode(){
