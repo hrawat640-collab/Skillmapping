@@ -1327,15 +1327,16 @@ function smHandleGoogle(response){
   const payload = JSON.parse(atob(response.credential.split('.')[1]));
   const email   = payload.email;
   if(!email){ openSmProfileStep('', payload.name || ''); return; }
+  const gName = (payload.name || '').trim();
   localStorage.setItem('sm_user_email',   email);
   localStorage.setItem('tr_shared_email', email);
+  if(gName && !localStorage.getItem('sm_user_name')) localStorage.setItem('sm_user_name', gName);
   if(!localStorage.getItem('sm_login_date'))
     localStorage.setItem('sm_login_date', Date.now().toString());
   smWaitForSupabaseClient(1400).then(function(){
     return _smRestoreInternal(email);
   }).then(function(result){
     const profile    = getSmProfile();
-    const hasProfile = !!(profile.profession && profile.country && profile.name);
     if(result.found){
       const emNow = (localStorage.getItem('sm_user_email') || email).trim();
       smSaveUserToSupabase(emNow, profile.name || payload.name, profile.profession || '', profile.country || '', true);
@@ -1345,14 +1346,27 @@ function smHandleGoogle(response){
         if(exists){
           _onLoginSuccess(false);
         }else{
-          openSmProfileStep(email, payload.name || profile.name || '');
+          // Google success should not block on profile fields.
+          // Allow session, hydrate salary prefs if available, and let profile be completed later if needed.
+          localStorage.setItem('sm_known_user','yes');
+          const finalName = profile.name || gName || '';
+          if(finalName) localStorage.setItem('sm_user_name', finalName);
+          smSaveUserToSupabase(email, finalName, profile.profession || '', profile.country || '', true);
+          _onLoginSuccess(false);
         }
       }).catch(function(){
-        openSmProfileStep(email, payload.name || profile.name || '');
+        localStorage.setItem('sm_known_user','yes');
+        const finalName = profile.name || gName || '';
+        if(finalName) localStorage.setItem('sm_user_name', finalName);
+        smSaveUserToSupabase(email, finalName, profile.profession || '', profile.country || '', true);
+        _onLoginSuccess(false);
       });
     }
   }).catch(function(){
-    openSmProfileStep(email, payload.name || '');
+    localStorage.setItem('sm_known_user','yes');
+    if(gName && !localStorage.getItem('sm_user_name')) localStorage.setItem('sm_user_name', gName);
+    smSaveUserToSupabase(email, localStorage.getItem('sm_user_name') || gName || '', localStorage.getItem('sm_user_profession') || '', localStorage.getItem('sm_user_country') || '', true);
+    _onLoginSuccess(false);
   });
 }
 
