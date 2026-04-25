@@ -723,6 +723,10 @@ function getSmProfile(){
     name: (localStorage.getItem('sm_user_name') || '').trim()
   };
 }
+function smProfileIsComplete(p){
+  const x=p||getSmProfile();
+  return !!((x.name||'').trim()&&(x.profession||'').trim()&&(x.country||'').trim());
+}
 
 function normalizeProfession(v){
   const p = String(v || '').trim().toLowerCase();
@@ -815,6 +819,7 @@ const SAL_UNLOCK_KEY='sm_sal_unlocked_until';
 const SAL_SALARY_YEAR_KEY='sm_sal_year';
 const SM_SALARY_SUBMITTED_AT_KEY='sm_salary_submitted_at';
 const SM_USER_ID_KEY='sm_user_id';
+const SM_SALARY_CONTRIB_TABLES=['sm_salary_contribution','salary_contribution','sm_salary_contributions','salary_contributions'];
 function smRefreshSalaryGatingFromSession(delayMs){
   const go=function(){
     const fp=document.getElementById('floatingPanda');
@@ -884,9 +889,16 @@ function smApplyUserRowFromSupabase(data){
   if(data.profession) localStorage.setItem('sm_user_profession',data.profession);
   if(data.country) localStorage.setItem('sm_user_country',data.country);
 }
+async function smGetSupabaseAuthUid(){
+  if(!_sb||!_sb.auth||typeof _sb.auth.getUser!=='function')return'';
+  try{
+    const u=await _sb.auth.getUser();
+    return (u&&u.data&&u.data.user&&u.data.user.id)?String(u.data.user.id):'';
+  }catch(e){return'';}
+}
 async function smSyncSalaryStatusFromContributions(userId,email){
   if(!_sb||(!userId&&!email)) return false;
-  const tables=['sm_salary_contribution','sm_salary_contributions','salary_contributions'];
+  const tables=SM_SALARY_CONTRIB_TABLES;
   for(const tbl of tables){
     try{
       let q=_sb.from(tbl).select('created_at').order('created_at',{ascending:false}).limit(1);
@@ -902,6 +914,24 @@ async function smSyncSalaryStatusFromContributions(userId,email){
     }catch(e){}
   }
   return false;
+}
+async function smInsertSalaryContributionRow(row){
+  if(!_sb||!row||!row.email)return{ok:false,table:'',error:new Error('missing payload')};
+  let lastErr=null;
+  for(const tbl of SM_SALARY_CONTRIB_TABLES){
+    try{
+      const r=await _sb.from(tbl).insert(row);
+      if(!r.error)return{ok:true,table:tbl,error:null};
+      lastErr=r.error;
+      const msg=String(r.error.message||'').toLowerCase();
+      if(msg.includes('does not exist')||msg.includes('could not find the table')||msg.includes('schema cache'))continue;
+      if(msg.includes('column')&&msg.includes('does not exist'))continue;
+      console.error('salary insert failed on',tbl,r.error);
+    }catch(e){
+      lastErr=e;
+    }
+  }
+  return{ok:false,table:'',error:lastErr};
 }
 async function smSaveUserToSupabase(email,name,profession,country,consent){
   if(!_sb||!email)return;
@@ -949,11 +979,48 @@ async function smUserExistsInSupabase(email){
 }
 window.smRestoreSessionFromSupabase = smRestoreSessionFromSupabase;
 window.smUserExistsInSupabase = smUserExistsInSupabase;
+if(_sb&&_sb.auth&&typeof _sb.auth.onAuthStateChange==='function'){
+  _sb.auth.onAuthStateChange(function(event, session){
+    if((event!=='SIGNED_IN'&&event!=='INITIAL_SESSION')||!session||!session.user||!session.user.email)return;
+    const em=String(session.user.email).trim();
+    if(!em)return;
+    localStorage.setItem('sm_user_email',em);
+    localStorage.setItem('tr_shared_email',em);
+    if(!localStorage.getItem('sm_login_date'))localStorage.setItem('sm_login_date',Date.now().toString());
+    smRestoreSessionFromSupabase(em).then(function(){
+      const p2=getSmProfile();
+      if(smProfileIsComplete(p2)){
+        const lm=document.getElementById('loginModal');
+        if(lm)lm.style.display='none';
+        smRefreshSalaryGatingFromSession();
+        checkTrialExpiry('');renderTrialBadgeSM();smUpdateNavLinks();updateUserJourneyUi();
+        smUserExistsInSupabase(em).then(function(ex){if(ex&&typeof smMarkRobotTourComplete==='function')smMarkRobotTourComplete();}).catch(function(){});
+      }else{
+        const lm=document.getElementById('loginModal');
+        if(lm)lm.style.display='flex';
+        const meta=session.user.user_metadata||{};
+        const nm=meta.full_name||meta.name||'';
+        openSmProfileStep(em,nm);
+      }
+    });
+  });
+}
 
-(function(){
+(async function(){
   window.addEventListener('load', function(){
     setTimeout(function(){ if(typeof smRefreshSalaryGatingFromSession==='function') smRefreshSalaryGatingFromSession(); }, 1500);
   });
+  try{
+    if(_sb&&_sb.auth&&typeof _sb.auth.getSession==='function'){
+      const s=await _sb.auth.getSession();
+      const au=s&&s.data&&s.data.session&&s.data.session.user?s.data.session.user:null;
+      if(au&&au.email){
+        localStorage.setItem('sm_user_email',au.email);
+        localStorage.setItem('tr_shared_email',au.email);
+        if(!localStorage.getItem('sm_login_date')) localStorage.setItem('sm_login_date', Date.now().toString());
+      }
+    }
+  }catch(e){}
   const urlParams = new URLSearchParams(window.location.search);
   const urlEmail = urlParams.get('au');
   if(urlEmail && !localStorage.getItem('sm_user_email')){
@@ -979,15 +1046,16 @@ window.smUserExistsInSupabase = smUserExistsInSupabase;
     smRestoreSessionFromSupabase(_initEmail).then(function(ok){
       smRefreshSalaryGatingFromSession();
       const p2=getSmProfile();
-      if(!p2.profession || !p2.country || !p2.name){
-        if(ok){checkTrialExpiry('');renderTrialBadgeSM();smUpdateNavLinks();updateUserJourneyUi();}
-        else{document.getElementById('loginModal').style.display='flex';openSmProfileStep(_initEmail||'',p2.name||'');}
+      if(smProfileIsComplete(p2)){
+        document.getElementById('loginModal').style.display='none';
+        checkTrialExpiry('');
+        renderTrialBadgeSM();
+        smUpdateNavLinks();
+        updateUserJourneyUi();
         return;
       }
-      checkTrialExpiry('');
-      renderTrialBadgeSM();
-      smUpdateNavLinks();
-      updateUserJourneyUi();
+      document.getElementById('loginModal').style.display='flex';
+      openSmProfileStep(_initEmail||'',p2.name||'');
     });
   }
 })();
@@ -1001,6 +1069,10 @@ function smHandleGoogle(response){
       if(!localStorage.getItem('sm_login_date'))localStorage.setItem('sm_login_date',Date.now().toString());
       smRefreshSalaryGatingFromSession();
       if(restored){
+        if(!smProfileIsComplete(p)){
+          openSmProfileStep(email,payload.name||p.name||'');
+          return;
+        }
         document.getElementById('loginModal').style.display='none';
         checkTrialExpiry('');renderTrialBadgeSM();smUpdateNavLinks();updateUserJourneyUi();
         smSaveUserToSupabase(email,p.name||payload.name,p.profession||'',p.country||'',true);
@@ -1018,40 +1090,23 @@ function smStartEmailAuth(mode){
   const err = document.getElementById('smEmailErr');
   const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   if(!val || !emailRe.test(val)){ err.style.display='block'; err.textContent='Please enter a valid email address.'; document.getElementById('smEmailInput').focus(); return; }
+  if(!_sb||!_sb.auth||typeof _sb.auth.signInWithOtp!=='function'){err.style.display='block';err.textContent='Login service unavailable. Please try again later.';return;}
   err.style.display='none';
-  window.smRestoreSessionFromSupabase(val).then(function(restored){
-    const p=getSmProfile();
-    const hasProfile=!!(p.profession&&p.country&&p.name);
-    smRefreshSalaryGatingFromSession();
-    const finishLogin=function(){
-      localStorage.setItem('sm_user_email',val);
-      localStorage.setItem('tr_shared_email',val);
-      if(!localStorage.getItem('sm_login_date'))localStorage.setItem('sm_login_date',Date.now().toString());
-      document.getElementById('loginModal').style.display='none';
-      checkTrialExpiry('');renderTrialBadgeSM();smUpdateNavLinks();updateUserJourneyUi();
-      smRefreshSalaryGatingFromSession(1500);
-      smMarkRobotTourComplete();
-    };
-    if(mode==='signin'){
-      if(!(restored||hasProfile)){
-        err.style.display='block';
-        err.textContent='No account found for this email. Please use Sign up or Google Sign in.';
-        return;
-      }
-      finishLogin();showToast('Welcome back!','ok');
+  const redirectTo=window.location.origin+window.location.pathname;
+  _sb.auth.signInWithOtp({email:val,options:{emailRedirectTo:redirectTo}}).then(function(r){
+    if(r&&r.error){
+      err.style.display='block';
+      err.textContent='Could not send sign-in link. Please try again.';
+      console.error('signInWithOtp:',r.error);
       return;
     }
-    // Sign up path (no OTP)
     localStorage.setItem('sm_user_email',val);
     localStorage.setItem('tr_shared_email',val);
-    if(restored && hasProfile){
-      finishLogin();showToast('Welcome back!','ok');
-      return;
-    }
-    openSmProfileStep(val,p.name||'');
-  }).catch(function(){
+    showToast('Check your email for a secure sign-in link.','ok');
+  }).catch(function(e){
     err.style.display='block';
-    err.textContent='Could not connect right now. Please try again.';
+    err.textContent='Could not send sign-in link. Please try again.';
+    console.error(e);
   });
 }
 
@@ -1203,6 +1258,7 @@ function smSignOut(){
           <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;"><span style="color:#6b7280;">Salary alerts</span><strong id="smProfileNotifyRow" style="color:#111827;"></strong></div>
         </div>
         <button onclick="smToggleSettings()" style="width:100%;padding:10px 16px;text-align:left;background:none;border:none;font-size:12.5px;color:#0f766e;cursor:pointer;border-bottom:1px solid #f3f4f6;font-family:var(--sans);font-weight:600;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='none'">Account settings</button>
+        <button onclick="openMySalarySubmissions()" style="width:100%;padding:10px 16px;text-align:left;background:none;border:none;font-size:12.5px;color:#0f766e;cursor:pointer;border-bottom:1px solid #f3f4f6;font-family:var(--sans);font-weight:600;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='none'">My salary submissions</button>
         <div id="smSettingsPanel" style="display:none;padding:10px 16px;border-bottom:1px solid #f3f4f6;background:#f8fafc;">
           <label style="display:block;font-size:11px;color:#6b7280;font-weight:700;margin-bottom:5px;">Name</label>
           <input id="smSettingsName" type="text" placeholder="Your name" style="width:100%;padding:8px 10px;border:1.5px solid #dbe2ea;border-radius:8px;font-size:12.5px;box-sizing:border-box;font-family:var(--sans);margin-bottom:8px;">
@@ -1953,7 +2009,19 @@ function unlockSalary(){localStorage.setItem(SAL_UNLOCK_KEY,_getJune30Ts(_getCur
 
 /* ══ Tab / Mode ══ */
 function switchTab(tab,btn){
-  if(tab!=='tool'){const rt=document.getElementById('robotToolTour');if(rt&&rt.classList.contains('tour-on'))finishRobotToolTour(true);}
+  if(tab!=='tool'){
+    const rt=document.getElementById('robotToolTour');
+    if(rt&&rt.classList.contains('tour-on')){
+      let allowNoFinish=false;
+      try{
+        if(tab==='cv'&&typeof _tourStepsCache!=='undefined'&&_tourStepsCache&&_tourStepsCache.length){
+          const st=_tourStepsCache[typeof _tourIndex!=='undefined'?_tourIndex:0];
+          if(st&&st.id==='cv')allowNoFinish=true;
+        }
+      }catch(e){}
+      if(!allowNoFinish)finishRobotToolTour(true);
+    }
+  }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById('page-'+tab).classList.add('active');btn.classList.add('active');window.scrollTo({top:0,behavior:'smooth'});if(tab==='tool')setTimeout(startRobotToolTour,500);if(tab==='cv'){setTimeout(function(){const c=document.getElementById('cvRoleInput');if(c&&document.getElementById('page-cv').classList.contains('active')){c.focus();onCvRoleFocus();}},120);}}
 function switchToPrivacyPage(ev){if(ev)ev.preventDefault();document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));const pg=document.getElementById('page-privacy');if(pg)pg.classList.add('active');window.scrollTo({top:0,behavior:'smooth'});}
 let currentMode='skills';
@@ -3176,6 +3244,7 @@ function buildRobotToolTourSteps(){
   const mSkills=document.getElementById('modeTabSkills');
   const mTitle=document.getElementById('modeTabTitle');
   const mNl=document.getElementById('modeTabNl');
+  const cvTabBtn=document.getElementById('cvTabBtn');
   const toSkills=function(){if(mSkills&&typeof switchMode==='function')switchMode('skills',mSkills);};
   const toTitle=function(){if(mTitle&&typeof switchMode==='function')switchMode('title',mTitle);};
   const toNl=function(){if(mNl&&typeof switchMode==='function')switchMode('nl',mNl);};
@@ -3183,15 +3252,16 @@ function buildRobotToolTourSteps(){
     const t=document.querySelector('.tab-btn[onclick*=\'tool\']');
     if(t&&typeof switchTab==='function')switchTab('tool',t);
   };
+  const toCvTab=function(){
+    if(cvTabBtn&&typeof switchTab==='function')switchTab('cv',cvTabBtn);
+  };
   const steps=[
-    {id:'card',sel:'#toolInputCard',title:'Welcome to the tool',body:"Here's where you search and compare roles. This short tour shows the main ways in — you can skip anytime.",act:function(){toToolTab();toSkills();}},
-    {id:'skills',sel:'#modeTabSkills',title:'Add skills',body:'Type skills or tools, then use Find matching roles to get job titles, skills, and salary ranges.',act:toSkills},
-    {id:'title',sel:'#modeTabTitle',title:'Browse by title',body:'Search or pick a job title from the list to see must-have skills, salary bands, and a hiring tip.',act:toTitle}
+    {id:'skills',sel:'#modeTabSkills',title:'Skills',body:'Add skills such as Python or C, then look at the roles that list the same skills.',act:function(){toToolTab();toSkills();}},
+    {id:'title',sel:'#modeTabTitle',title:'Browse by title',body:'Add titles like full stack developer or software developer. You can see the role, salary, required skills, and good to have skills for each one.',act:function(){toToolTab();toTitle();}}
   ];
-  if(withNl)steps.push({id:'nl',sel:'#modeTabNl',title:'Describe what you need',body:'In plain language, say what the person should do. We map it to skills and roles in the database.',act:toNl});
+  if(withNl)steps.push({id:'nl',sel:'#modeTabNl',title:'Describe what you need',body:'This step is for HR and management. Describe the gap in plain language, for example that you need someone to run HR operations. The tool will show roles that can fill that gap.',act:function(){toToolTab();toNl();}});
   steps.push(
-    {id:'results',sel:'#resultsArea',title:'Results appear here',body:'You get match scores, must-have skills, salary in INR/USD, and actions to source candidates.',act:toSkills},
-    {id:'cv',sel:'#cvTabBtn',title:'Evaluate My CV',body:'Upload a CV, choose a target role, and get fit scores plus missing keywords. Open this tab from the top anytime.',act:toToolTab}
+    {id:'cv',sel:'#cvTabBtn',title:'Evaluate your CV',body:'Open this tab to upload your CV. You will get a score, missing keywords, and ideas for other roles you could pursue.',act:toCvTab}
   );
   return steps;
 }
@@ -3531,7 +3601,7 @@ function showSalaryContrib(btn){
 }
 function skipSalaryContrib(){const modal=document.getElementById('salContribModal');if(_pandaTimer)clearTimeout(_pandaTimer);if(_pandaImpatientTimer)clearTimeout(_pandaImpatientTimer);modal.style.display='none';if(_pendingSalBtn)applySelectLevel(_pendingSalBtn);_floatingPandaBtn=_pendingSalBtn;_pendingSalBtn=null;try{setPandaMood('sad');setTimeout(()=>setPandaMood('pace'),3500);}catch(e){}ensureFloatingRobotVisible();}
 function closeSalaryContrib(){skipSalaryContrib();}
-function submitSalaryContrib(){
+async function submitSalaryContrib(){
   const ctc=document.getElementById('salCtc').value.trim();const err=document.getElementById('salErr');if(!ctc){err.textContent='Please enter your CTC — even a rough number helps!';err.style.display='block';return;}err.style.display='none';
   const designation=document.getElementById('salRole').value.trim();const dept=document.getElementById('salDept').value;const subDeptSel=document.getElementById('salSubDept').value;const customDept=document.getElementById('salCustomDept')?.value.trim()||'';const subDeptOther=document.getElementById('salSubOther')?.value.trim()||'';const effectiveDept=dept==='Other'?(customDept||'Other'):dept;const subDept=(dept==='Other'||subDeptSel==='Other')?subDeptOther:subDeptSel;const yrs=document.getElementById('salYrs').value;const cur=document.getElementById('salCurrency').value;const country=document.getElementById('salCountry').value;const roleDesc=document.getElementById('salRoleDesc')?.value.trim()||'';const company=document.getElementById('salCompany')?.value.trim()||'';const notifyPref=document.getElementById('salNotifyChange')?.checked?'yes':'no';
   const salarySubmittedAt=new Date().toISOString();
@@ -3540,12 +3610,27 @@ function submitSalaryContrib(){
   try{fetch('/',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'form-name=salary-contrib&designation='+encodeURIComponent(designation)+'&dept='+encodeURIComponent(effectiveDept)+'&sub_dept='+encodeURIComponent(subDept)+'&experience='+encodeURIComponent(yrs)+'&ctc='+encodeURIComponent(ctc)+'&currency='+encodeURIComponent(cur)+'&country='+encodeURIComponent(country)+'&role_desc='+encodeURIComponent(roleDesc)+'&company='+encodeURIComponent(company)+'&notify_salary='+encodeURIComponent(notifyPref)+'&loc_detected='+encodeURIComponent(USER_LOCATION)});}catch(e){}
   if(_sb){try{
     const email=localStorage.getItem('sm_user_email')||'anonymous';
-    const userId=localStorage.getItem(SM_USER_ID_KEY)||null;
-    _sb.from('salary_contributions').insert({user_id:userId,email,designation,dept:effectiveDept,sub_dept:subDept,experience_range:yrs,ctc,currency:cur,country,company:company||null,role_desc:roleDesc||null,notify_salary:notifyPref,loc_detected:USER_LOCATION,created_at:salarySubmittedAt}).then(()=>{}).catch(()=>{});
-    if(email!=='anonymous'){
-      _sb.from('sm_users').upsert({email,notify_salary:notifyPref,salary_submitted_at:salarySubmittedAt,last_login:new Date().toISOString()},{onConflict:'email'}).then(()=>{}).catch(()=>{});
+    const authUid=await smGetSupabaseAuthUid();
+    const row={email,designation,dept:effectiveDept,sub_dept:subDept,experience_range:yrs,ctc,currency:cur,country,company:company||null,role_desc:roleDesc||null,notify_salary:notifyPref,loc_detected:USER_LOCATION,created_at:salarySubmittedAt};
+    if(authUid)row.user_id=authUid;
+    const ins=await smInsertSalaryContributionRow(row);
+    if(!ins.ok){
+      localStorage.removeItem('sm_salary_submitted_at');
+      err.textContent='Could not save to database. Please try again.';
+      err.style.display='block';
+      console.error('Salary contribution save failed:',ins.error);
+      return;
     }
-  }catch(e){}}
+    if(email!=='anonymous'){
+      _sb.from('sm_users').upsert({email,notify_salary:notifyPref,salary_submitted_at:salarySubmittedAt,last_login:new Date().toISOString()},{onConflict:'email'}).then(function(res){if(res&&res.error)console.error('sm_users upsert after salary:',res.error);}).catch(function(e){console.error(e);});
+    }
+  }catch(e){
+    localStorage.removeItem('sm_salary_submitted_at');
+    err.textContent='Could not save to database. Please try again.';
+    err.style.display='block';
+    console.error('Salary contribution submit error:',e);
+    return;
+  }}
   setPandaMood('happy');
   document.getElementById('salContribModal').style.display='none';document.getElementById('floatingPanda').style.display='none';document.getElementById('salThanksModal').style.display='flex';
   unlockSalary();if(_pendingSalBtn){applySelectLevel(_pendingSalBtn);_pendingSalBtn=null;}
@@ -3596,6 +3681,19 @@ function submitSalaryContrib(){
   </div>
 </div>
 
+<div id="mySalaryModal" style="display:none;position:fixed;inset:0;z-index:99992;background:rgba(15,14,12,0.6);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:640px;box-shadow:0 24px 64px rgba(0,0,0,0.18);overflow:hidden;max-height:85vh;display:flex;flex-direction:column;">
+    <div style="background:linear-gradient(135deg,#0f766e,#14b8a6);padding:16px 20px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
+      <div>
+        <div style="font-size:16px;font-weight:800;color:#fff;font-family:Outfit,sans-serif;">My salary submissions</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.85);margin-top:2px;font-family:Outfit,sans-serif;">Edit or delete your own entries</div>
+      </div>
+      <button onclick="closeMySalarySubmissions()" style="border:none;background:rgba(255,255,255,.2);color:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;font-weight:700;">Close</button>
+    </div>
+    <div id="mySalaryList" style="padding:16px 20px;overflow:auto;font-family:var(--sans);"></div>
+  </div>
+</div>
+
 <script>
 function openFeedback(){
   document.getElementById('fbSubject').value='';
@@ -3622,6 +3720,87 @@ async function submitFeedback(){
   }
   success.style.display='block';
   setTimeout(()=>closeFeedback(),1800);
+}
+
+let _mySalaryTableName='';
+function _msEsc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');}
+function closeMySalarySubmissions(){const m=document.getElementById('mySalaryModal');if(m)m.style.display='none';}
+async function _getMyOwnerId(){
+  try{const uid=await smGetSupabaseAuthUid();if(uid)return uid;}catch(e){}
+  return String(localStorage.getItem(SM_USER_ID_KEY)||'').trim();
+}
+async function _fetchMySalaryRows(){
+  if(!_sb)return{rows:[],table:''};
+  const uid=await _getMyOwnerId();
+  if(!uid)return{rows:[],table:''};
+  const tables=(typeof SM_SALARY_CONTRIB_TABLES!=='undefined'&&Array.isArray(SM_SALARY_CONTRIB_TABLES)&&SM_SALARY_CONTRIB_TABLES.length)?SM_SALARY_CONTRIB_TABLES:['sm_salary_contribution'];
+  for(const t of tables){
+    try{
+      const r=await _sb.from(t).select('id,user_id,created_at,designation,dept,sub_dept,experience_range,ctc,currency,country,company,notify_salary').eq('user_id',uid).order('created_at',{ascending:false}).limit(100);
+      if(!r.error&&Array.isArray(r.data))return{rows:r.data,table:t};
+    }catch(e){}
+  }
+  return{rows:[],table:''};
+}
+function _renderMySalaryRows(rows){
+  const wrap=document.getElementById('mySalaryList');
+  if(!wrap)return;
+  if(!rows.length){wrap.innerHTML='<div style="color:#6b7280;font-size:13px;">No submissions found for your account.</div>';return;}
+  wrap.innerHTML=rows.map(function(x){
+    const dt=x.created_at?new Date(x.created_at).toLocaleString():'';
+    return '<div style="border:1px solid #e5e7eb;border-radius:10px;padding:12px 12px;margin-bottom:10px;">'
+      +'<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;margin-bottom:6px;">'
+      +'<div style="font-weight:700;color:#111827;">'+_msEsc(x.designation||'Role not set')+'</div>'
+      +'<div style="font-size:11px;color:#6b7280;">'+_msEsc(dt)+'</div></div>'
+      +'<div style="font-size:12px;color:#374151;line-height:1.5;">'
+      +'<strong>CTC:</strong> '+_msEsc(x.ctc||'-')+' '+_msEsc(x.currency||'')+' · '
+      +'<strong>Dept:</strong> '+_msEsc(x.dept||'-')+' / '+_msEsc(x.sub_dept||'-')+' · '
+      +'<strong>Exp:</strong> '+_msEsc(x.experience_range||'-')+' · '
+      +'<strong>Country:</strong> '+_msEsc(x.country||'-')
+      +'</div>'
+      +'<div style="display:flex;gap:8px;margin-top:10px;">'
+      +'<button onclick="editMySalarySubmission(\''+_msEsc(x.id)+'\')" style="padding:7px 10px;border:1px solid #d1d5db;background:#fff;border-radius:8px;cursor:pointer;font-size:12px;">Edit</button>'
+      +'<button onclick="deleteMySalarySubmission(\''+_msEsc(x.id)+'\')" style="padding:7px 10px;border:1px solid #fecaca;background:#fff5f5;color:#b91c1c;border-radius:8px;cursor:pointer;font-size:12px;">Delete</button>'
+      +'</div></div>';
+  }).join('');
+}
+async function openMySalarySubmissions(){
+  const menu=document.getElementById('smProfileMenu');if(menu)menu.style.display='none';
+  const modal=document.getElementById('mySalaryModal');const wrap=document.getElementById('mySalaryList');
+  if(!modal||!wrap)return;
+  modal.style.display='flex';
+  wrap.innerHTML='<div style="color:#6b7280;font-size:13px;">Loading your submissions...</div>';
+  const data=await _fetchMySalaryRows();
+  _mySalaryTableName=data.table||'';
+  _renderMySalaryRows(data.rows||[]);
+}
+async function editMySalarySubmission(id){
+  if(!_sb||!_mySalaryTableName||!id)return;
+  const newCtc=(prompt('Update CTC value:')||'').trim();
+  if(!newCtc)return;
+  const newDesignation=(prompt('Update designation (optional):')||'').trim();
+  const uid=await _getMyOwnerId();
+  if(!uid){showToast('Login required','err');return;}
+  const patch={ctc:newCtc};
+  if(newDesignation)patch.designation=newDesignation;
+  try{
+    const r=await _sb.from(_mySalaryTableName).update(patch).eq('id',id).eq('user_id',uid);
+    if(r&&r.error){showToast('Could not update this row','err');console.error(r.error);return;}
+    showToast('Submission updated','ok');
+    openMySalarySubmissions();
+  }catch(e){showToast('Could not update this row','err');}
+}
+async function deleteMySalarySubmission(id){
+  if(!_sb||!_mySalaryTableName||!id)return;
+  if(!confirm('Delete this salary submission?'))return;
+  const uid=await _getMyOwnerId();
+  if(!uid){showToast('Login required','err');return;}
+  try{
+    const r=await _sb.from(_mySalaryTableName).delete().eq('id',id).eq('user_id',uid);
+    if(r&&r.error){showToast('Could not delete this row','err');console.error(r.error);return;}
+    showToast('Submission deleted','ok');
+    openMySalarySubmissions();
+  }catch(e){showToast('Could not delete this row','err');}
 }
 </script>
 
