@@ -2039,14 +2039,19 @@ function logSearch(mode,query,resultCount,noResult){
       created_at:new Date().toISOString()
     };
     (async function(){
-      // Retry once without created_at for schema variants where DB default handles timestamp.
-      let r=await sb.from('search_logs').insert(payload);
-      if(r&&r.error){
-        const msg=String(r.error.message||'').toLowerCase();
-        if((msg.includes('could not find')||msg.includes('column'))&&msg.includes('created_at')){
-          const p2=Object.assign({},payload,{created_at:undefined});
-          r=await sb.from('search_logs').insert(p2);
-        }
+      // Schema-adaptive insert: remove unknown columns and retry.
+      let attempt=Object.assign({},payload);
+      let r=null;
+      for(let i=0;i<8;i++){
+        r=await sb.from('search_logs').insert(attempt);
+        if(r&&!r.error) break;
+        const em=String((r&&r.error&&r.error.message)||'');
+        const m=em.match(/Could not find the '([^']+)' column/i);
+        if(!m||!m[1]) break;
+        const miss=m[1];
+        if(!Object.prototype.hasOwnProperty.call(attempt,miss)) break;
+        delete attempt[miss];
+        if(!Object.keys(attempt).length){attempt={query:String(query||'').slice(0,500)};}
       }
       if(r&&r.error) console.error('logSearch:',r.error);
     })().catch(function(e){console.error('logSearch catch:',e);});
