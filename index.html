@@ -1020,6 +1020,7 @@ async function smHydrateSalaryPrefsFromContributions(emailOpt){
   else if(n==='no'||n==='false'||n==='0') localStorage.setItem('sm_salary_notify','no');
   if(row.country) localStorage.setItem('sm_salary_country',String(row.country).trim());
   if(row.currency) localStorage.setItem('sm_salary_currency',String(row.currency).trim());
+  if(row.country && !localStorage.getItem('sm_user_country')) localStorage.setItem('sm_user_country',String(row.country).trim());
   return true;
 }
 function smUpdateSalaryStatusDisplays(){
@@ -1087,7 +1088,7 @@ async function smFetchSmUsersRowByEmail(em0){
     const fetchByEmail=async function(emailValue){
       const base=await sb.from(SM_USER_TABLE).select('id,email').eq('email',emailValue).maybeSingle();
       if(base.data&&!base.error){
-        const full=await sb.from(SM_USER_TABLE).select('id,email,name,profession,country,notify_salary,salary_submitted_at,login_date,last_login').eq('email',base.data.email||emailValue).limit(1);
+        const full=await sb.from(SM_USER_TABLE).select('*').eq('email',base.data.email||emailValue).limit(1);
         if(!full.error&&Array.isArray(full.data)&&full.data.length) return full.data[0];
         return base.data;
       }
@@ -1332,6 +1333,7 @@ function smHandleGoogle(response){
   if(!email){ openSmProfileStep('', payload.name || ''); return; }
   localStorage.setItem('sm_user_email',   email);
   localStorage.setItem('tr_shared_email', email);
+  if(payload.name && !localStorage.getItem('sm_user_name')) localStorage.setItem('sm_user_name', String(payload.name).trim());
   if(!localStorage.getItem('sm_login_date'))
     localStorage.setItem('sm_login_date', Date.now().toString());
   // FIX-1: wait longer + retry for Google SSO returning users
@@ -1527,11 +1529,12 @@ function toggleProfileMenu(){
   if(!email){ openSmLoginModal(); return; }
   const salaryFilled = (typeof isSalaryUnlocked==='function' && isSalaryUnlocked()) ? 'Filled' : 'Not filled';
   const notifyStatus = (localStorage.getItem('sm_salary_notify') || 'no') === 'yes' ? 'Enabled' : 'Not enabled';
+  const countryDisplay = localStorage.getItem('sm_user_country') || localStorage.getItem('sm_salary_country') || 'Not provided';
   const rows = {
     smProfileEmailRow:      email,
     smProfileNameRow:       localStorage.getItem('sm_user_name')       || 'Not provided',
     smProfileProfessionRow: localStorage.getItem('sm_user_profession') || 'Not provided',
-    smProfileCountryRow:    localStorage.getItem('sm_user_country')    || 'Not provided',
+    smProfileCountryRow:    countryDisplay,
     smProfileSalaryRow:     salaryFilled,
     smProfileNotifyRow:     notifyStatus
   };
