@@ -1098,10 +1098,21 @@ async function smInsertSalaryContributionRow(row){
   let lastErr=null;
   for(const tbl of SM_SALARY_CONTRIB_TABLES){
     try{
-      const r=await _sb.from(tbl).insert(row);
+      let r=await _sb.from(tbl).insert(row);
       if(!r.error)return{ok:true,table:tbl,error:null};
+      let msg=String(r.error.message||'').toLowerCase();
+      // Adaptive fallback for mixed table schemas.
+      if(msg.includes('column')&&msg.includes('user_uuid')&&msg.includes('does not exist')){
+        const r2=await _sb.from(tbl).insert(Object.assign({},row,{user_uuid:undefined}));
+        if(!r2.error)return{ok:true,table:tbl,error:null};
+        r=r2; msg=String(r2.error.message||'').toLowerCase();
+      }
+      if(msg.includes('column')&&msg.includes('user_id')&&msg.includes('does not exist')){
+        const r3=await _sb.from(tbl).insert(Object.assign({},row,{user_id:undefined}));
+        if(!r3.error)return{ok:true,table:tbl,error:null};
+        r=r3; msg=String(r3.error.message||'').toLowerCase();
+      }
       lastErr=r.error;
-      const msg=String(r.error.message||'').toLowerCase();
       if(msg.includes('does not exist')||msg.includes('could not find the table')||msg.includes('schema cache'))continue;
       if(msg.includes('column')&&msg.includes('does not exist'))continue;
       console.error('salary insert failed on',tbl,r.error);
@@ -4006,7 +4017,8 @@ async function submitSalaryContrib(){
     const ins=await smInsertSalaryContributionRow(row);
     if(!ins.ok){
       localStorage.removeItem('sm_salary_submitted_at');
-      err.textContent='Could not save to database. Please try again.';
+      const detail=(ins.error&&ins.error.message)?String(ins.error.message):'Could not save to database. Please try again.';
+      err.textContent='Could not save to database: '+detail;
       err.style.display='block';
       console.error('Salary contribution save failed:',ins.error);
       return;
@@ -4031,7 +4043,7 @@ async function submitSalaryContrib(){
     }
   }catch(e){
     localStorage.removeItem('sm_salary_submitted_at');
-    err.textContent='Could not save to database. Please try again.';
+    err.textContent='Could not save to database: '+(e&&e.message?e.message:'Please try again.');
     err.style.display='block';
     console.error('Salary contribution submit error:',e);
     return;
@@ -4126,8 +4138,18 @@ async function submitFeedback(){
   if(_sb){
     try{
       const r=await _sb.from('feedback').insert({email,name,subject,message});
-      if(r.error){err.textContent='Could not save. Please try again.';err.style.display='block';console.error('feedback error:',r.error);return;}
-    }catch(e){err.textContent='Could not save. Please try again.';err.style.display='block';return;}
+      if(r.error){
+        const detail=String(r.error.message||'').trim();
+        err.textContent=detail?('Could not save: '+detail):'Could not save. Please try again.';
+        err.style.display='block';
+        console.error('feedback error:',r.error);
+        return;
+      }
+    }catch(e){
+      err.textContent='Could not save: '+(e&&e.message?e.message:'Please try again.');
+      err.style.display='block';
+      return;
+    }
   }
   success.style.display='block';
   setTimeout(()=>closeFeedback(),1800);
