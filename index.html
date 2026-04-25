@@ -700,20 +700,6 @@ button:active, .btn-find:active, .sal-btn:active, .cur-chip:active, .dept-btn:ac
 </div>
 
 <script>
-(function(){
-  const gs = document.createElement('script');
-  gs.src = 'https://accounts.google.com/gsi/client';
-  gs.async = true; gs.defer = true;
-  gs.onload = function(){
-    google.accounts.id.initialize({
-      client_id: '63435915694-ug0ina6m7jqvm7m0f22qq4gqrsgieoha.apps.googleusercontent.com',
-      callback: smHandleGoogle
-    });
-    google.accounts.id.renderButton(document.getElementById('g_sm_signin'),{theme:'outline',size:'large',width:356,text:'continue_with',shape:'rectangular'});
-  };
-  document.head.appendChild(gs);
-})();
-
 let smPendingProfile = { email:'', name:'' };
 
 function getSmProfile(){
@@ -761,6 +747,8 @@ function openSmProfileStep(email, name){
   document.getElementById('smCountryInput').value = profile.country || '';
   document.getElementById('smCountryOther').value = '';
   toggleSmCountryOther(document.getElementById('smCountryInput').value);
+  const _lm = document.getElementById('loginModal');
+  if(_lm) _lm.style.display = 'flex';
 }
 
 function smSaveProfileAndFinish(){
@@ -782,16 +770,20 @@ function isSalaryPromptEligible(professionValue){
   const p = normalizeProfession(professionValue || localStorage.getItem('sm_user_profession'));
   return p === 'working professional' || p === 'hr' || p === 'management/founder';
 }
-function smMaybeShowSalaryPrompt(_profession){
-  if(typeof smRefreshSalaryGatingFromSession==='function') smRefreshSalaryGatingFromSession(0);
+function smMaybeShowSalaryPrompt(profession){
+  if(isSalaryPromptEligible(profession) && typeof isSalaryUnlocked==='function' && !isSalaryUnlocked()){
+    const fp = document.getElementById('floatingPanda');
+    if(fp) fp.style.display = 'block';
+  }
 }
 function openSmLoginModal(){
-  const _lm=document.getElementById('loginModal');if(!_lm)return;
-  document.getElementById('smEmailStep').style.display='block';
-  document.getElementById('smProfileStep').style.display='none';
+  const lm = document.getElementById('loginModal');
+  if(!lm) return;
+  document.getElementById('smEmailStep').style.display = 'block';
+  document.getElementById('smProfileStep').style.display = 'none';
   const consentWrap = document.getElementById('smConsent')?.closest('label');
   if(consentWrap) consentWrap.style.display = 'flex';
-  document.getElementById('loginModal').style.display='flex';
+  lm.style.display = 'flex';
 }
 
 function canUseDescribeMode(){
@@ -807,6 +799,35 @@ function updateUserJourneyUi(){
     const skillsTab = document.querySelector('.mode-tab[onclick*="skills"]');
     if(skillsTab) switchMode('skills', skillsTab);
   }
+  const node = document.getElementById('journeyNote');
+  if(!node) return;
+  const isNewUser = !localStorage.getItem('sm_known_user');
+  if(!isNewUser){ node.style.display = 'none'; node.innerHTML = ''; return; }
+  const p = normalizeProfession(localStorage.getItem('sm_user_profession'));
+  const dismissedKey = 'sm_journey_tips_dismissed_' + (p || 'anon');
+  if(localStorage.getItem(dismissedKey) === 'yes'){ node.style.display = 'none'; return; }
+  const closeBtn = '<button onclick="dismissJourneyTips()" style="position:absolute;top:8px;right:8px;border:none;background:transparent;color:#64748b;font-size:16px;cursor:pointer;line-height:1;">×</button>';
+  const tips = {
+    'fresher/student':      '<div style="font-weight:700;margin-bottom:6px;">Tips for Fresher / Student</div><div>Add Skills: enter your skills to discover which roles suit you.<br>Evaluate My CV: get your CV scored against open roles.</div>',
+    'working professional': '<div style="font-weight:700;margin-bottom:6px;">Tips for Working Professional</div><div>Add Skills: add your strongest tools to find matching roles.<br>Evaluate My CV: check role-fit and close keyword gaps before applying.</div>',
+    'management/founder':   '<div style="font-weight:700;margin-bottom:6px;">Tips for Management / Founder</div><div>Add Skills: add required skills to identify the right hire.<br>Describe what you need: convert business needs into role + skills + salary guidance.</div>',
+    'hr':                   '<div style="font-weight:700;margin-bottom:6px;">Tips for HR</div><div>Add Skills: add skills and find the right hire role.<br>Browse by title: type the title to find the role — avoid prefixes like Senior, Lead, etc.</div>'
+  };
+  if(tips[p]){
+    node.style.display   = 'block';
+    node.style.position  = 'relative';
+    node.innerHTML       = closeBtn + tips[p];
+  } else {
+    node.style.display   = 'none';
+    node.innerHTML       = '';
+  }
+}
+
+function dismissJourneyTips(){
+  const p = normalizeProfession(localStorage.getItem('sm_user_profession')) || 'anon';
+  localStorage.setItem('sm_journey_tips_dismissed_' + p, 'yes');
+  const node = document.getElementById('journeyNote');
+  if(node) node.style.display = 'none';
 }
 
 /* ── Early defs ── */
@@ -1005,10 +1026,11 @@ async function smFetchSmUsersRowByEmail(em0){
   }catch(e){}
   return null;
 }
-async function smRestoreSessionFromSupabase(email){
-  if(!_sb||!email)return false;
+/** Rich restore for auth flows: found + profile; also hydrates localStorage and unlock state from sm_users + contributions. */
+async function _smRestoreInternal(email){
+  if(!_sb||!email) return { found:false, profile:null };
   const em0=String(email).trim();
-  if(!em0)return false;
+  if(!em0) return { found:false, profile:null };
   try{
     const data=await smFetchSmUsersRowByEmail(em0);
     if(data){
@@ -1019,13 +1041,11 @@ async function smRestoreSessionFromSupabase(email){
       localStorage.setItem('tr_shared_email',rowEmail);
       await smSyncSalaryStatusFromContributions(rowEmail);
       _sb.from('sm_users').update({last_login:new Date().toISOString()}).eq('email',rowEmail).then(()=>{}).catch(()=>{});
-      return true;
+      return { found:true, profile:data };
     }
-    // Backward compatibility: some historical users exist only in txr_user.
     let leg=await _sb.from('txr_user').select('email,name').eq('email',em0).maybeSingle();
-    if((leg.error||!leg.data)&&em0.toLowerCase()!==em0){
+    if((leg.error||!leg.data)&&em0.toLowerCase()!==em0)
       leg=await _sb.from('txr_user').select('email,name').eq('email',em0.toLowerCase()).maybeSingle();
-    }
     if(leg.data&&!leg.error){
       const le=String(leg.data.email||em0);
       smMarkSeenUser(le);
@@ -1033,12 +1053,19 @@ async function smRestoreSessionFromSupabase(email){
       localStorage.setItem('tr_shared_email',le);
       localStorage.setItem('sm_known_user','yes');
       localStorage.removeItem(SM_USER_ID_KEY);
-      if(leg.data.name&&!localStorage.getItem('sm_user_name'))localStorage.setItem('sm_user_name',leg.data.name);
+      if(leg.data.name&&!localStorage.getItem('sm_user_name')) localStorage.setItem('sm_user_name',leg.data.name);
       await smSyncSalaryStatusFromContributions(le);
-      return true;
+      return { found:true, profile:leg.data };
     }
-    return false;
-  }catch(e){console.warn('smRestoreSession:',e);return false;}
+    return { found:false, profile:null };
+  }catch(e){
+    console.warn('smRestoreSession:',e);
+    return { found:false, profile:null };
+  }
+}
+async function smRestoreSessionFromSupabase(email){
+  const r=await _smRestoreInternal(email);
+  return r.found;
 }
 /** True if this email already has a record in sm_users or legacy txr_user (returning / active user, not a first-time registration). */
 async function smUserExistsInSupabase(email){
@@ -1095,18 +1122,50 @@ async function smFinalizeReturningUserLogin(email){
   return true;
 }
 
-(async function(){
+function _prefillSalaryFields(){
+  const _userCountry = localStorage.getItem('sm_user_country') || '';
+  const _countryMap = {'India':'India','United States':'USA','UAE':'UAE','United Kingdom':'UK','Canada':'Canada','Singapore':'Singapore','Australia':'Australia'};
+  const _curMap = {'India':'INR','United States':'USD','UAE':'AED','United Kingdom':'GBP','Canada':'CAD','Singapore':'SGD','Australia':'AUD'};
+  const _salC = document.getElementById('salCountry');
+  if(_salC && _userCountry && _countryMap[_userCountry]) _salC.value = _countryMap[_userCountry];
+  const _salCur = document.getElementById('salCurrency');
+  if(_salCur && _userCountry && _curMap[_userCountry]) _salCur.value = _curMap[_userCountry];
+  const notifyEl = document.getElementById('salNotifyChange');
+  if(notifyEl) notifyEl.checked = (localStorage.getItem('sm_salary_notify') || 'no') === 'yes';
+}
+
+function _onLoginSuccess(isNewUser){
+  const loginModal = document.getElementById('loginModal');
+  if(loginModal) loginModal.style.display = 'none';
+  checkTrialExpiry('');
+  renderTrialBadgeSM();
+  smUpdateNavLinks();
+  _prefillSalaryFields();
+  updateUserJourneyUi();
+  if(typeof smRefreshSalaryGatingFromSession==='function') smRefreshSalaryGatingFromSession(2000);
+  if(!isNewUser && typeof smMarkRobotTourComplete==='function') smMarkRobotTourComplete();
+  smMaybeShowSalaryPrompt();
+}
+
+(function(){
   window.addEventListener('load', function(){
-    setTimeout(function(){ if(typeof smRefreshSalaryGatingFromSession==='function') smRefreshSalaryGatingFromSession(); }, 1500);
+    setTimeout(function(){
+      if(typeof isSalaryPromptEligible==='function' &&
+          typeof isSalaryUnlocked==='function' &&
+          isSalaryPromptEligible() && !isSalaryUnlocked()){
+        const fp = document.getElementById('floatingPanda');
+        if(fp) fp.style.display = 'block';
+      }
+    }, 1500);
   });
   const urlParams = new URLSearchParams(window.location.search);
-  const urlEmail = urlParams.get('au');
+  const urlEmail  = urlParams.get('au');
   if(urlEmail && !localStorage.getItem('sm_user_email')){
     const decoded = decodeURIComponent(urlEmail);
-    localStorage.setItem('sm_user_email', decoded);
-    localStorage.setItem('sm_user_name', '');
-    localStorage.setItem('tr_shared_email', decoded);
-    if(!localStorage.getItem('sm_login_date')) localStorage.setItem('sm_login_date', Date.now().toString());
+    localStorage.setItem('sm_user_email',    decoded);
+    localStorage.setItem('tr_shared_email',  decoded);
+    if(!localStorage.getItem('sm_login_date'))
+      localStorage.setItem('sm_login_date', Date.now().toString());
     const clean = window.location.search.replace(/[?&]au=[^&]*/,'').replace(/^&/,'?');
     window.history.replaceState({}, '', window.location.pathname + (clean || ''));
   }
@@ -1114,167 +1173,103 @@ async function smFinalizeReturningUserLogin(email){
   const sharedName  = localStorage.getItem('tr_shared_name');
   if(!localStorage.getItem('sm_user_email') && sharedEmail){
     localStorage.setItem('sm_user_email', sharedEmail);
-    localStorage.setItem('sm_user_name', sharedName || '');
-    if(!localStorage.getItem('sm_login_date')) localStorage.setItem('sm_login_date', Date.now().toString());
+    localStorage.setItem('sm_user_name',  sharedName || '');
+    if(!localStorage.getItem('sm_login_date'))
+      localStorage.setItem('sm_login_date', Date.now().toString());
   }
-  if(!localStorage.getItem('sm_user_email')){
+  const storedEmail = localStorage.getItem('sm_user_email');
+  if(!storedEmail){
     openSmLoginModal();
-  } else {
-    const _initEmail=localStorage.getItem('sm_user_email');
-    smRestoreSessionFromSupabase(_initEmail).then(function(restored){
-      smRefreshSalaryGatingFromSession();
-      if(restored){
-        document.getElementById('loginModal').style.display='none';
-        checkTrialExpiry('');
-        renderTrialBadgeSM();
-        smUpdateNavLinks();
-        updateUserJourneyUi();
-        if(typeof smUserExistsInSupabase==='function'){
-          smUserExistsInSupabase((localStorage.getItem('sm_user_email')||_initEmail).trim()).then(function(exists){
-            if(exists&&typeof smMarkRobotTourComplete==='function')smMarkRobotTourComplete();
-            if(typeof smUpdateSalaryStatusDisplays==='function')smUpdateSalaryStatusDisplays();
-          }).catch(function(){});
-        }
-        return;
-      }
-      if(typeof smUserExistsInSupabase==='function'){
-        smUserExistsInSupabase(_initEmail||'').then(function(exists){
-          if(exists||smLooksReturningLocally(_initEmail||'')){smFinalizeReturningUserLogin(_initEmail||'');return;}
-          const p2=getSmProfile();
-          document.getElementById('loginModal').style.display='flex';
-          openSmProfileStep(_initEmail||'',p2.name||'');
-        }).catch(function(){
-          if(smLooksReturningLocally(_initEmail||'')){smFinalizeReturningUserLogin(_initEmail||'');return;}
-          const p2=getSmProfile();
-          document.getElementById('loginModal').style.display='flex';
-          openSmProfileStep(_initEmail||'',p2.name||'');
-        });
-      }else{
-        if(smLooksReturningLocally(_initEmail||'')){smFinalizeReturningUserLogin(_initEmail||'');return;}
-        const p2=getSmProfile();
-        document.getElementById('loginModal').style.display='flex';
-        openSmProfileStep(_initEmail||'',p2.name||'');
-      }
-    });
+    return;
   }
+  _smRestoreInternal(storedEmail).then(function(result){
+    const profile    = getSmProfile();
+    const hasProfile = !!(profile.profession && profile.country && profile.name);
+    const isKnown    = localStorage.getItem('sm_known_user') === 'yes';
+    if(result.found && hasProfile){
+      _onLoginSuccess(false);
+    } else if(result.found && !hasProfile){
+      openSmProfileStep(storedEmail, profile.name || '');
+    } else if(!result.found && hasProfile && isKnown){
+      _onLoginSuccess(false);
+    } else {
+      openSmProfileStep(storedEmail, profile.name || '');
+    }
+  }).catch(function(){
+    const profile  = getSmProfile();
+    const hasLocal = !!(profile.profession && profile.country && profile.name);
+    const isKnown  = localStorage.getItem('sm_known_user') === 'yes';
+    if(hasLocal && isKnown) _onLoginSuccess(false);
+    else openSmProfileStep(storedEmail, profile.name || '');
+  });
 })();
+
 function smHandleGoogle(response){
-  const payload=JSON.parse(atob(response.credential.split('.')[1]));
-  const email=payload.email;
-  if(email){
-    window.smRestoreSessionFromSupabase(email).then(function(restored){
-      if(!localStorage.getItem('sm_user_email')){
-        localStorage.setItem('sm_user_email',String(email).trim());
-        localStorage.setItem('tr_shared_email',String(email).trim());
-      }
-      if(!localStorage.getItem('sm_login_date'))localStorage.setItem('sm_login_date',Date.now().toString());
-      const p=getSmProfile();
-      smRefreshSalaryGatingFromSession();
-      if(restored){
-        document.getElementById('loginModal').style.display='none';
-        checkTrialExpiry('');renderTrialBadgeSM();smUpdateNavLinks();updateUserJourneyUi();
-        const emNow=(localStorage.getItem('sm_user_email')||email).trim();
-        smSaveUserToSupabase(emNow,p.name||payload.name,p.profession||'',p.country||'',true);
-        smRefreshSalaryGatingFromSession(1500);
-        if(typeof smUserExistsInSupabase==='function'){
-          smUserExistsInSupabase(emNow).then(function(exists){
-            if(exists&&typeof smMarkRobotTourComplete==='function')smMarkRobotTourComplete();
-            if(typeof smUpdateSalaryStatusDisplays==='function')smUpdateSalaryStatusDisplays();
-          }).catch(function(){});
-        }
-      }else{
-        const emTry=(localStorage.getItem('sm_user_email')||email||'').trim();
-        if(typeof smUserExistsInSupabase==='function'&&emTry){
-          smUserExistsInSupabase(emTry).then(function(exists){
-            if(exists||smLooksReturningLocally(emTry)){smFinalizeReturningUserLogin(emTry);return;}
-            openSmProfileStep(emTry,payload.name||p.name||'');
-          }).catch(function(){
-            if(smLooksReturningLocally(emTry)){smFinalizeReturningUserLogin(emTry);return;}
-            openSmProfileStep(emTry,payload.name||p.name||'');
-          });
-        }else if(smLooksReturningLocally(emTry)){smFinalizeReturningUserLogin(emTry);}
-        else openSmProfileStep(emTry,payload.name||p.name||'');
-      }
-    });
-  }else{
-    const em2=String(payload.email||'').trim();
-    if(typeof smUserExistsInSupabase==='function'&&em2){
-      smUserExistsInSupabase(em2).then(function(exists){
-        if(exists||smLooksReturningLocally(em2)){smFinalizeReturningUserLogin(em2);return;}
-        openSmProfileStep(em2,payload.name||'');
-      }).catch(function(){
-        if(smLooksReturningLocally(em2)){smFinalizeReturningUserLogin(em2);return;}
-        openSmProfileStep(em2,payload.name||'');
-      });
-    }else if(smLooksReturningLocally(em2)){smFinalizeReturningUserLogin(em2);}
-    else{openSmProfileStep(payload.email,payload.name||'');}
-  }
+  const payload = JSON.parse(atob(response.credential.split('.')[1]));
+  const email   = payload.email;
+  if(!email){ openSmProfileStep('', payload.name || ''); return; }
+  localStorage.setItem('sm_user_email',   email);
+  localStorage.setItem('tr_shared_email', email);
+  if(!localStorage.getItem('sm_login_date'))
+    localStorage.setItem('sm_login_date', Date.now().toString());
+  _smRestoreInternal(email).then(function(result){
+    const profile    = getSmProfile();
+    const hasProfile = !!(profile.profession && profile.country && profile.name);
+    if(result.found && hasProfile){
+      const emNow = (localStorage.getItem('sm_user_email') || email).trim();
+      smSaveUserToSupabase(emNow, profile.name || payload.name, profile.profession || '', profile.country || '', true);
+      _onLoginSuccess(false);
+    } else if(result.found && !hasProfile){
+      openSmProfileStep(email, payload.name || profile.name || '');
+    } else {
+      openSmProfileStep(email, payload.name || profile.name || '');
+    }
+  }).catch(function(){
+    openSmProfileStep(email, payload.name || '');
+  });
 }
-
-
 
 function smStartEmailAuth(mode){
   const val = document.getElementById('smEmailInput').value.trim();
   const err = document.getElementById('smEmailErr');
   const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-  if(!val || !emailRe.test(val)){ err.style.display='block'; err.textContent='Please enter a valid email address.'; document.getElementById('smEmailInput').focus(); return; }
-  err.style.display='none';
-  localStorage.setItem('sm_user_email', val);
-  localStorage.setItem('tr_shared_email', val);
-  if(!localStorage.getItem('sm_login_date')) localStorage.setItem('sm_login_date', Date.now().toString());
-  if(typeof smRestoreSessionFromSupabase!=='function'){
-    openSmProfileStep(val, '');
+  if(!val || !emailRe.test(val)){
+    err.style.display = 'block';
+    err.textContent   = 'Please enter a valid email address.';
+    document.getElementById('smEmailInput').focus();
     return;
   }
-  smRestoreSessionFromSupabase(val).then(function(restored){
-    smRefreshSalaryGatingFromSession();
-    if(restored){
-      document.getElementById('loginModal').style.display='none';
-      checkTrialExpiry('');
-      renderTrialBadgeSM();
-      smUpdateNavLinks();
-      updateUserJourneyUi();
-      if(typeof smUserExistsInSupabase==='function'){
-        smUserExistsInSupabase((localStorage.getItem('sm_user_email')||val).trim()).then(function(exists){
-          if(exists&&typeof smMarkRobotTourComplete==='function') smMarkRobotTourComplete();
-          if(typeof smUpdateSalaryStatusDisplays==='function') smUpdateSalaryStatusDisplays();
-        }).catch(function(){});
-      }
-    }else if(typeof smUserExistsInSupabase==='function'){
-      smUserExistsInSupabase(val).then(function(exists){
-        if(exists||smLooksReturningLocally(val)){smFinalizeReturningUserLogin(val);return;}
-        if(mode==='signin'){
-          if(err){
-            err.style.display='block';
-            err.textContent='No account found for this email. Use Sign up first.';
-          }
-          return;
-        }
-        const p2=getSmProfile();
-        openSmProfileStep(val,p2.name||'');
-      }).catch(function(){
-        if(smLooksReturningLocally(val)){smFinalizeReturningUserLogin(val);return;}
-        if(mode==='signin'){
-          if(err){
-            err.style.display='block';
-            err.textContent='Could not verify this account right now. Please try again.';
-          }
-          return;
-        }
-        const p2=getSmProfile();
-        openSmProfileStep(val,p2.name||'');
-      });
-    }else{
-      if(mode==='signin'){
-        if(err){
-          err.style.display='block';
-          err.textContent='Could not sign in with this email. Try again or use Sign up.';
-        }
+  err.style.display = 'none';
+  _smRestoreInternal(val).then(function(result){
+    const profile    = getSmProfile();
+    const hasProfile = !!(profile.profession && profile.country && profile.name);
+    localStorage.setItem('sm_user_email',   val);
+    localStorage.setItem('tr_shared_email', val);
+    if(!localStorage.getItem('sm_login_date'))
+      localStorage.setItem('sm_login_date', Date.now().toString());
+    if(mode === 'signin'){
+      if(!result.found && !hasProfile){
+        err.style.display = 'block';
+        err.textContent   = 'No account found for this email. Please Sign up or use Google.';
         return;
       }
-      const p2=getSmProfile();
-      openSmProfileStep(val, p2.name||'');
+      if(result.found && !hasProfile){
+        openSmProfileStep(val, profile.name || '');
+        return;
+      }
+      _onLoginSuccess(false);
+      showToast('Welcome back!','ok');
+      return;
     }
+    if(result.found && hasProfile){
+      _onLoginSuccess(false);
+      showToast('Welcome back!','ok');
+    } else {
+      openSmProfileStep(val, profile.name || '');
+    }
+  }).catch(function(){
+    err.style.display = 'block';
+    err.textContent   = 'Could not connect right now. Please try again.';
   });
 }
 
@@ -1302,36 +1297,35 @@ function smUpdateNavLinks(){
 }
 
 async function smCompleteLogin(email, name, profileData){
-  const consent = document.getElementById('smConsent').checked;
+  const consent    = document.getElementById('smConsent')?.checked ?? true;
   const profession = (profileData && profileData.profession) || localStorage.getItem('sm_user_profession') || '';
-  const country = (profileData && profileData.country) || localStorage.getItem('sm_user_country') || '';
-  const established=typeof smUserExistsInSupabase==='function'?await smUserExistsInSupabase(email):false;
-  localStorage.setItem('sm_user_email', email);
-  localStorage.setItem('sm_user_name', name);
+  const country    = (profileData && profileData.country)    || localStorage.getItem('sm_user_country')    || '';
+  localStorage.setItem('sm_user_email',      email);
+  localStorage.setItem('sm_user_name',       name);
   if(profession) localStorage.setItem('sm_user_profession', profession);
-  if(country) localStorage.setItem('sm_user_country', country);
-  localStorage.setItem('sm_consent', consent?'yes':'no');
-  localStorage.setItem('tr_shared_email', email);
-  localStorage.setItem('tr_shared_name', name);
-  smMarkSeenUser(email);
-  if(!localStorage.getItem('sm_login_date')) localStorage.setItem('sm_login_date', Date.now().toString());
-  document.getElementById('loginModal').style.display='none';
-  smSaveUserToSupabase(email,name,profession,country,consent);
-  renderTrialBadgeSM();
-  smUpdateNavLinks();
-  setTimeout(function(){ if(typeof smRefreshSalaryGatingFromSession==='function') smRefreshSalaryGatingFromSession(); }, 2000);
-  smMaybeShowSalaryPrompt(profession);
-  updateUserJourneyUi();
-  if(typeof smUpdateSalaryStatusDisplays==='function') smUpdateSalaryStatusDisplays();
-  if(!established){
-    try{
-      localStorage.removeItem('sm_robot_tool_tour_v1_done');
-      var _emk=(String(email||'').trim().toLowerCase());
-      if(_emk) localStorage.removeItem('sm_robot_tour_v2:'+_emk);
-    }catch(e){}
-    if(typeof maybeStartRobotToolTour==='function') maybeStartRobotToolTour(500);
-  }else if(typeof smMarkRobotTourComplete==='function') smMarkRobotTourComplete();
-  try{ fetch('/',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'form-name=sm-users&email='+encodeURIComponent(email)+'&name='+encodeURIComponent(name)+'&profession='+encodeURIComponent(profession)+'&country='+encodeURIComponent(country)+'&notify_salary='+(localStorage.getItem('sm_salary_notify')||'no')+'&consent='+(consent?'yes':'no')}); }catch(e){}
+  if(country)    localStorage.setItem('sm_user_country',    country);
+  localStorage.setItem('sm_consent',         consent ? 'yes' : 'no');
+  localStorage.setItem('tr_shared_email',    email);
+  localStorage.setItem('tr_shared_name',     name);
+  if(!localStorage.getItem('sm_login_date'))
+    localStorage.setItem('sm_login_date', Date.now().toString());
+  const wasNew = !localStorage.getItem('sm_known_user');
+  smSaveUserToSupabase(email, name, profession, country, consent);
+  _onLoginSuccess(wasNew);
+  localStorage.setItem('sm_known_user', 'yes');
+  try{
+    fetch('/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'form-name=sm-users'
+        + '&email='        + encodeURIComponent(email)
+        + '&name='         + encodeURIComponent(name)
+        + '&profession='   + encodeURIComponent(profession)
+        + '&country='      + encodeURIComponent(country)
+        + '&notify_salary='+ (localStorage.getItem('sm_salary_notify') || 'no')
+        + '&consent='      + (consent ? 'yes' : 'no')
+    });
+  } catch(e) {}
 }
 
 function smDoLogin(){ document.getElementById('smEmailInput').focus(); }
@@ -1347,6 +1341,8 @@ function smToggleSettings(){
       nm.value=(localStorage.getItem('sm_user_name')||'').trim();
       nm.focus();
     }
+    const st=document.getElementById('smSettingsSalaryStatus');
+    if(st) st.textContent=(typeof isSalaryUnlocked==='function'&&isSalaryUnlocked())?'Filled':'Not filled';
     const msg=document.getElementById('smSettingsMsg');
     if(msg){msg.style.display='none';msg.textContent='';}
   }
@@ -1372,17 +1368,26 @@ async function smSaveSettings(){
   toggleProfileMenu();
 }
 function toggleProfileMenu(){
-  const menu=document.getElementById('smProfileMenu');
-  const email=localStorage.getItem('sm_user_email');
-  if(!email){openSmLoginModal();return;}
-  if(typeof smUpdateSalaryStatusDisplays==='function') smUpdateSalaryStatusDisplays();
-  if(document.getElementById('smProfileEmailRow')) document.getElementById('smProfileEmailRow').textContent=email;
-  if(document.getElementById('smProfileNameRow')) document.getElementById('smProfileNameRow').textContent=localStorage.getItem('sm_user_name')||'Not provided';
-  if(document.getElementById('smProfileProfessionRow')) document.getElementById('smProfileProfessionRow').textContent=localStorage.getItem('sm_user_profession')||'Not provided';
-  if(document.getElementById('smProfileCountryRow')) document.getElementById('smProfileCountryRow').textContent=localStorage.getItem('sm_user_country')||'Not provided';
-  const panel=document.getElementById('smSettingsPanel');
-  if(panel) panel.style.display='none';
-  if(menu) menu.style.display=menu.style.display==='none'?'block':'none';
+  const menu  = document.getElementById('smProfileMenu');
+  const email = localStorage.getItem('sm_user_email');
+  if(!email){ openSmLoginModal(); return; }
+  const salaryFilled = (typeof isSalaryUnlocked==='function' && isSalaryUnlocked()) ? 'Filled' : 'Not filled';
+  const notifyStatus = (localStorage.getItem('sm_salary_notify') || 'no') === 'yes' ? 'Enabled' : 'Not enabled';
+  const rows = {
+    smProfileEmailRow:      email,
+    smProfileNameRow:       localStorage.getItem('sm_user_name')       || 'Not provided',
+    smProfileProfessionRow: localStorage.getItem('sm_user_profession') || 'Not provided',
+    smProfileCountryRow:    localStorage.getItem('sm_user_country')    || 'Not provided',
+    smProfileSalaryRow:     salaryFilled,
+    smProfileNotifyRow:     notifyStatus
+  };
+  Object.keys(rows).forEach(function(id){
+    const el = document.getElementById(id);
+    if(el) el.textContent = rows[id];
+  });
+  const panel = document.getElementById('smSettingsPanel');
+  if(panel) panel.style.display = 'none';
+  if(menu) menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
 }
 document.addEventListener('click',function(e){
   const wrap=document.getElementById('smProfileWrap');
@@ -1391,10 +1396,27 @@ document.addEventListener('click',function(e){
 });
 function smSignOut(){
   if(!confirm('Sign out of SkillMapper?')) return;
-  ['sm_user_email','sm_user_name','sm_user_profession','sm_user_country','sm_salary_notify','sm_salary_submitted_at','sm_login_date','sm_consent','sm_sal_unlocked_until','sm_known_user',SM_USER_ID_KEY,'tr_shared_email','tr_shared_name'].forEach(k=>localStorage.removeItem(k));
+  ['sm_user_email','sm_user_name','sm_user_profession','sm_user_country','sm_salary_notify','sm_salary_submitted_at','sm_login_date','sm_consent','sm_sal_unlocked_until','sm_known_user','tr_shared_email','tr_shared_name'].forEach(k=>localStorage.removeItem(k));
   document.getElementById('smProfileMenu').style.display='none';
   location.reload();
 }
+(function(){
+  const gs = document.createElement('script');
+  gs.src   = 'https://accounts.google.com/gsi/client';
+  gs.async = true;
+  gs.defer = true;
+  gs.onload = function(){
+    google.accounts.id.initialize({
+      client_id: '63435915694-ug0ina6m7jqvm7m0f22qq4gqrsgieoha.apps.googleusercontent.com',
+      callback:  smHandleGoogle
+    });
+    google.accounts.id.renderButton(
+      document.getElementById('g_sm_signin'),
+      { theme: 'outline', size: 'large', width: 356, text: 'continue_with', shape: 'rectangular' }
+    );
+  };
+  document.head.appendChild(gs);
+})();
 </script>
 
 <header class="topbar">
