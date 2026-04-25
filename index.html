@@ -1217,13 +1217,34 @@ function smStartEmailAuth(mode){
     }else if(typeof smUserExistsInSupabase==='function'){
       smUserExistsInSupabase(val).then(function(exists){
         if(exists){smFinalizeReturningUserLogin(val);return;}
+        if(mode==='signin'){
+          if(err){
+            err.style.display='block';
+            err.textContent='No account found for this email. Use Sign up first.';
+          }
+          return;
+        }
         const p2=getSmProfile();
         openSmProfileStep(val,p2.name||'');
       }).catch(function(){
+        if(mode==='signin'){
+          if(err){
+            err.style.display='block';
+            err.textContent='Could not verify this account right now. Please try again.';
+          }
+          return;
+        }
         const p2=getSmProfile();
         openSmProfileStep(val,p2.name||'');
       });
     }else{
+      if(mode==='signin'){
+        if(err){
+          err.style.display='block';
+          err.textContent='Could not sign in with this email. Try again or use Sign up.';
+        }
+        return;
+      }
       const p2=getSmProfile();
       openSmProfileStep(val, p2.name||'');
     }
