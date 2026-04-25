@@ -930,6 +930,9 @@ function smApplyUserRowFromSupabase(data){
     if(n==='yes'||n==='true'||n==='1')localStorage.setItem('sm_salary_notify','yes');
     else if(n==='no'||n==='false'||n==='0')localStorage.setItem('sm_salary_notify','no');
   }
+  // FIX-2: persist salary location/currency from sm_users row so _prefillSalaryFields works immediately
+  if(data.salary_country) localStorage.setItem('sm_salary_country',String(data.salary_country).trim());
+  if(data.salary_currency) localStorage.setItem('sm_salary_currency',String(data.salary_currency).trim());
   if(data.login_date&&!localStorage.getItem('sm_login_date')) localStorage.setItem('sm_login_date',new Date(data.login_date).getTime().toString());
   localStorage.setItem('sm_known_user','yes');
   if(data.name) localStorage.setItem('sm_user_name',data.name);
@@ -1084,7 +1087,7 @@ async function smFetchSmUsersRowByEmail(em0){
     const fetchByEmail=async function(emailValue){
       const base=await sb.from(SM_USER_TABLE).select('id,email').eq('email',emailValue).maybeSingle();
       if(base.data&&!base.error){
-        const full=await sb.from(SM_USER_TABLE).select('id,email,name,profession,country,notify_salary,salary_submitted_at,login_date,last_login').eq('email',base.data.email||emailValue).limit(1);
+        const full=await sb.from(SM_USER_TABLE).select('id,email,name,profession,country,notify_salary,salary_country,salary_currency,salary_submitted_at,login_date,last_login').eq('email',base.data.email||emailValue).limit(1);
         if(!full.error&&Array.isArray(full.data)&&full.data.length) return full.data[0];
         return base.data;
       }
@@ -1254,7 +1257,8 @@ function _onLoginSuccess(isNewUser){
   checkTrialExpiry('');
   renderTrialBadgeSM();
   smUpdateNavLinks();
-  _prefillSalaryFields();
+  // FIX-2: defer so any async Supabase writes to localStorage finish first
+  setTimeout(function(){ _prefillSalaryFields(); }, 0);
   updateUserJourneyUi();
   if(typeof smRefreshSalaryGatingFromSession==='function') smRefreshSalaryGatingFromSession(2000);
   if(!isNewUser && typeof smMarkRobotTourComplete==='function') smMarkRobotTourComplete();
@@ -1296,24 +1300,22 @@ function _onLoginSuccess(isNewUser){
     openSmLoginModal();
     return;
   }
-  smWaitForSupabaseClient(1400).then(function(){
+  // FIX-1: wait longer + retry once so existing sm_users rows are found on slow connections
+  smWaitForSupabaseClient(2500).then(function(){
     return _smRestoreInternal(storedEmail);
-  }).then(function(result){
+  }).then(async function(result){
     const profile    = getSmProfile();
     const hasProfile = !!(profile.profession && profile.country && profile.name);
     const isKnown    = localStorage.getItem('sm_known_user') === 'yes';
-    if(result.found){
-      _onLoginSuccess(false);
-    } else if(!result.found && hasProfile && isKnown){
-      _onLoginSuccess(false);
-    } else {
-      smShouldAutoLoginReturningUser(storedEmail).then(function(exists){
-        if(exists) _onLoginSuccess(false);
-        else openSmProfileStep(storedEmail, profile.name || '');
-      }).catch(function(){
-        openSmProfileStep(storedEmail, profile.name || '');
-      });
-    }
+    if(result.found){ _onLoginSuccess(false); return; }
+    try{
+      const retry = await _smRestoreInternal(storedEmail);
+      if(retry.found){ _onLoginSuccess(false); return; }
+    }catch(e){}
+    if(hasProfile && isKnown){ _onLoginSuccess(false); return; }
+    const exists = await smShouldAutoLoginReturningUser(storedEmail).catch(function(){ return false; });
+    if(exists){ _onLoginSuccess(false); return; }
+    openSmProfileStep(storedEmail, profile.name || '');
   }).catch(function(){
     const profile  = getSmProfile();
     const hasLocal = !!(profile.profession && profile.country && profile.name);
@@ -1327,46 +1329,33 @@ function smHandleGoogle(response){
   const payload = JSON.parse(atob(response.credential.split('.')[1]));
   const email   = payload.email;
   if(!email){ openSmProfileStep('', payload.name || ''); return; }
-  const gName = (payload.name || '').trim();
   localStorage.setItem('sm_user_email',   email);
   localStorage.setItem('tr_shared_email', email);
-  if(gName && !localStorage.getItem('sm_user_name')) localStorage.setItem('sm_user_name', gName);
   if(!localStorage.getItem('sm_login_date'))
     localStorage.setItem('sm_login_date', Date.now().toString());
-  smWaitForSupabaseClient(1400).then(function(){
+  // FIX-1: wait longer + retry for Google SSO returning users
+  smWaitForSupabaseClient(2500).then(function(){
     return _smRestoreInternal(email);
-  }).then(function(result){
+  }).then(async function(result){
     const profile    = getSmProfile();
     if(result.found){
       const emNow = (localStorage.getItem('sm_user_email') || email).trim();
       smSaveUserToSupabase(emNow, profile.name || payload.name, profile.profession || '', profile.country || '', true);
-      _onLoginSuccess(false);
-    } else {
-      smShouldAutoLoginReturningUser(email).then(function(exists){
-        if(exists){
-          _onLoginSuccess(false);
-        }else{
-          // Google success should not block on profile fields.
-          // Allow session, hydrate salary prefs if available, and let profile be completed later if needed.
-          localStorage.setItem('sm_known_user','yes');
-          const finalName = profile.name || gName || '';
-          if(finalName) localStorage.setItem('sm_user_name', finalName);
-          smSaveUserToSupabase(email, finalName, profile.profession || '', profile.country || '', true);
-          _onLoginSuccess(false);
-        }
-      }).catch(function(){
-        localStorage.setItem('sm_known_user','yes');
-        const finalName = profile.name || gName || '';
-        if(finalName) localStorage.setItem('sm_user_name', finalName);
-        smSaveUserToSupabase(email, finalName, profile.profession || '', profile.country || '', true);
-        _onLoginSuccess(false);
-      });
+      _onLoginSuccess(false); return;
     }
+    try{
+      const retry = await _smRestoreInternal(email);
+      if(retry.found){
+        const emNow = (localStorage.getItem('sm_user_email') || email).trim();
+        smSaveUserToSupabase(emNow, profile.name || payload.name, profile.profession || '', profile.country || '', true);
+        _onLoginSuccess(false); return;
+      }
+    }catch(e){}
+    const exists = await smShouldAutoLoginReturningUser(email).catch(function(){ return false; });
+    if(exists){ _onLoginSuccess(false); }
+    else{ openSmProfileStep(email, payload.name || profile.name || ''); }
   }).catch(function(){
-    localStorage.setItem('sm_known_user','yes');
-    if(gName && !localStorage.getItem('sm_user_name')) localStorage.setItem('sm_user_name', gName);
-    smSaveUserToSupabase(email, localStorage.getItem('sm_user_name') || gName || '', localStorage.getItem('sm_user_profession') || '', localStorage.getItem('sm_user_country') || '', true);
-    _onLoginSuccess(false);
+    openSmProfileStep(email, payload.name || '');
   });
 }
 
@@ -1391,23 +1380,23 @@ function smStartEmailAuth(mode){
     if(!localStorage.getItem('sm_login_date'))
       localStorage.setItem('sm_login_date', Date.now().toString());
     if(mode === 'signin'){
-      if(!result.found && !hasProfile){
-        smShouldAutoLoginReturningUser(val).then(function(exists){
-          if(exists){
-            _onLoginSuccess(false);
-            showToast('Welcome back!','ok');
-          }else{
-            err.style.display = 'block';
-            err.textContent   = 'No account found for this email. Please Sign up or use Google.';
-          }
-        }).catch(function(){
+      // FIX-1: if Supabase found the row immediately, login without showing modal
+      if(result.found){ _onLoginSuccess(false); showToast('Welcome back!','ok'); return; }
+      // Not found on first try — check legacy tables / local signals
+      smShouldAutoLoginReturningUser(val).then(async function(exists){
+        if(exists){
+          try{ await _smRestoreInternal(val); }catch(e){}
+          _onLoginSuccess(false); showToast('Welcome back!','ok');
+        } else if(hasProfile && localStorage.getItem('sm_known_user')==='yes'){
+          _onLoginSuccess(false); showToast('Welcome back!','ok');
+        } else {
           err.style.display = 'block';
           err.textContent   = 'No account found for this email. Please Sign up or use Google.';
-        });
-        return;
-      }
-      _onLoginSuccess(false);
-      showToast('Welcome back!','ok');
+        }
+      }).catch(function(){
+        err.style.display = 'block';
+        err.textContent   = 'Could not reach our servers. Please try again.';
+      });
       return;
     }
     if(result.found){
@@ -1460,7 +1449,12 @@ async function smCompleteLogin(email, name, profileData){
     localStorage.setItem('sm_login_date', Date.now().toString());
   const wasNew = !localStorage.getItem('sm_known_user');
   smSaveUserToSupabase(email, name, profession, country, consent);
-  _onLoginSuccess(wasNew);
+  // FIX-2: hydrate salary prefs from contribution tables before filling UI fields
+  smHydrateSalaryPrefsFromContributions(email).then(function(){
+    _onLoginSuccess(wasNew);
+  }).catch(function(){
+    _onLoginSuccess(wasNew);
+  });
   localStorage.setItem('sm_known_user', 'yes');
   try{
     fetch('/', {
