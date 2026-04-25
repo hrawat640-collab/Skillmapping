@@ -749,6 +749,16 @@ function toggleSmCountryOther(val){
   if(!other) return;
   other.style.display = val === 'Other' ? 'block' : 'none';
 }
+function smResetStateForEmailSwitch(nextEmail){
+  const prev=(localStorage.getItem('sm_user_email')||'').trim().toLowerCase();
+  const next=String(nextEmail||'').trim().toLowerCase();
+  if(!prev||!next||prev===next) return;
+  [
+    'sm_user_name','sm_user_profession','sm_user_country','sm_user_id','sm_user_uuid',
+    'sm_salary_notify','sm_salary_submitted_at','sm_salary_country','sm_salary_currency',
+    'sm_sal_unlocked_until','sm_sal_year','sm_known_user','sm_login_date'
+  ].forEach(function(k){ localStorage.removeItem(k); });
+}
 
 function mapProfessionToSelectValue(p){
   if(!p)return'';
@@ -1356,6 +1366,7 @@ function smHandleGoogle(response){
   const payload = JSON.parse(atob(response.credential.split('.')[1]));
   const email   = payload.email;
   if(!email){ openSmProfileStep('', payload.name || ''); return; }
+  smResetStateForEmailSwitch(email);
   localStorage.setItem('sm_user_email',   email);
   localStorage.setItem('tr_shared_email', email);
   if(payload.name && !localStorage.getItem('sm_user_name')) localStorage.setItem('sm_user_name', String(payload.name).trim());
@@ -1408,6 +1419,7 @@ function smStartEmailAuth(mode){
     return;
   }
   err.style.display = 'none';
+  smResetStateForEmailSwitch(val);
   smWaitForSupabaseClient(1400).then(function(){
     return _smRestoreInternal(val);
   }).then(function(result){
