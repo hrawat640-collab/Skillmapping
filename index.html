@@ -657,35 +657,14 @@ button:active, .btn-find:active, .sal-btn:active, .cur-chip:active, .dept-btn:ac
     <h2 style="margin-bottom:6px;font-size:22px;letter-spacing:-0.02em;font-family:Outfit,sans-serif;">Welcome to SkillMapper</h2>
     <p style="color:#6b6963;margin-bottom:20px;font-size:13px;line-height:1.6;font-family:Outfit,sans-serif;">Free to use</p>
     <div id="smGoogleBtn" style="margin-bottom:14px;"><div id="g_sm_signin" style="display:flex;justify-content:center;"></div></div>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;"><div style="flex:1;height:1px;background:#e4e2db;"></div><span style="font-size:11.5px;color:#aaa;font-family:Outfit,sans-serif;">or continue with email</span><div style="flex:1;height:1px;background:#e4e2db;"></div></div>
-    <div id="smEmailStep" style="text-align:left;">
-      <div style="display:flex;gap:6px;margin-bottom:14px;border-radius:10px;padding:3px;background:#f3f4f6;">
-        <button type="button" id="smTabSignin" onclick="smSetAuthMode('signin')" style="flex:1;padding:9px 10px;border:none;border-radius:8px;font-weight:700;font-size:12.5px;cursor:pointer;font-family:Outfit,sans-serif;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.06);color:#111827;">Sign in</button>
-        <button type="button" id="smTabSignup" onclick="smSetAuthMode('signup')" style="flex:1;padding:9px 10px;border:none;border-radius:8px;font-weight:700;font-size:12.5px;cursor:pointer;font-family:Outfit,sans-serif;background:transparent;color:#6b7280;">Sign up</button>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;"><div style="flex:1;height:1px;background:#e4e2db;"></div><span style="font-size:11.5px;color:#aaa;font-family:Outfit,sans-serif;">or sign in with email</span><div style="flex:1;height:1px;background:#e4e2db;"></div></div>
+    <div id="smEmailStep">
+      <input type="email" id="smEmailInput" placeholder="your@email.com" style="width:100%;padding:13px 16px;margin-bottom:10px;border-radius:9px;border:1.5px solid #e4e2db;font-family:Outfit,sans-serif;font-size:14px;outline:none;box-sizing:border-box;" onkeydown="if(event.key==='Enter')smStartEmailAuth('signin')">
+      <div style="display:flex;gap:8px;">
+        <button type="button" onclick="smStartEmailAuth('signup')" id="smSignupBtn" style="flex:1;padding:13px;background:#0f766e;color:#fff;border:none;border-radius:9px;font-weight:700;font-family:Outfit,sans-serif;font-size:14px;cursor:pointer;">Sign up</button>
+        <button type="button" onclick="smStartEmailAuth('signin')" id="smSigninBtn" style="flex:1;padding:13px;background:#111827;color:#fff;border:none;border-radius:9px;font-weight:700;font-family:Outfit,sans-serif;font-size:14px;cursor:pointer;">Sign in</button>
       </div>
-      <div id="smSigninBlock">
-        <label style="display:block;font-size:10.5px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;font-family:Outfit,sans-serif;">Email</label>
-        <input type="email" id="smEmailSignin" autocomplete="email" placeholder="you@company.com" style="width:100%;padding:12px 14px;margin-bottom:10px;border-radius:9px;border:1.5px solid #e4e2db;font-family:Outfit,sans-serif;font-size:14px;outline:none;box-sizing:border-box;" onkeydown="if(event.key==='Enter')smStartSignIn()">
-        <p style="font-size:12px;color:#6b7280;margin:-4px 0 10px 0;line-height:1.45;">Use the same email you registered with. We&rsquo;ll look it up in our records.</p>
-        <button type="button" onclick="smStartSignIn()" id="smSigninSubmitBtn" style="width:100%;padding:13px;background:#111827;color:#fff;border:none;border-radius:9px;font-weight:700;font-family:Outfit,sans-serif;font-size:14px;cursor:pointer;">Sign in</button>
-      </div>
-      <div id="smSignupBlock" style="display:none;">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
-          <div>
-            <label style="display:block;font-size:10.5px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;font-family:Outfit,sans-serif;">First name</label>
-            <input type="text" id="smFirstName" autocomplete="given-name" placeholder="First name" style="width:100%;padding:12px 14px;border-radius:9px;border:1.5px solid #e4e2db;font-family:Outfit,sans-serif;font-size:14px;outline:none;box-sizing:border-box;">
-          </div>
-          <div>
-            <label style="display:block;font-size:10.5px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;font-family:Outfit,sans-serif;">Last name</label>
-            <input type="text" id="smLastName" autocomplete="family-name" placeholder="Last name" style="width:100%;padding:12px 14px;border-radius:9px;border:1.5px solid #e4e2db;font-family:Outfit,sans-serif;font-size:14px;outline:none;box-sizing:border-box;">
-          </div>
-        </div>
-        <label style="display:block;font-size:10.5px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;font-family:Outfit,sans-serif;">Work or personal email</label>
-        <input type="email" id="smEmailSignup" autocomplete="email" placeholder="name@company.com" style="width:100%;padding:12px 14px;margin-bottom:6px;border-radius:9px;border:1.5px solid #e4e2db;font-family:Outfit,sans-serif;font-size:14px;outline:none;box-sizing:border-box;" onkeydown="if(event.key==='Enter')smStartSignUp()">
-        <p style="font-size:11.5px;color:#9ca3af;margin:0 0 10px 0;line-height:1.4;">No disposable or fake inboxes. Use an email you check regularly.</p>
-        <button type="button" onclick="smStartSignUp()" id="smSignupSubmitBtn" style="width:100%;padding:13px;background:#0f766e;color:#fff;border:none;border-radius:9px;font-weight:700;font-family:Outfit,sans-serif;font-size:14px;cursor:pointer;">Create account</button>
-      </div>
-      <p id="smEmailErr" style="font-size:12px;color:#b91c1c;margin-top:10px;display:none;">Please enter a valid email address.</p>
+      <p id="smEmailErr" style="font-size:12px;color:#b91c1c;margin-top:8px;display:none;">Please enter a valid email address.</p>
     </div>
     <div id="smProfileStep" style="display:none;text-align:left;">
       <div style="font-size:12px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;font-family:Outfit,sans-serif;">Tell us a little about you</div>
@@ -806,20 +785,8 @@ function isSalaryPromptEligible(professionValue){
 function smMaybeShowSalaryPrompt(_profession){
   if(typeof smRefreshSalaryGatingFromSession==='function') smRefreshSalaryGatingFromSession(0);
 }
-function openSmLoginModal(prefillEmail, mode){
+function openSmLoginModal(){
   const _lm=document.getElementById('loginModal');if(!_lm)return;
-  const fn=document.getElementById('smFirstName');
-  const ln=document.getElementById('smLastName');
-  const eSu=document.getElementById('smEmailSignup');
-  const eSi=document.getElementById('smEmailSignin');
-  if(fn) fn.value='';
-  if(ln) ln.value='';
-  if(eSu) eSu.value='';
-  if(eSi) eSi.value='';
-  const _err=document.getElementById('smEmailErr');
-  if(_err){ _err.style.display='none'; _err.textContent=''; }
-  if(eSi&&prefillEmail)eSi.value=String(prefillEmail).trim();
-  smSetAuthMode(mode==='signup'?'signup':'signin');
   document.getElementById('smEmailStep').style.display='block';
   document.getElementById('smProfileStep').style.display='none';
   const consentWrap = document.getElementById('smConsent')?.closest('label');
@@ -842,54 +809,6 @@ function updateUserJourneyUi(){
   }
 }
 
-const SM_DISPOSABLE_EMAIL_DOMAINS=new Set([
-  'mailinator.com','guerrillamail.com','guerrillamail.de','yopmail.com','yopmail.fr',
-  'tempmail.com','tempmail.net','10minutemail.com','10minutemail.net','trashmail.com',
-  'getnada.com','maildrop.cc','sharklasers.com','grr.la','throwaway.email',
-  'fakeinbox.com','mailnesia.com','temp-mail.org','dispostable.com','moakt.com',
-  'emailondeck.com','getairmail.com','mailcatch.com','mohmal.com','tmpmail.org',
-  'trashmail.net','inboxkitten.com'
-]);
-function smValidateWorkEmail(raw){
-  const s=String(raw||'').trim();
-  if(!s) return {ok:false,msg:'Please enter an email address.'};
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s)) return {ok:false,msg:'Use a real email format (e.g. name@company.com).'};
-  const at=s.indexOf('@');
-  if(at<1) return {ok:false,msg:'Please enter a valid email address.'};
-  const local=s.slice(0,at).toLowerCase();
-  const domFull=s.slice(at+1).toLowerCase();
-  if(!domFull) return {ok:false,msg:'Please enter a valid email address.'};
-  if(local.length<2) return {ok:false,msg:'The part before @ is too short to be a real address.'};
-  if(/^\d+$/.test(local)) return {ok:false,msg:'Use a normal email, not only numbers before @.'};
-  if(SM_DISPOSABLE_EMAIL_DOMAINS.has(domFull)) return {ok:false,msg:'Use a work or personal email. Disposable inboxes are not allowed.'};
-  if(local.indexOf('..')>=0||domFull.indexOf('..')>=0) return {ok:false,msg:'Invalid email format.'};
-  return {ok:true};
-}
-function smSetAuthMode(mode){
-  const signin=mode==='signin';
-  const bIn=document.getElementById('smSigninBlock');
-  const bUp=document.getElementById('smSignupBlock');
-  const tIn=document.getElementById('smTabSignin');
-  const tUp=document.getElementById('smTabSignup');
-  if(bIn) bIn.style.display=signin?'block':'none';
-  if(bUp) bUp.style.display=signin?'none':'block';
-  if(tIn){
-    tIn.style.background=signin?'#fff':'transparent';
-    tIn.style.color=signin?'#111827':'#6b7280';
-    tIn.style.boxShadow=signin?'0 1px 2px rgba(0,0,0,0.06)':'none';
-  }
-  if(tUp){
-    tUp.style.background=signin?'transparent':'#fff';
-    tUp.style.color=signin?'#6b7280':'#111827';
-    tUp.style.boxShadow=signin?'none':'0 1px 2px rgba(0,0,0,0.06)';
-  }
-  const err=document.getElementById('smEmailErr');
-  if(err) err.style.display='none';
-  setTimeout(function(){
-    if(signin){ const el=document.getElementById('smEmailSignin'); if(el)el.focus(); }
-    else{ const f=document.getElementById('smFirstName'); if(f)f.focus(); }
-  },0);
-}
 /* ── Early defs ── */
 const SAL_UNLOCK_KEY='sm_sal_unlocked_until';
 const SAL_SALARY_YEAR_KEY='sm_sal_year';
@@ -1180,7 +1099,9 @@ window.smUserExistsInSupabase = smUserExistsInSupabase;
         }
         return;
       }
-      openSmLoginModal(_initEmail||'','signin');
+      const p2=getSmProfile();
+      document.getElementById('loginModal').style.display='flex';
+      openSmProfileStep(_initEmail||'',p2.name||'');
     });
   }
 })();
@@ -1208,80 +1129,24 @@ function smHandleGoogle(response){
             if(typeof smUpdateSalaryStatusDisplays==='function')smUpdateSalaryStatusDisplays();
           }).catch(function(){});
         }
-      }else{
-        const emFallback=(localStorage.getItem('sm_user_email')||email||'').trim();
-        if(typeof smUserExistsInSupabase==='function'&&emFallback){
-          smUserExistsInSupabase(emFallback).then(function(exists){
-            if(exists){
-              const err=document.getElementById('smEmailErr');
-              if(err){
-                err.textContent='We found this account. Please use Sign in with the same email to continue.';
-                err.style.display='block';
-              }
-              openSmLoginModal(emFallback,'signin');
-            }else{
-              openSmProfileStep(emFallback,payload.name||p.name||'');
-            }
-          }).catch(function(){
-            openSmLoginModal(emFallback,'signin');
-          });
-        }else{
-          openSmProfileStep(emFallback,payload.name||p.name||'');
-        }
-      }
+      }else{openSmProfileStep((localStorage.getItem('sm_user_email')||email)||'',payload.name||p.name||'');}
     });
-  }else{
-    const em2=String(payload.email||'').trim();
-    if(!em2){openSmLoginModal('','signin');return;}
-    if(typeof smUserExistsInSupabase==='function'){
-      smUserExistsInSupabase(em2).then(function(exists){
-        if(exists){
-          const err=document.getElementById('smEmailErr');
-          if(err){
-            err.textContent='We found this account. Please use Sign in with the same email to continue.';
-            err.style.display='block';
-          }
-          openSmLoginModal(em2,'signin');
-        }else{
-          openSmProfileStep(em2,payload.name||'');
-        }
-      }).catch(function(){
-        openSmLoginModal(em2,'signin');
-      });
-    }else{
-      openSmProfileStep(em2,payload.name||'');
-    }
-  }
+  }else{openSmProfileStep(payload.email,payload.name||'');}
 }
 
 
 
-async function smStartSignIn(){
-  const err=document.getElementById('smEmailErr');
-  const input=document.getElementById('smEmailSignin');
-  const val=input?String(input.value||'').trim():'';
-  const v=smValidateWorkEmail(val);
-  if(!v.ok){ if(err){ err.textContent=v.msg; err.style.display='block'; } if(input) input.focus(); return; }
-  if(err) err.style.display='none';
-  if(typeof smUserExistsInSupabase!=='function'){
-    if(err){ err.textContent='Service unavailable. Try again later.'; err.style.display='block'; }
-    return;
-  }
-  try{
-    const known=await smUserExistsInSupabase(val);
-    if(!known){
-      if(err){ err.textContent='No account found for this email. Create one under Sign up.'; err.style.display='block'; }
-      return;
-    }
-  }catch(e){
-    if(err){ err.textContent='Could not verify email. Check your connection and try again.'; err.style.display='block'; }
-    return;
-  }
+function smStartEmailAuth(mode){
+  const val = document.getElementById('smEmailInput').value.trim();
+  const err = document.getElementById('smEmailErr');
+  const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  if(!val || !emailRe.test(val)){ err.style.display='block'; err.textContent='Please enter a valid email address.'; document.getElementById('smEmailInput').focus(); return; }
+  err.style.display='none';
   localStorage.setItem('sm_user_email', val);
   localStorage.setItem('tr_shared_email', val);
-  if(!localStorage.getItem('sm_login_date')) localStorage.setItem('sm_login_date', String(Date.now()));
+  if(!localStorage.getItem('sm_login_date')) localStorage.setItem('sm_login_date', Date.now().toString());
   if(typeof smRestoreSessionFromSupabase!=='function'){
-    if(err){ err.textContent='Service unavailable.'; err.style.display='block'; }
+    openSmProfileStep(val, '');
     return;
   }
   smRestoreSessionFromSupabase(val).then(function(restored){
@@ -1299,65 +1164,15 @@ async function smStartSignIn(){
         }).catch(function(){});
       }
     }else{
-      if(err){ err.textContent='This email could not be restored. If this is a new email, use Sign up.'; err.style.display='block'; }
-      openSmLoginModal(val,'signin');
+      const p2=getSmProfile();
+      openSmProfileStep(val, p2.name||'');
     }
-  });
-}
-function smStartSignUp(){
-  const err=document.getElementById('smEmailErr');
-  const fn=(document.getElementById('smFirstName')||{}).value.trim();
-  const ln=(document.getElementById('smLastName')||{}).value.trim();
-  const em=String((document.getElementById('smEmailSignup')||{}).value||'').trim();
-  if(!fn||!ln){
-    if(err){ err.textContent='Please enter your first and last name.'; err.style.display='block'; }
-    return;
-  }
-  const v=smValidateWorkEmail(em);
-  if(!v.ok){
-    if(err){ err.textContent=v.msg; err.style.display='block'; }
-    return;
-  }
-  if(err) err.style.display='none';
-  if(typeof smUserExistsInSupabase!=='function'){
-    if(err){ err.textContent='Service unavailable. Try again later.'; err.style.display='block'; }
-    return;
-  }
-  smUserExistsInSupabase(em).then(function(exists){
-    if(exists){
-      const si=document.getElementById('smEmailSignin');
-      if(si) si.value=em;
-      if(err){ err.textContent='Account already exists. Signing you in directly.'; err.style.display='block'; }
-      smSetAuthMode('signin');
-      smStartSignIn();
-      return;
-    }
-    const fullName=(fn+' '+ln).replace(/\s+/g,' ').trim();
-    localStorage.setItem('sm_user_email', em);
-    localStorage.setItem('tr_shared_email', em);
-    localStorage.setItem('sm_user_name', fullName);
-    localStorage.setItem('tr_shared_name', fullName);
-    if(!localStorage.getItem('sm_login_date')) localStorage.setItem('sm_login_date', String(Date.now()));
-    openSmProfileStep(em, fullName);
-  }).catch(function(){
-    if(err){ err.textContent='Could not check email. Try again.'; err.style.display='block'; }
   });
 }
 
 function smUpdateNavLinks(){
   const email = localStorage.getItem('sm_user_email');
-  const emLine=document.getElementById('smTopbarUserLine');
-  const emSpan=document.getElementById('smTopbarEmail');
-  if(!email){
-    if(emLine) emLine.style.display='none';
-    if(emSpan){ emSpan.textContent=''; emSpan.title=''; }
-    return;
-  }
-  if(emLine&&emSpan){
-    emSpan.textContent=email;
-    emSpan.title=email;
-    emLine.style.display='flex';
-  }
+  if(!email) return;
   const enc = encodeURIComponent(email);
   const el = document.getElementById('suiteNavTxr');
   if(el){ const base=el.href.split('?')[0]; const params=new URLSearchParams(el.href.includes('?')?el.href.split('?')[1]:''); params.set('au',enc); el.href=base+'?'+params.toString(); }
@@ -1410,11 +1225,7 @@ async function smCompleteLogin(email, name, profileData){
   try{ fetch('/',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'form-name=sm-users&email='+encodeURIComponent(email)+'&name='+encodeURIComponent(name)+'&profession='+encodeURIComponent(profession)+'&country='+encodeURIComponent(country)+'&notify_salary='+(localStorage.getItem('sm_salary_notify')||'no')+'&consent='+(consent?'yes':'no')}); }catch(e){}
 }
 
-function smDoLogin(){
-  const si=document.getElementById('smEmailSignin');
-  if(si) si.focus();
-  else{ const f=document.getElementById('smFirstName'); if(f) f.focus(); }
-}
+function smDoLogin(){ document.getElementById('smEmailInput').focus(); }
 function smToggleSettings(){
   const panel=document.getElementById('smSettingsPanel');
   if(!panel) return;
@@ -1487,12 +1298,9 @@ function smSignOut(){
     <span class="suite-arrow">›</span>
     <a class="suite-step" id="suiteNavTxr" href="https://talentxray.talentsradar.com/"><span class="suite-step-num">2</span>TalentXRay</a>
   </div>
-    <div class="topbar-right" style="display:flex;align-items:center;gap:8px;min-width:0;">
+  <div class="topbar-right">
     <span id="trialBadge" style="display:none!important;"></span>
-    <div id="smTopbarUserLine" style="display:none;flex-direction:column;align-items:flex-end;min-width:0;max-width:200px;flex-shrink:1;">
-      <span id="smTopbarEmail" style="font-size:11.5px;color:#6b7280;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;" title=""></span>
-    </div>
-    <div style="position:relative;flex-shrink:0;" id="smProfileWrap">
+    <div style="position:relative;" id="smProfileWrap">
       <button class="btn-contact" id="smTopbarBtn" onclick="toggleProfileMenu()">
         <svg viewBox="0 0 16 16" fill="none"><path d="M8 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM3 13a5 5 0 0 1 10 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
         <span class="btn-contact-text" id="smTopbarLabel">Sign in</span>
@@ -3501,16 +3309,13 @@ function buildRobotToolTourSteps(){
     const t=document.querySelector('.tab-btn[onclick*=\'tool\']');
     if(t&&typeof switchTab==='function')switchTab('tool',t);
   };
-  const toCvTab=function(){
-    if(cvTabBtn&&typeof switchTab==='function')switchTab('cv',cvTabBtn);
-  };
   const steps=[
     {id:'skills',sel:'#modeTabSkills',title:'Skills',body:'Add skills such as Python or C, then look at the roles that list the same skills.',act:function(){toToolTab();toSkills();}},
     {id:'title',sel:'#modeTabTitle',title:'Browse by title',body:'Add titles like full stack developer or software developer. You can see the role, salary, required skills, and good to have skills for each one.',act:function(){toToolTab();toTitle();}}
   ];
   if(withNl)steps.push({id:'nl',sel:'#modeTabNl',title:'Describe what you need',body:'This step is for HR and management. Describe the gap in plain language, for example that you need someone to run HR operations. The tool will show roles that can fill that gap.',act:function(){toToolTab();toNl();}});
   steps.push(
-    {id:'cv',sel:'#cvTabBtn',title:'Evaluate your CV',body:'Open this tab to upload your CV. You will get a score, missing keywords, and ideas for other roles you could pursue.',act:toCvTab}
+    {id:'cv',sel:'#cvTabBtn',title:'Evaluate your CV',body:'Open this tab to upload your CV. You will get a score, missing keywords, and ideas for other roles you could pursue.',act:toToolTab}
   );
   return steps;
 }
