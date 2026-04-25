@@ -3971,8 +3971,9 @@ window.addEventListener('load',async function(){
 #floatingPanda .sm-robot-bump{filter:brightness(1.05)}
 #floatingPanda{background:rgba(255,255,255,0.85);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.4);border-radius:99px;box-shadow:0 8px 24px rgba(0,0,0,0.08);padding:8px 16px 8px 8px;}
 .salary-initials-badge{width:32px;height:32px;border-radius:50%;background:#064E3B;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;box-shadow:0 0 0 0 rgba(6,78,59,0.3);animation:salaryInitialPulse 2.1s ease-in-out infinite;flex-shrink:0;}
-.salary-pill-text{font-size:13px;font-weight:600;color:#0F172A;white-space:nowrap;}
+.salary-pill-text{font-size:13px;font-weight:600;color:#0F172A;white-space:nowrap;animation:salaryLabelBreath 2.4s ease-in-out infinite;}
 @keyframes salaryInitialPulse{0%,100%{box-shadow:0 0 0 0 rgba(6,78,59,0.25)}50%{box-shadow:0 0 0 10px rgba(6,78,59,0)}}
+@keyframes salaryLabelBreath{0%,100%{opacity:.92;transform:translateY(0)}50%{opacity:1;transform:translateY(-1px)}}
 </style>
 
 <script>
@@ -4180,12 +4181,41 @@ async function submitFeedback(){
   const name=localStorage.getItem('sm_user_name')||'';
   if(_sb){
     try{
-      const r=await _sb.from('feedback').insert({email,name,subject,message});
-      if(r.error){
-        const detail=String(r.error.message||'').trim();
+      const basePayload={email,name,subject,message};
+      const messageAliases=['message','feedback_message','body','text'];
+      let saved=false;
+      let lastErr=null;
+      for(const msgCol of messageAliases){
+        const p={email,name,subject};
+        p[msgCol]=message;
+        // Retry by dropping missing columns one by one based on DB error text.
+        let attempt=Object.assign({},p);
+        for(let guard=0;guard<6;guard++){
+          const r=await _sb.from('feedback').insert(attempt);
+          if(!r.error){saved=true;break;}
+          lastErr=r.error;
+          const em=String(r.error.message||'');
+          const m=em.match(/Could not find the '([^']+)' column/i);
+          if(!m||!m[1]) break;
+          const miss=m[1];
+          if(!Object.prototype.hasOwnProperty.call(attempt,miss)) break;
+          delete attempt[miss];
+          // never send empty object; keep at least one useful field
+          if(!Object.keys(attempt).length){attempt={email};}
+        }
+        if(saved) break;
+      }
+      if(!saved){
+        // Final safest fallback.
+        const r2=await _sb.from('feedback').insert({email});
+        if(!r2.error)saved=true;
+        else lastErr=r2.error||lastErr;
+      }
+      if(!saved){
+        const detail=String((lastErr&&lastErr.message)||'').trim();
         err.textContent=detail?('Could not save: '+detail):'Could not save. Please try again.';
         err.style.display='block';
-        console.error('feedback error:',r.error);
+        console.error('feedback error:',lastErr);
         return;
       }
     }catch(e){
