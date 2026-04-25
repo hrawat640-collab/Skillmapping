@@ -836,6 +836,7 @@ const SAL_SALARY_YEAR_KEY='sm_sal_year';
 const SM_SALARY_SUBMITTED_AT_KEY='sm_salary_submitted_at';
 const SM_USER_ID_KEY='sm_user_id';
 const SM_SALARY_CONTRIB_TABLES=['sm_salary_contribution','salary_contribution','sm_salary_contributions','salary_contributions'];
+const SM_USER_TABLES=['sm_users','sm_user'];
 function smRefreshSalaryGatingFromSession(delayMs){
   const go=function(){
     const fp=document.getElementById('floatingPanda');
@@ -1003,8 +1004,17 @@ async function smSaveUserToSupabase(email,name,profession,country,consent){
   try{
     const _payload={email,name:name||'',profession:profession||'',country:country||'',consent:consent?'yes':'no',last_login:new Date().toISOString()};
     if(localStorage.getItem('sm_login_date'))_payload.login_date=new Date(parseInt(localStorage.getItem('sm_login_date'))).toISOString();
-    const r=await _sb.from('sm_users').upsert(_payload,{onConflict:'email'});
-    if(r.error)console.error('smSaveUser error:',JSON.stringify(r.error));
+    let saved=false;
+    let lastErr=null;
+    for(const tbl of SM_USER_TABLES){
+      const r=await _sb.from(tbl).upsert(_payload,{onConflict:'email'});
+      if(!r.error){ saved=true; break; }
+      lastErr=r.error;
+      const msg=String((r.error&&r.error.message)||'').toLowerCase();
+      if(msg.includes('does not exist')||msg.includes('could not find the table')||msg.includes('schema cache')) continue;
+      break;
+    }
+    if(!saved && lastErr) console.error('smSaveUser error:',JSON.stringify(lastErr));
   }catch(e){console.error('smSaveUser catch:',e.message||e);}
 }
 async function smFetchSmUsersRowByEmail(em0){
@@ -1012,17 +1022,19 @@ async function smFetchSmUsersRowByEmail(em0){
   const s=String(em0).trim();
   if(!s)return null;
   try{
-    const a=await _sb.from('sm_users').select('*').eq('email',s).maybeSingle();
-    if(a.data&&!a.error)return a.data;
     const lo=s.toLowerCase();
-    if(lo!==s){
-      const b=await _sb.from('sm_users').select('*').eq('email',lo).maybeSingle();
-      if(b.data&&!b.error)return b.data;
+    for(const tbl of SM_USER_TABLES){
+      const a=await _sb.from(tbl).select('*').eq('email',s).maybeSingle();
+      if(a.data&&!a.error)return a.data;
+      if(lo!==s){
+        const b=await _sb.from(tbl).select('*').eq('email',lo).maybeSingle();
+        if(b.data&&!b.error)return b.data;
+      }
+      const c=await _sb.from(tbl).select('*').in('email',[s,lo]).limit(1);
+      if(!c.error&&c.data&&c.data.length)return c.data[0];
+      const d=await _sb.from(tbl).select('*').ilike('email',s).limit(1);
+      if(!d.error&&d.data&&d.data.length)return d.data[0];
     }
-    const c=await _sb.from('sm_users').select('*').in('email',[s,lo]).limit(1);
-    if(!c.error&&c.data&&c.data.length)return c.data[0];
-    const d=await _sb.from('sm_users').select('*').ilike('email',s).limit(1);
-    if(!d.error&&d.data&&d.data.length)return d.data[0];
   }catch(e){}
   return null;
 }
@@ -1040,7 +1052,9 @@ async function _smRestoreInternal(email){
       localStorage.setItem('sm_user_email',rowEmail);
       localStorage.setItem('tr_shared_email',rowEmail);
       await smSyncSalaryStatusFromContributions(rowEmail);
-      _sb.from('sm_users').update({last_login:new Date().toISOString()}).eq('email',rowEmail).then(()=>{}).catch(()=>{});
+      for(const tbl of SM_USER_TABLES){
+        _sb.from(tbl).update({last_login:new Date().toISOString()}).eq('email',rowEmail).then(()=>{}).catch(()=>{});
+      }
       return { found:true, profile:data };
     }
     let leg=await _sb.from('txr_user').select('email,name').eq('email',em0).maybeSingle();
@@ -1186,10 +1200,8 @@ function _onLoginSuccess(isNewUser){
     const profile    = getSmProfile();
     const hasProfile = !!(profile.profession && profile.country && profile.name);
     const isKnown    = localStorage.getItem('sm_known_user') === 'yes';
-    if(result.found && hasProfile){
+    if(result.found){
       _onLoginSuccess(false);
-    } else if(result.found && !hasProfile){
-      openSmProfileStep(storedEmail, profile.name || '');
     } else if(!result.found && hasProfile && isKnown){
       _onLoginSuccess(false);
     } else {
@@ -1215,12 +1227,10 @@ function smHandleGoogle(response){
   _smRestoreInternal(email).then(function(result){
     const profile    = getSmProfile();
     const hasProfile = !!(profile.profession && profile.country && profile.name);
-    if(result.found && hasProfile){
+    if(result.found){
       const emNow = (localStorage.getItem('sm_user_email') || email).trim();
       smSaveUserToSupabase(emNow, profile.name || payload.name, profile.profession || '', profile.country || '', true);
       _onLoginSuccess(false);
-    } else if(result.found && !hasProfile){
-      openSmProfileStep(email, payload.name || profile.name || '');
     } else {
       openSmProfileStep(email, payload.name || profile.name || '');
     }
@@ -1253,15 +1263,11 @@ function smStartEmailAuth(mode){
         err.textContent   = 'No account found for this email. Please Sign up or use Google.';
         return;
       }
-      if(result.found && !hasProfile){
-        openSmProfileStep(val, profile.name || '');
-        return;
-      }
       _onLoginSuccess(false);
       showToast('Welcome back!','ok');
       return;
     }
-    if(result.found && hasProfile){
+    if(result.found){
       _onLoginSuccess(false);
       showToast('Welcome back!','ok');
     } else {
@@ -3807,7 +3813,22 @@ async function submitSalaryContrib(){
       return;
     }
     if(email!=='anonymous'){
-      _sb.from('sm_users').upsert({email,notify_salary:notifyPref,salary_submitted_at:salarySubmittedAt,last_login:new Date().toISOString()},{onConflict:'email'}).then(function(res){if(res&&res.error)console.error('sm_users upsert after salary:',res.error);}).catch(function(e){console.error(e);});
+      (async function(){
+        const payload={email,notify_salary:notifyPref,salary_submitted_at:salarySubmittedAt,last_login:new Date().toISOString()};
+        let saved=false;
+        let lastErr=null;
+        for(const tbl of SM_USER_TABLES){
+          try{
+            const res=await _sb.from(tbl).upsert(payload,{onConflict:'email'});
+            if(!res||!res.error){saved=true;break;}
+            lastErr=res.error;
+            const msg=String((res.error&&res.error.message)||'').toLowerCase();
+            if(msg.includes('does not exist')||msg.includes('could not find the table')||msg.includes('schema cache')) continue;
+            break;
+          }catch(e){ lastErr=e; }
+        }
+        if(!saved&&lastErr) console.error('sm_user(s) upsert after salary:',lastErr);
+      })();
     }
   }catch(e){
     localStorage.removeItem('sm_salary_submitted_at');
