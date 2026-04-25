@@ -835,6 +835,7 @@ function openSmLoginModal(){
   const consentWrap = document.getElementById('smConsent')?.closest('label');
   if(consentWrap) consentWrap.style.display = 'flex';
   lm.style.display = 'flex';
+  smTrackEvent('login_modal_open',{});
 }
 
 function canUseDescribeMode(){
@@ -889,6 +890,8 @@ const SM_USER_ID_KEY='sm_user_id';
 const SM_USER_UUID_KEY='sm_user_uuid';
 const SM_SALARY_CONTRIB_TABLES=['sm_salary_contribution'];
 const SM_USER_TABLE='sm_users';
+const SM_EVENT_TABLE='event_log';
+const SM_SESSION_ID_KEY='sm_session_id';
 function smEnsureLocalUserUuid(){
   const existing=(localStorage.getItem(SM_USER_UUID_KEY)||'').trim();
   if(existing) return existing;
@@ -905,6 +908,33 @@ function smEnsureLocalUserUuid(){
   }
   localStorage.setItem(SM_USER_UUID_KEY,v);
   return v;
+}
+function smGetSessionId(){
+  let sid=String(localStorage.getItem(SM_SESSION_ID_KEY)||'').trim();
+  if(sid) return sid;
+  try{ sid=(typeof crypto!=='undefined'&&crypto.randomUUID)?crypto.randomUUID():''; }catch(e){}
+  if(!sid) sid='sess-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);
+  localStorage.setItem(SM_SESSION_ID_KEY,sid);
+  return sid;
+}
+function smTrackEvent(eventName,meta){
+  try{
+    if(!_sb||!eventName) return;
+    const payload={
+      event_name:String(eventName),
+      session_id:smGetSessionId(),
+      user_uuid:String(localStorage.getItem(SM_USER_UUID_KEY)||'').trim()||null,
+      email:String(localStorage.getItem('sm_user_email')||'anonymous').trim()||'anonymous',
+      country:String(localStorage.getItem('sm_user_country')||'').trim()||null,
+      profession:String(localStorage.getItem('sm_user_profession')||'').trim()||null,
+      user_agent:(typeof navigator!=='undefined'&&navigator.userAgent)?String(navigator.userAgent).slice(0,500):null,
+      referrer:(typeof document!=='undefined'&&document.referrer)?String(document.referrer).slice(0,500):null,
+      loc_detected:typeof USER_LOCATION!=='undefined'?USER_LOCATION:null,
+      event_meta:meta&&typeof meta==='object'?meta:{},
+      created_at:new Date().toISOString()
+    };
+    _sb.from(SM_EVENT_TABLE).insert(payload).then(function(){}).catch(function(){});
+  }catch(e){}
 }
 function smRefreshSalaryGatingFromSession(delayMs){
   const go=function(){
@@ -1361,6 +1391,7 @@ function _onLoginSuccess(isNewUser){
   if(typeof smRefreshSalaryGatingFromSession==='function') smRefreshSalaryGatingFromSession(2000);
   if(!isNewUser && typeof smMarkRobotTourComplete==='function') smMarkRobotTourComplete();
   smMaybeShowSalaryPrompt();
+  smTrackEvent('login_success',{is_new_user:!!isNewUser});
 }
 
 (function(){
@@ -1994,8 +2025,33 @@ function smSignOut(){
 
 /* ── Search analytics ── */
 function logSearch(mode,query,resultCount,noResult){
-  if(!_sb)return;
-  try{_sb.from('search_logs').insert({email:localStorage.getItem('sm_user_email')||'anonymous',mode,query:String(query||'').slice(0,500),result_count:resultCount||0,no_result:noResult||false,profession:localStorage.getItem('sm_user_profession')||'',country:localStorage.getItem('sm_user_country')||'',created_at:new Date().toISOString()}).then(r=>{if(r.error)console.error('logSearch:',r.error);}).catch(e=>console.error('logSearch catch:',e));}catch(e){console.error('logSearch outer:',e);}
+  const sb=smEnsureSupabaseClient();
+  if(!sb)return;
+  try{
+    const payload={
+      email:localStorage.getItem('sm_user_email')||'anonymous',
+      mode:mode,
+      query:String(query||'').slice(0,500),
+      result_count:resultCount||0,
+      no_result:noResult||false,
+      profession:localStorage.getItem('sm_user_profession')||'',
+      country:localStorage.getItem('sm_user_country')||'',
+      created_at:new Date().toISOString()
+    };
+    (async function(){
+      // Retry once without created_at for schema variants where DB default handles timestamp.
+      let r=await sb.from('search_logs').insert(payload);
+      if(r&&r.error){
+        const msg=String(r.error.message||'').toLowerCase();
+        if((msg.includes('could not find')||msg.includes('column'))&&msg.includes('created_at')){
+          const p2=Object.assign({},payload,{created_at:undefined});
+          r=await sb.from('search_logs').insert(p2);
+        }
+      }
+      if(r&&r.error) console.error('logSearch:',r.error);
+    })().catch(function(e){console.error('logSearch catch:',e);});
+  }catch(e){console.error('logSearch outer:',e);}
+  smTrackEvent('search_logged',{mode:String(mode||''),result_count:resultCount||0,no_result:!!noResult});
 }
 function logNlSearchOutcome(sentence,status,resultCount,usedGemini){
   if(!_sb)return;
@@ -2394,6 +2450,7 @@ function isSalaryPromptEligible(professionValue){
 
 function runTitleMode(){
   if(!selectedTitleModeRoles.length){showToast('Select at least one job title first','err');return;}
+  smTrackEvent('title_mode_run',{selected_count:selectedTitleModeRoles.length});
   closeTitleDrop();document.getElementById('titleModeInput').value='';
   const allSkills=[];selectedTitleModeRoles.forEach(r=>{(r.required||[]).forEach(s=>{if(!allSkills.includes(s))allSkills.push(s);});});
   skills=allSkills.length?allSkills:[''];activeDept='all';window._aiTopRoles=selectedTitleModeRoles.map(r=>r.title.toLowerCase());renderBubbles();
@@ -2722,6 +2779,7 @@ async function runGeminiNlRoleSuggestion(query){
 }
 async function runNL(){
   const query=document.getElementById('nlInput').value.trim();if(!query){document.getElementById('nlInput').focus();return;}
+  smTrackEvent('nl_search_run',{query_len:query.length});
   const nudge=document.getElementById('nudgeBanner');nudge.classList.remove('show');
   const extracted=extractSkillsFromText(query);const nlResult=interpretNL(query);let roleBoosts=nlResult.roles||[];
   let geminiNlUsed=false;
@@ -2877,6 +2935,7 @@ function addTyped(){
   if(val){const titleMatch=findTitleMatch(val);if(titleMatch){showTitleHint(val,titleMatch.title);return;}}
   if(val){addSkill(resolveAlias(val));input.value='';hideSug();}
   if(!skills.length){input.focus();return;}
+  smTrackEvent('skills_search_submit',{skills_count:skills.length});
   const testRoles=ROLES.map(r=>scoreRole(r,skills)).filter(Boolean);
   if(!testRoles.length){showSorryState(skills.join(', '));input.focus();return;}
   render();input.focus();
@@ -3406,7 +3465,32 @@ async function runSmartCvEvaluation(){
     const aiGrid=document.querySelector('.cv-ai-grid');
     if(aiGrid&&extraPoints&&extraPoints.length){extraPoints.forEach(function(p){const div=document.createElement('div');div.className='cv-bullet-item';div.innerHTML='<div class="cv-bullet-dot teal"></div><span>'+escapeHtml(p)+'</span>';aiGrid.appendChild(div);});}
   });
-  if(_sb)void _sb.from('cv_evaluations').insert({role_title:role.title,total_skills:(totalReq+totalNice),matched_skills:(matchedReq.length+matchedNice.length),missing_required:missingReq.length,missing_nice:missingNice.length,final_score:score,word_count:wordCount,user_years_exp:userYears||null}).then(()=>{}).catch(()=>{});
+  if(_sb)void (async function(){
+    const base={
+      role_title:role.title,
+      total_skills:(totalReq+totalNice),
+      matched_skills:(matchedReq.length+matchedNice.length),
+      missing_required:missingReq.length,
+      missing_nice:missingNice.length,
+      evaluated_at:new Date().toISOString(),
+      final_score:score,
+      word_count:wordCount,
+      user_years_exp:userYears||null
+    };
+    // Retry by removing unknown columns so insert succeeds on older schemas.
+    let attempt=Object.assign({},base);
+    for(let i=0;i<6;i++){
+      const res=await _sb.from('cv_evaluations').insert(attempt);
+      if(!res.error) return;
+      const em=String((res.error&&res.error.message)||'');
+      const m=em.match(/Could not find the '([^']+)' column/i);
+      if(!m||!m[1]) return;
+      const miss=m[1];
+      if(!Object.prototype.hasOwnProperty.call(attempt,miss)) return;
+      delete attempt[miss];
+    }
+  })();
+  smTrackEvent('cv_evaluated',{role_title:role.title,final_score:score,missing_required:missingReq.length,missing_nice:missingNice.length});
   setTimeout(()=>document.getElementById('cvResults').scrollIntoView({behavior:'smooth',block:'nearest'}),120);
 }
 
@@ -4022,6 +4106,7 @@ function showSalaryContrib(btn){
   if(_pandaTimer)clearTimeout(_pandaTimer);if(_pandaImpatientTimer)clearTimeout(_pandaImpatientTimer);
   _hideBubble();document.getElementById('salModalTitle').textContent='Share your salary benchmark';document.getElementById('salModalSub').textContent='Help us keep salary data fresh for your role.';
   modal.style.display='flex';setPandaMood('ask');
+  smTrackEvent('salary_modal_open',{from_level:(btn&&btn.dataset&&btn.dataset.lvl)?btn.dataset.lvl:''});
 }
 function skipSalaryContrib(){const modal=document.getElementById('salContribModal');if(_pandaTimer)clearTimeout(_pandaTimer);if(_pandaImpatientTimer)clearTimeout(_pandaImpatientTimer);modal.style.display='none';if(_pendingSalBtn)applySelectLevel(_pendingSalBtn);_floatingPandaBtn=_pendingSalBtn;_pendingSalBtn=null;try{setPandaMood('sad');setTimeout(()=>setPandaMood('pace'),3500);}catch(e){}ensureFloatingRobotVisible();}
 function closeSalaryContrib(){skipSalaryContrib();}
@@ -4065,6 +4150,7 @@ async function submitSalaryContrib(){
       err.textContent='Could not save to database: '+detail;
       err.style.display='block';
       console.error('Salary contribution save failed:',ins.error);
+      smTrackEvent('salary_submit_failed',{reason:'insert_failed'});
       return;
     }
     if(email!=='anonymous'){
@@ -4090,8 +4176,10 @@ async function submitSalaryContrib(){
     err.textContent='Could not save to database: '+(e&&e.message?e.message:'Please try again.');
     err.style.display='block';
     console.error('Salary contribution submit error:',e);
+    smTrackEvent('salary_submit_failed',{reason:'exception'});
     return;
   }}
+  smTrackEvent('salary_submit_success',{});
   if(typeof smUpdateSalaryStatusDisplays==='function') smUpdateSalaryStatusDisplays();
   if(typeof smRefreshSalaryGatingFromSession==='function') smRefreshSalaryGatingFromSession(0);
   const _salem=(localStorage.getItem('sm_user_email')||'').trim();
@@ -4216,15 +4304,18 @@ async function submitFeedback(){
         err.textContent=detail?('Could not save: '+detail):'Could not save. Please try again.';
         err.style.display='block';
         console.error('feedback error:',lastErr);
+        smTrackEvent('feedback_submit_failed',{});
         return;
       }
     }catch(e){
       err.textContent='Could not save: '+(e&&e.message?e.message:'Please try again.');
       err.style.display='block';
+      smTrackEvent('feedback_submit_failed',{});
       return;
     }
   }
   success.style.display='block';
+  smTrackEvent('feedback_submit_success',{});
   setTimeout(()=>closeFeedback(),1800);
 }
 
