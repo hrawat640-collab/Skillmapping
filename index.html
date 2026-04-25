@@ -1014,6 +1014,7 @@ async function smRestoreSessionFromSupabase(email){
     if(data){
       smApplyUserRowFromSupabase(data);
       const rowEmail=String((data&&data.email)||em0);
+      smMarkSeenUser(rowEmail);
       localStorage.setItem('sm_user_email',rowEmail);
       localStorage.setItem('tr_shared_email',rowEmail);
       await smSyncSalaryStatusFromContributions(rowEmail);
@@ -1027,6 +1028,7 @@ async function smRestoreSessionFromSupabase(email){
     }
     if(leg.data&&!leg.error){
       const le=String(leg.data.email||em0);
+      smMarkSeenUser(le);
       localStorage.setItem('sm_user_email',le);
       localStorage.setItem('tr_shared_email',le);
       localStorage.setItem('sm_known_user','yes');
@@ -1056,9 +1058,23 @@ async function smUserExistsInSupabase(email){
 }
 window.smRestoreSessionFromSupabase = smRestoreSessionFromSupabase;
 window.smUserExistsInSupabase = smUserExistsInSupabase;
+function smSeenUserKey(email){return'sm_seen_user:'+((email||'').trim().toLowerCase());}
+function smMarkSeenUser(email){
+  const em=String(email||'').trim().toLowerCase();
+  if(!em)return;
+  localStorage.setItem(smSeenUserKey(em),'yes');
+  localStorage.setItem('sm_known_user','yes');
+}
+function smLooksReturningLocally(email){
+  const em=String(email||'').trim().toLowerCase();
+  if(!em)return false;
+  if(localStorage.getItem(smSeenUserKey(em))==='yes')return true;
+  return (localStorage.getItem('sm_known_user')||'').trim().toLowerCase()==='yes';
+}
 async function smFinalizeReturningUserLogin(email){
   const em=String(email||'').trim();
   if(!em)return false;
+  smMarkSeenUser(em);
   localStorage.setItem('sm_user_email',em);
   localStorage.setItem('tr_shared_email',em);
   if(!localStorage.getItem('sm_login_date'))localStorage.setItem('sm_login_date',Date.now().toString());
@@ -1123,16 +1139,18 @@ async function smFinalizeReturningUserLogin(email){
       }
       if(typeof smUserExistsInSupabase==='function'){
         smUserExistsInSupabase(_initEmail||'').then(function(exists){
-          if(exists){smFinalizeReturningUserLogin(_initEmail||'');return;}
+          if(exists||smLooksReturningLocally(_initEmail||'')){smFinalizeReturningUserLogin(_initEmail||'');return;}
           const p2=getSmProfile();
           document.getElementById('loginModal').style.display='flex';
           openSmProfileStep(_initEmail||'',p2.name||'');
         }).catch(function(){
+          if(smLooksReturningLocally(_initEmail||'')){smFinalizeReturningUserLogin(_initEmail||'');return;}
           const p2=getSmProfile();
           document.getElementById('loginModal').style.display='flex';
           openSmProfileStep(_initEmail||'',p2.name||'');
         });
       }else{
+        if(smLooksReturningLocally(_initEmail||'')){smFinalizeReturningUserLogin(_initEmail||'');return;}
         const p2=getSmProfile();
         document.getElementById('loginModal').style.display='flex';
         openSmProfileStep(_initEmail||'',p2.name||'');
@@ -1168,20 +1186,28 @@ function smHandleGoogle(response){
         const emTry=(localStorage.getItem('sm_user_email')||email||'').trim();
         if(typeof smUserExistsInSupabase==='function'&&emTry){
           smUserExistsInSupabase(emTry).then(function(exists){
-            if(exists){smFinalizeReturningUserLogin(emTry);return;}
+            if(exists||smLooksReturningLocally(emTry)){smFinalizeReturningUserLogin(emTry);return;}
             openSmProfileStep(emTry,payload.name||p.name||'');
-          }).catch(function(){openSmProfileStep(emTry,payload.name||p.name||'');});
-        }else openSmProfileStep(emTry,payload.name||p.name||'');
+          }).catch(function(){
+            if(smLooksReturningLocally(emTry)){smFinalizeReturningUserLogin(emTry);return;}
+            openSmProfileStep(emTry,payload.name||p.name||'');
+          });
+        }else if(smLooksReturningLocally(emTry)){smFinalizeReturningUserLogin(emTry);}
+        else openSmProfileStep(emTry,payload.name||p.name||'');
       }
     });
   }else{
     const em2=String(payload.email||'').trim();
     if(typeof smUserExistsInSupabase==='function'&&em2){
       smUserExistsInSupabase(em2).then(function(exists){
-        if(exists){smFinalizeReturningUserLogin(em2);return;}
+        if(exists||smLooksReturningLocally(em2)){smFinalizeReturningUserLogin(em2);return;}
         openSmProfileStep(em2,payload.name||'');
-      }).catch(function(){openSmProfileStep(em2,payload.name||'');});
-    }else{openSmProfileStep(payload.email,payload.name||'');}
+      }).catch(function(){
+        if(smLooksReturningLocally(em2)){smFinalizeReturningUserLogin(em2);return;}
+        openSmProfileStep(em2,payload.name||'');
+      });
+    }else if(smLooksReturningLocally(em2)){smFinalizeReturningUserLogin(em2);}
+    else{openSmProfileStep(payload.email,payload.name||'');}
   }
 }
 
@@ -1216,7 +1242,7 @@ function smStartEmailAuth(mode){
       }
     }else if(typeof smUserExistsInSupabase==='function'){
       smUserExistsInSupabase(val).then(function(exists){
-        if(exists){smFinalizeReturningUserLogin(val);return;}
+        if(exists||smLooksReturningLocally(val)){smFinalizeReturningUserLogin(val);return;}
         if(mode==='signin'){
           if(err){
             err.style.display='block';
@@ -1227,6 +1253,7 @@ function smStartEmailAuth(mode){
         const p2=getSmProfile();
         openSmProfileStep(val,p2.name||'');
       }).catch(function(){
+        if(smLooksReturningLocally(val)){smFinalizeReturningUserLogin(val);return;}
         if(mode==='signin'){
           if(err){
             err.style.display='block';
@@ -1286,6 +1313,7 @@ async function smCompleteLogin(email, name, profileData){
   localStorage.setItem('sm_consent', consent?'yes':'no');
   localStorage.setItem('tr_shared_email', email);
   localStorage.setItem('tr_shared_name', name);
+  smMarkSeenUser(email);
   if(!localStorage.getItem('sm_login_date')) localStorage.setItem('sm_login_date', Date.now().toString());
   document.getElementById('loginModal').style.display='none';
   smSaveUserToSupabase(email,name,profession,country,consent);
