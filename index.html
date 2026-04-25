@@ -1392,9 +1392,8 @@ function smHandleGoogle(response){
         _onLoginSuccess(false); return;
       }
     }catch(e){}
-    const exists = await smShouldAutoLoginReturningUser(email).catch(function(){ return false; });
-    if(exists){ _onLoginSuccess(false); }
-    else{ openSmProfileStep(email, payload.name || profile.name || ''); }
+    // Strict rule for Google: unknown email must complete profile first.
+    openSmProfileStep(email, payload.name || profile.name || '');
   }).catch(function(){
     openSmProfileStep(email, payload.name || '');
   });
