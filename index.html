@@ -657,14 +657,35 @@ button:active, .btn-find:active, .sal-btn:active, .cur-chip:active, .dept-btn:ac
     <h2 style="margin-bottom:6px;font-size:22px;letter-spacing:-0.02em;font-family:Outfit,sans-serif;">Welcome to SkillMapper</h2>
     <p style="color:#6b6963;margin-bottom:20px;font-size:13px;line-height:1.6;font-family:Outfit,sans-serif;">Free to use</p>
     <div id="smGoogleBtn" style="margin-bottom:14px;"><div id="g_sm_signin" style="display:flex;justify-content:center;"></div></div>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;"><div style="flex:1;height:1px;background:#e4e2db;"></div><span style="font-size:11.5px;color:#aaa;font-family:Outfit,sans-serif;">or sign in with email</span><div style="flex:1;height:1px;background:#e4e2db;"></div></div>
-    <div id="smEmailStep">
-      <input type="email" id="smEmailInput" placeholder="your@email.com" style="width:100%;padding:13px 16px;margin-bottom:10px;border-radius:9px;border:1.5px solid #e4e2db;font-family:Outfit,sans-serif;font-size:14px;outline:none;box-sizing:border-box;" onkeydown="if(event.key==='Enter')smStartEmailAuth('signin')">
-      <div style="display:flex;gap:8px;">
-        <button type="button" onclick="smStartEmailAuth('signup')" id="smSignupBtn" style="flex:1;padding:13px;background:#0f766e;color:#fff;border:none;border-radius:9px;font-weight:700;font-family:Outfit,sans-serif;font-size:14px;cursor:pointer;">Sign up</button>
-        <button type="button" onclick="smStartEmailAuth('signin')" id="smSigninBtn" style="flex:1;padding:13px;background:#111827;color:#fff;border:none;border-radius:9px;font-weight:700;font-family:Outfit,sans-serif;font-size:14px;cursor:pointer;">Sign in</button>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;"><div style="flex:1;height:1px;background:#e4e2db;"></div><span style="font-size:11.5px;color:#aaa;font-family:Outfit,sans-serif;">or continue with email</span><div style="flex:1;height:1px;background:#e4e2db;"></div></div>
+    <div id="smEmailStep" style="text-align:left;">
+      <div style="display:flex;gap:6px;margin-bottom:14px;border-radius:10px;padding:3px;background:#f3f4f6;">
+        <button type="button" id="smTabSignin" onclick="smSetAuthMode('signin')" style="flex:1;padding:9px 10px;border:none;border-radius:8px;font-weight:700;font-size:12.5px;cursor:pointer;font-family:Outfit,sans-serif;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.06);color:#111827;">Sign in</button>
+        <button type="button" id="smTabSignup" onclick="smSetAuthMode('signup')" style="flex:1;padding:9px 10px;border:none;border-radius:8px;font-weight:700;font-size:12.5px;cursor:pointer;font-family:Outfit,sans-serif;background:transparent;color:#6b7280;">Sign up</button>
       </div>
-      <p id="smEmailErr" style="font-size:12px;color:#b91c1c;margin-top:8px;display:none;">Please enter a valid email address.</p>
+      <div id="smSigninBlock">
+        <label style="display:block;font-size:10.5px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;font-family:Outfit,sans-serif;">Email</label>
+        <input type="email" id="smEmailSignin" autocomplete="email" placeholder="you@company.com" style="width:100%;padding:12px 14px;margin-bottom:10px;border-radius:9px;border:1.5px solid #e4e2db;font-family:Outfit,sans-serif;font-size:14px;outline:none;box-sizing:border-box;" onkeydown="if(event.key==='Enter')smStartSignIn()">
+        <p style="font-size:12px;color:#6b7280;margin:-4px 0 10px 0;line-height:1.45;">Use the same email you registered with. We&rsquo;ll look it up in our records.</p>
+        <button type="button" onclick="smStartSignIn()" id="smSigninSubmitBtn" style="width:100%;padding:13px;background:#111827;color:#fff;border:none;border-radius:9px;font-weight:700;font-family:Outfit,sans-serif;font-size:14px;cursor:pointer;">Sign in</button>
+      </div>
+      <div id="smSignupBlock" style="display:none;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+          <div>
+            <label style="display:block;font-size:10.5px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;font-family:Outfit,sans-serif;">First name</label>
+            <input type="text" id="smFirstName" autocomplete="given-name" placeholder="First name" style="width:100%;padding:12px 14px;border-radius:9px;border:1.5px solid #e4e2db;font-family:Outfit,sans-serif;font-size:14px;outline:none;box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="display:block;font-size:10.5px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;font-family:Outfit,sans-serif;">Last name</label>
+            <input type="text" id="smLastName" autocomplete="family-name" placeholder="Last name" style="width:100%;padding:12px 14px;border-radius:9px;border:1.5px solid #e4e2db;font-family:Outfit,sans-serif;font-size:14px;outline:none;box-sizing:border-box;">
+          </div>
+        </div>
+        <label style="display:block;font-size:10.5px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;font-family:Outfit,sans-serif;">Work or personal email</label>
+        <input type="email" id="smEmailSignup" autocomplete="email" placeholder="name@company.com" style="width:100%;padding:12px 14px;margin-bottom:6px;border-radius:9px;border:1.5px solid #e4e2db;font-family:Outfit,sans-serif;font-size:14px;outline:none;box-sizing:border-box;" onkeydown="if(event.key==='Enter')smStartSignUp()">
+        <p style="font-size:11.5px;color:#9ca3af;margin:0 0 10px 0;line-height:1.4;">No disposable or fake inboxes. Use an email you check regularly.</p>
+        <button type="button" onclick="smStartSignUp()" id="smSignupSubmitBtn" style="width:100%;padding:13px;background:#0f766e;color:#fff;border:none;border-radius:9px;font-weight:700;font-family:Outfit,sans-serif;font-size:14px;cursor:pointer;">Create account</button>
+      </div>
+      <p id="smEmailErr" style="font-size:12px;color:#b91c1c;margin-top:10px;display:none;">Please enter a valid email address.</p>
     </div>
     <div id="smProfileStep" style="display:none;text-align:left;">
       <div style="font-size:12px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;font-family:Outfit,sans-serif;">Tell us a little about you</div>
@@ -723,11 +744,6 @@ function getSmProfile(){
     name: (localStorage.getItem('sm_user_name') || '').trim()
   };
 }
-function smProfileIsComplete(p){
-  const x=p||getSmProfile();
-  return !!((x.name||'').trim()&&(x.profession||'').trim()&&(x.country||'').trim());
-}
-
 function normalizeProfession(v){
   const p = String(v || '').trim().toLowerCase();
   if(!p) return '';
@@ -790,8 +806,20 @@ function isSalaryPromptEligible(professionValue){
 function smMaybeShowSalaryPrompt(_profession){
   if(typeof smRefreshSalaryGatingFromSession==='function') smRefreshSalaryGatingFromSession(0);
 }
-function openSmLoginModal(){
+function openSmLoginModal(prefillEmail, mode){
   const _lm=document.getElementById('loginModal');if(!_lm)return;
+  const fn=document.getElementById('smFirstName');
+  const ln=document.getElementById('smLastName');
+  const eSu=document.getElementById('smEmailSignup');
+  const eSi=document.getElementById('smEmailSignin');
+  if(fn) fn.value='';
+  if(ln) ln.value='';
+  if(eSu) eSu.value='';
+  if(eSi) eSi.value='';
+  const _err=document.getElementById('smEmailErr');
+  if(_err){ _err.style.display='none'; _err.textContent=''; }
+  if(eSi&&prefillEmail)eSi.value=String(prefillEmail).trim();
+  smSetAuthMode(mode==='signup'?'signup':'signin');
   document.getElementById('smEmailStep').style.display='block';
   document.getElementById('smProfileStep').style.display='none';
   const consentWrap = document.getElementById('smConsent')?.closest('label');
@@ -814,6 +842,54 @@ function updateUserJourneyUi(){
   }
 }
 
+const SM_DISPOSABLE_EMAIL_DOMAINS=new Set([
+  'mailinator.com','guerrillamail.com','guerrillamail.de','yopmail.com','yopmail.fr',
+  'tempmail.com','tempmail.net','10minutemail.com','10minutemail.net','trashmail.com',
+  'getnada.com','maildrop.cc','sharklasers.com','grr.la','throwaway.email',
+  'fakeinbox.com','mailnesia.com','temp-mail.org','dispostable.com','moakt.com',
+  'emailondeck.com','getairmail.com','mailcatch.com','mohmal.com','tmpmail.org',
+  'trashmail.net','inboxkitten.com'
+]);
+function smValidateWorkEmail(raw){
+  const s=String(raw||'').trim();
+  if(!s) return {ok:false,msg:'Please enter an email address.'};
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s)) return {ok:false,msg:'Use a real email format (e.g. name@company.com).'};
+  const at=s.indexOf('@');
+  if(at<1) return {ok:false,msg:'Please enter a valid email address.'};
+  const local=s.slice(0,at).toLowerCase();
+  const domFull=s.slice(at+1).toLowerCase();
+  if(!domFull) return {ok:false,msg:'Please enter a valid email address.'};
+  if(local.length<2) return {ok:false,msg:'The part before @ is too short to be a real address.'};
+  if(/^\d+$/.test(local)) return {ok:false,msg:'Use a normal email, not only numbers before @.'};
+  if(SM_DISPOSABLE_EMAIL_DOMAINS.has(domFull)) return {ok:false,msg:'Use a work or personal email. Disposable inboxes are not allowed.'};
+  if(local.indexOf('..')>=0||domFull.indexOf('..')>=0) return {ok:false,msg:'Invalid email format.'};
+  return {ok:true};
+}
+function smSetAuthMode(mode){
+  const signin=mode==='signin';
+  const bIn=document.getElementById('smSigninBlock');
+  const bUp=document.getElementById('smSignupBlock');
+  const tIn=document.getElementById('smTabSignin');
+  const tUp=document.getElementById('smTabSignup');
+  if(bIn) bIn.style.display=signin?'block':'none';
+  if(bUp) bUp.style.display=signin?'none':'block';
+  if(tIn){
+    tIn.style.background=signin?'#fff':'transparent';
+    tIn.style.color=signin?'#111827':'#6b7280';
+    tIn.style.boxShadow=signin?'0 1px 2px rgba(0,0,0,0.06)':'none';
+  }
+  if(tUp){
+    tUp.style.background=signin?'transparent':'#fff';
+    tUp.style.color=signin?'#6b7280':'#111827';
+    tUp.style.boxShadow=signin?'none':'0 1px 2px rgba(0,0,0,0.06)';
+  }
+  const err=document.getElementById('smEmailErr');
+  if(err) err.style.display='none';
+  setTimeout(function(){
+    if(signin){ const el=document.getElementById('smEmailSignin'); if(el)el.focus(); }
+    else{ const f=document.getElementById('smFirstName'); if(f)f.focus(); }
+  },0);
+}
 /* ── Early defs ── */
 const SAL_UNLOCK_KEY='sm_sal_unlocked_until';
 const SAL_SALARY_YEAR_KEY='sm_sal_year';
@@ -896,25 +972,69 @@ async function smGetSupabaseAuthUid(){
     return (u&&u.data&&u.data.user&&u.data.user.id)?String(u.data.user.id):'';
   }catch(e){return'';}
 }
-async function smSyncSalaryStatusFromContributions(userId,email){
-  if(!_sb||(!userId&&!email)) return false;
+/** Sync salary unlock state from contribution tables. Rows use auth user_id (UUID), not sm_users id; we match auth uid first, then email. */
+async function smSyncSalaryStatusFromContributions(emailOpt){
+  if(!_sb) return false;
+  const em=emailOpt?String(emailOpt).trim():'';
+  let authUid='';
+  try{
+    if(typeof smGetSupabaseAuthUid==='function') authUid=await smGetSupabaseAuthUid()||'';
+  }catch(e){}
+  if(!em&&!authUid) return false;
   const tables=SM_SALARY_CONTRIB_TABLES;
   for(const tbl of tables){
     try{
-      let q=_sb.from(tbl).select('created_at').order('created_at',{ascending:false}).limit(1);
-      if(userId) q=q.eq('user_id',userId);
-      else q=q.eq('email',email);
-      const r=await q;
-      if(!r.error&&Array.isArray(r.data)&&r.data.length){
-        const ts=r.data[0].created_at||new Date().toISOString();
-        localStorage.setItem(SM_SALARY_SUBMITTED_AT_KEY,new Date(ts).toISOString());
-        return true;
+      if(authUid){
+        const r0=await _sb.from(tbl).select('created_at').order('created_at',{ascending:false}).limit(1).eq('user_id',authUid);
+        if(!r0.error&&Array.isArray(r0.data)&&r0.data.length){
+          const ts=r0.data[0].created_at||new Date().toISOString();
+          localStorage.setItem(SM_SALARY_SUBMITTED_AT_KEY,new Date(ts).toISOString());
+          return true;
+        }
+        if(r0.error&&String(r0.error.message||'').toLowerCase().includes('does not exist')) continue;
       }
-      if(r.error&&String(r.error.message||'').toLowerCase().includes('does not exist')) continue;
+      if(em){
+        let r=await _sb.from(tbl).select('created_at').order('created_at',{ascending:false}).limit(1).eq('email',em);
+        if((!r.data||!r.data.length)&&em.toLowerCase()!==em)
+          r=await _sb.from(tbl).select('created_at').order('created_at',{ascending:false}).limit(1).eq('email',em.toLowerCase());
+        if(!r.data||!r.data.length)
+          r=await _sb.from(tbl).select('created_at').order('created_at',{ascending:false}).limit(1).ilike('email',em);
+        if(!r.error&&Array.isArray(r.data)&&r.data.length){
+          const ts=r.data[0].created_at||new Date().toISOString();
+          localStorage.setItem(SM_SALARY_SUBMITTED_AT_KEY,new Date(ts).toISOString());
+          return true;
+        }
+        if(r.error&&String(r.error.message||'').toLowerCase().includes('does not exist')) continue;
+      }
     }catch(e){}
   }
   return false;
 }
+function smUpdateSalaryStatusDisplays(){
+  const fill=(typeof isSalaryUnlocked==='function'&&isSalaryUnlocked())?'Filled':'Not filled';
+  const st=document.getElementById('smSettingsSalaryStatus');
+  if(st) st.textContent=fill;
+  if(document.getElementById('smProfileSalaryRow')) document.getElementById('smProfileSalaryRow').textContent=fill;
+  if(document.getElementById('smProfileNotifyRow')) document.getElementById('smProfileNotifyRow').textContent=(localStorage.getItem('sm_salary_notify')||'no')==='yes'?'Enabled':'Not enabled';
+}
+/** True if user has a sm_users row and (salary in contribution tables, or sm_users.salary_submitted_at). Onboarding / robot tour is only for those who are not established here. */
+async function smIsEstablishedUserForOnboarding(email){
+  if(!_sb||!email) return false;
+  const em0=String(email).trim();
+  if(!em0) return false;
+  const row=await smFetchSmUsersRowByEmail(em0);
+  if(!row) return false;
+  const re=String((row&&row.email)||em0).trim();
+  if(await smSyncSalaryStatusFromContributions(re)) return true;
+  if(row.salary_submitted_at){
+    if(!localStorage.getItem(SM_SALARY_SUBMITTED_AT_KEY))
+      localStorage.setItem(SM_SALARY_SUBMITTED_AT_KEY,new Date(row.salary_submitted_at).toISOString());
+    return true;
+  }
+  return false;
+}
+window.smUpdateSalaryStatusDisplays=smUpdateSalaryStatusDisplays;
+window.smIsEstablishedUserForOnboarding=smIsEstablishedUserForOnboarding;
 async function smInsertSalaryContributionRow(row){
   if(!_sb||!row||!row.email)return{ok:false,table:'',error:new Error('missing payload')};
   let lastErr=null;
@@ -942,23 +1062,53 @@ async function smSaveUserToSupabase(email,name,profession,country,consent){
     if(r.error)console.error('smSaveUser error:',JSON.stringify(r.error));
   }catch(e){console.error('smSaveUser catch:',e.message||e);}
 }
+async function smFetchSmUsersRowByEmail(em0){
+  if(!_sb||!em0)return null;
+  const s=String(em0).trim();
+  if(!s)return null;
+  try{
+    const a=await _sb.from('sm_users').select('*').eq('email',s).maybeSingle();
+    if(a.data&&!a.error)return a.data;
+    const lo=s.toLowerCase();
+    if(lo!==s){
+      const b=await _sb.from('sm_users').select('*').eq('email',lo).maybeSingle();
+      if(b.data&&!b.error)return b.data;
+    }
+    const c=await _sb.from('sm_users').select('*').in('email',[s,lo]).limit(1);
+    if(!c.error&&c.data&&c.data.length)return c.data[0];
+    const d=await _sb.from('sm_users').select('*').ilike('email',s).limit(1);
+    if(!d.error&&d.data&&d.data.length)return d.data[0];
+  }catch(e){}
+  return null;
+}
 async function smRestoreSessionFromSupabase(email){
   if(!_sb||!email)return false;
+  const em0=String(email).trim();
+  if(!em0)return false;
   try{
-    const{data,error}=await _sb.from('sm_users').select('*').eq('email',email).single();
-    if(!error&&data){
+    const data=await smFetchSmUsersRowByEmail(em0);
+    if(data){
       smApplyUserRowFromSupabase(data);
-      await smSyncSalaryStatusFromContributions(data.id||null,email);
-      _sb.from('sm_users').update({last_login:new Date().toISOString()}).eq('email',email).then(()=>{}).catch(()=>{});
+      const rowEmail=String((data&&data.email)||em0);
+      localStorage.setItem('sm_user_email',rowEmail);
+      localStorage.setItem('tr_shared_email',rowEmail);
+      await smSyncSalaryStatusFromContributions(rowEmail);
+      _sb.from('sm_users').update({last_login:new Date().toISOString()}).eq('email',rowEmail).then(()=>{}).catch(()=>{});
       return true;
     }
     // Backward compatibility: some historical users exist only in txr_user.
-    const legacy=await _sb.from('txr_user').select('email,name').eq('email',email).maybeSingle();
-    if(!legacy.error&&legacy.data){
+    let leg=await _sb.from('txr_user').select('email,name').eq('email',em0).maybeSingle();
+    if((leg.error||!leg.data)&&em0.toLowerCase()!==em0){
+      leg=await _sb.from('txr_user').select('email,name').eq('email',em0.toLowerCase()).maybeSingle();
+    }
+    if(leg.data&&!leg.error){
+      const le=String(leg.data.email||em0);
+      localStorage.setItem('sm_user_email',le);
+      localStorage.setItem('tr_shared_email',le);
       localStorage.setItem('sm_known_user','yes');
       localStorage.removeItem(SM_USER_ID_KEY);
-      if(legacy.data.name&&!localStorage.getItem('sm_user_name'))localStorage.setItem('sm_user_name',legacy.data.name);
-      await smSyncSalaryStatusFromContributions(null,email);
+      if(leg.data.name&&!localStorage.getItem('sm_user_name'))localStorage.setItem('sm_user_name',leg.data.name);
+      await smSyncSalaryStatusFromContributions(le);
       return true;
     }
     return false;
@@ -970,57 +1120,23 @@ async function smUserExistsInSupabase(email){
   const em=String(email).trim();
   if(!em)return false;
   try{
-    const a=await _sb.from('sm_users').select('id').eq('email',em).maybeSingle();
-    if(a && a.data && !a.error && Object.keys(a.data).length>0)return true;
+    if(await smFetchSmUsersRowByEmail(em))return true;
     const b=await _sb.from('txr_user').select('email').eq('email',em).maybeSingle();
     if(b && b.data && !b.error && b.data.email)return true;
+    if(em.toLowerCase()!==em){
+      const c=await _sb.from('txr_user').select('email').eq('email',em.toLowerCase()).maybeSingle();
+      if(c && c.data && !c.error && c.data.email)return true;
+    }
   }catch(e){}
   return false;
 }
 window.smRestoreSessionFromSupabase = smRestoreSessionFromSupabase;
 window.smUserExistsInSupabase = smUserExistsInSupabase;
-if(_sb&&_sb.auth&&typeof _sb.auth.onAuthStateChange==='function'){
-  _sb.auth.onAuthStateChange(function(event, session){
-    if((event!=='SIGNED_IN'&&event!=='INITIAL_SESSION')||!session||!session.user||!session.user.email)return;
-    const em=String(session.user.email).trim();
-    if(!em)return;
-    localStorage.setItem('sm_user_email',em);
-    localStorage.setItem('tr_shared_email',em);
-    if(!localStorage.getItem('sm_login_date'))localStorage.setItem('sm_login_date',Date.now().toString());
-    smRestoreSessionFromSupabase(em).then(function(){
-      const p2=getSmProfile();
-      if(smProfileIsComplete(p2)){
-        const lm=document.getElementById('loginModal');
-        if(lm)lm.style.display='none';
-        smRefreshSalaryGatingFromSession();
-        checkTrialExpiry('');renderTrialBadgeSM();smUpdateNavLinks();updateUserJourneyUi();
-        smUserExistsInSupabase(em).then(function(ex){if(ex&&typeof smMarkRobotTourComplete==='function')smMarkRobotTourComplete();}).catch(function(){});
-      }else{
-        const lm=document.getElementById('loginModal');
-        if(lm)lm.style.display='flex';
-        const meta=session.user.user_metadata||{};
-        const nm=meta.full_name||meta.name||'';
-        openSmProfileStep(em,nm);
-      }
-    });
-  });
-}
 
 (async function(){
   window.addEventListener('load', function(){
     setTimeout(function(){ if(typeof smRefreshSalaryGatingFromSession==='function') smRefreshSalaryGatingFromSession(); }, 1500);
   });
-  try{
-    if(_sb&&_sb.auth&&typeof _sb.auth.getSession==='function'){
-      const s=await _sb.auth.getSession();
-      const au=s&&s.data&&s.data.session&&s.data.session.user?s.data.session.user:null;
-      if(au&&au.email){
-        localStorage.setItem('sm_user_email',au.email);
-        localStorage.setItem('tr_shared_email',au.email);
-        if(!localStorage.getItem('sm_login_date')) localStorage.setItem('sm_login_date', Date.now().toString());
-      }
-    }
-  }catch(e){}
   const urlParams = new URLSearchParams(window.location.search);
   const urlEmail = urlParams.get('au');
   if(urlEmail && !localStorage.getItem('sm_user_email')){
@@ -1043,19 +1159,23 @@ if(_sb&&_sb.auth&&typeof _sb.auth.onAuthStateChange==='function'){
     openSmLoginModal();
   } else {
     const _initEmail=localStorage.getItem('sm_user_email');
-    smRestoreSessionFromSupabase(_initEmail).then(function(ok){
+    smRestoreSessionFromSupabase(_initEmail).then(function(restored){
       smRefreshSalaryGatingFromSession();
-      const p2=getSmProfile();
-      if(smProfileIsComplete(p2)){
+      if(restored){
         document.getElementById('loginModal').style.display='none';
         checkTrialExpiry('');
         renderTrialBadgeSM();
         smUpdateNavLinks();
         updateUserJourneyUi();
+        if(typeof smIsEstablishedUserForOnboarding==='function'){
+          smIsEstablishedUserForOnboarding((localStorage.getItem('sm_user_email')||_initEmail).trim()).then(function(est){
+            if(est&&typeof smMarkRobotTourComplete==='function')smMarkRobotTourComplete();
+            if(typeof smUpdateSalaryStatusDisplays==='function')smUpdateSalaryStatusDisplays();
+          }).catch(function(){});
+        }
         return;
       }
-      document.getElementById('loginModal').style.display='flex';
-      openSmProfileStep(_initEmail||'',p2.name||'');
+      openSmLoginModal(_initEmail||'','signin');
     });
   }
 })();
@@ -1064,55 +1184,171 @@ function smHandleGoogle(response){
   const email=payload.email;
   if(email){
     window.smRestoreSessionFromSupabase(email).then(function(restored){
-      const p=getSmProfile();
-      localStorage.setItem('sm_user_email',email);localStorage.setItem('tr_shared_email',email);
+      if(!localStorage.getItem('sm_user_email')){
+        localStorage.setItem('sm_user_email',String(email).trim());
+        localStorage.setItem('tr_shared_email',String(email).trim());
+      }
       if(!localStorage.getItem('sm_login_date'))localStorage.setItem('sm_login_date',Date.now().toString());
+      const p=getSmProfile();
       smRefreshSalaryGatingFromSession();
       if(restored){
-        if(!smProfileIsComplete(p)){
-          openSmProfileStep(email,payload.name||p.name||'');
-          return;
-        }
         document.getElementById('loginModal').style.display='none';
         checkTrialExpiry('');renderTrialBadgeSM();smUpdateNavLinks();updateUserJourneyUi();
-        smSaveUserToSupabase(email,p.name||payload.name,p.profession||'',p.country||'',true);
+        const emNow=(localStorage.getItem('sm_user_email')||email).trim();
+        smSaveUserToSupabase(emNow,p.name||payload.name,p.profession||'',p.country||'',true);
         smRefreshSalaryGatingFromSession(1500);
-        smMarkRobotTourComplete();
-      }else{openSmProfileStep(email,payload.name||p.name||'');}
+        if(typeof smIsEstablishedUserForOnboarding==='function'){
+          smIsEstablishedUserForOnboarding(emNow).then(function(est){
+            if(est&&typeof smMarkRobotTourComplete==='function')smMarkRobotTourComplete();
+            if(typeof smUpdateSalaryStatusDisplays==='function')smUpdateSalaryStatusDisplays();
+          }).catch(function(){});
+        }
+      }else{
+        const emFallback=(localStorage.getItem('sm_user_email')||email||'').trim();
+        if(typeof smUserExistsInSupabase==='function'&&emFallback){
+          smUserExistsInSupabase(emFallback).then(function(exists){
+            if(exists){
+              const err=document.getElementById('smEmailErr');
+              if(err){
+                err.textContent='We found this account. Please use Sign in with the same email to continue.';
+                err.style.display='block';
+              }
+              openSmLoginModal(emFallback,'signin');
+            }else{
+              openSmProfileStep(emFallback,payload.name||p.name||'');
+            }
+          }).catch(function(){
+            openSmLoginModal(emFallback,'signin');
+          });
+        }else{
+          openSmProfileStep(emFallback,payload.name||p.name||'');
+        }
+      }
     });
-  }else{openSmProfileStep(payload.email,payload.name||'');}
+  }else{
+    const em2=String(payload.email||'').trim();
+    if(!em2){openSmLoginModal('','signin');return;}
+    if(typeof smUserExistsInSupabase==='function'){
+      smUserExistsInSupabase(em2).then(function(exists){
+        if(exists){
+          const err=document.getElementById('smEmailErr');
+          if(err){
+            err.textContent='We found this account. Please use Sign in with the same email to continue.';
+            err.style.display='block';
+          }
+          openSmLoginModal(em2,'signin');
+        }else{
+          openSmProfileStep(em2,payload.name||'');
+        }
+      }).catch(function(){
+        openSmLoginModal(em2,'signin');
+      });
+    }else{
+      openSmProfileStep(em2,payload.name||'');
+    }
+  }
 }
 
 
 
-function smStartEmailAuth(mode){
-  const val = document.getElementById('smEmailInput').value.trim();
-  const err = document.getElementById('smEmailErr');
-  const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-  if(!val || !emailRe.test(val)){ err.style.display='block'; err.textContent='Please enter a valid email address.'; document.getElementById('smEmailInput').focus(); return; }
-  if(!_sb||!_sb.auth||typeof _sb.auth.signInWithOtp!=='function'){err.style.display='block';err.textContent='Login service unavailable. Please try again later.';return;}
-  err.style.display='none';
-  const redirectTo=window.location.origin+window.location.pathname;
-  _sb.auth.signInWithOtp({email:val,options:{emailRedirectTo:redirectTo}}).then(function(r){
-    if(r&&r.error){
-      err.style.display='block';
-      err.textContent='Could not send sign-in link. Please try again.';
-      console.error('signInWithOtp:',r.error);
+async function smStartSignIn(){
+  const err=document.getElementById('smEmailErr');
+  const input=document.getElementById('smEmailSignin');
+  const val=input?String(input.value||'').trim():'';
+  const v=smValidateWorkEmail(val);
+  if(!v.ok){ if(err){ err.textContent=v.msg; err.style.display='block'; } if(input) input.focus(); return; }
+  if(err) err.style.display='none';
+  if(typeof smUserExistsInSupabase!=='function'){
+    if(err){ err.textContent='Service unavailable. Try again later.'; err.style.display='block'; }
+    return;
+  }
+  try{
+    const known=await smUserExistsInSupabase(val);
+    if(!known){
+      if(err){ err.textContent='No account found for this email. Create one under Sign up.'; err.style.display='block'; }
       return;
     }
-    localStorage.setItem('sm_user_email',val);
-    localStorage.setItem('tr_shared_email',val);
-    showToast('Check your email for a secure sign-in link.','ok');
-  }).catch(function(e){
-    err.style.display='block';
-    err.textContent='Could not send sign-in link. Please try again.';
-    console.error(e);
+  }catch(e){
+    if(err){ err.textContent='Could not verify email. Check your connection and try again.'; err.style.display='block'; }
+    return;
+  }
+  localStorage.setItem('sm_user_email', val);
+  localStorage.setItem('tr_shared_email', val);
+  if(!localStorage.getItem('sm_login_date')) localStorage.setItem('sm_login_date', String(Date.now()));
+  if(typeof smRestoreSessionFromSupabase!=='function'){
+    if(err){ err.textContent='Service unavailable.'; err.style.display='block'; }
+    return;
+  }
+  smRestoreSessionFromSupabase(val).then(function(restored){
+    smRefreshSalaryGatingFromSession();
+    if(restored){
+      document.getElementById('loginModal').style.display='none';
+      checkTrialExpiry('');
+      renderTrialBadgeSM();
+      smUpdateNavLinks();
+      updateUserJourneyUi();
+      if(typeof smIsEstablishedUserForOnboarding==='function'){
+        smIsEstablishedUserForOnboarding((localStorage.getItem('sm_user_email')||val).trim()).then(function(est){
+          if(est&&typeof smMarkRobotTourComplete==='function') smMarkRobotTourComplete();
+          if(typeof smUpdateSalaryStatusDisplays==='function') smUpdateSalaryStatusDisplays();
+        }).catch(function(){});
+      }
+    }else{
+      if(err){ err.textContent='This email could not be restored. If this is a new email, use Sign up.'; err.style.display='block'; }
+      openSmLoginModal(val,'signin');
+    }
+  });
+}
+function smStartSignUp(){
+  const err=document.getElementById('smEmailErr');
+  const fn=(document.getElementById('smFirstName')||{}).value.trim();
+  const ln=(document.getElementById('smLastName')||{}).value.trim();
+  const em=String((document.getElementById('smEmailSignup')||{}).value||'').trim();
+  if(!fn||!ln){
+    if(err){ err.textContent='Please enter your first and last name.'; err.style.display='block'; }
+    return;
+  }
+  const v=smValidateWorkEmail(em);
+  if(!v.ok){
+    if(err){ err.textContent=v.msg; err.style.display='block'; }
+    return;
+  }
+  if(err) err.style.display='none';
+  if(typeof smUserExistsInSupabase!=='function'){
+    if(err){ err.textContent='Service unavailable. Try again later.'; err.style.display='block'; }
+    return;
+  }
+  smUserExistsInSupabase(em).then(function(exists){
+    if(exists){
+      if(err){ err.textContent='This email is already registered. Use Sign in.'; err.style.display='block'; }
+      return;
+    }
+    const fullName=(fn+' '+ln).replace(/\s+/g,' ').trim();
+    localStorage.setItem('sm_user_email', em);
+    localStorage.setItem('tr_shared_email', em);
+    localStorage.setItem('sm_user_name', fullName);
+    localStorage.setItem('tr_shared_name', fullName);
+    if(!localStorage.getItem('sm_login_date')) localStorage.setItem('sm_login_date', String(Date.now()));
+    openSmProfileStep(em, fullName);
+  }).catch(function(){
+    if(err){ err.textContent='Could not check email. Try again.'; err.style.display='block'; }
   });
 }
 
 function smUpdateNavLinks(){
   const email = localStorage.getItem('sm_user_email');
-  if(!email) return;
+  const emLine=document.getElementById('smTopbarUserLine');
+  const emSpan=document.getElementById('smTopbarEmail');
+  if(!email){
+    if(emLine) emLine.style.display='none';
+    if(emSpan){ emSpan.textContent=''; emSpan.title=''; }
+    return;
+  }
+  if(emLine&&emSpan){
+    emSpan.textContent=email;
+    emSpan.title=email;
+    emLine.style.display='flex';
+  }
   const enc = encodeURIComponent(email);
   const el = document.getElementById('suiteNavTxr');
   if(el){ const base=el.href.split('?')[0]; const params=new URLSearchParams(el.href.includes('?')?el.href.split('?')[1]:''); params.set('au',enc); el.href=base+'?'+params.toString(); }
@@ -1137,7 +1373,7 @@ async function smCompleteLogin(email, name, profileData){
   const consent = document.getElementById('smConsent').checked;
   const profession = (profileData && profileData.profession) || localStorage.getItem('sm_user_profession') || '';
   const country = (profileData && profileData.country) || localStorage.getItem('sm_user_country') || '';
-  const existed=await smUserExistsInSupabase(email);
+  const established=typeof smIsEstablishedUserForOnboarding==='function'?await smIsEstablishedUserForOnboarding(email):false;
   localStorage.setItem('sm_user_email', email);
   localStorage.setItem('sm_user_name', name);
   if(profession) localStorage.setItem('sm_user_profession', profession);
@@ -1153,33 +1389,35 @@ async function smCompleteLogin(email, name, profileData){
   setTimeout(function(){ if(typeof smRefreshSalaryGatingFromSession==='function') smRefreshSalaryGatingFromSession(); }, 2000);
   smMaybeShowSalaryPrompt(profession);
   updateUserJourneyUi();
-  if(!existed){
+  if(typeof smUpdateSalaryStatusDisplays==='function') smUpdateSalaryStatusDisplays();
+  if(!established){
     try{
       localStorage.removeItem('sm_robot_tool_tour_v1_done');
       var _emk=(String(email||'').trim().toLowerCase());
       if(_emk) localStorage.removeItem('sm_robot_tour_v2:'+_emk);
     }catch(e){}
     if(typeof maybeStartRobotToolTour==='function') maybeStartRobotToolTour(500);
-  }else {
-    if(typeof smMarkRobotTourComplete==='function') smMarkRobotTourComplete();
-  }
+  }else if(typeof smMarkRobotTourComplete==='function') smMarkRobotTourComplete();
   try{ fetch('/',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'form-name=sm-users&email='+encodeURIComponent(email)+'&name='+encodeURIComponent(name)+'&profession='+encodeURIComponent(profession)+'&country='+encodeURIComponent(country)+'&notify_salary='+(localStorage.getItem('sm_salary_notify')||'no')+'&consent='+(consent?'yes':'no')}); }catch(e){}
 }
 
-function smDoLogin(){ document.getElementById('smEmailInput').focus(); }
+function smDoLogin(){
+  const si=document.getElementById('smEmailSignin');
+  if(si) si.focus();
+  else{ const f=document.getElementById('smFirstName'); if(f) f.focus(); }
+}
 function smToggleSettings(){
   const panel=document.getElementById('smSettingsPanel');
   if(!panel) return;
   const willOpen=panel.style.display==='none'||!panel.style.display;
   panel.style.display=willOpen?'block':'none';
   if(willOpen){
+    if(typeof smUpdateSalaryStatusDisplays==='function') smUpdateSalaryStatusDisplays();
     const nm=document.getElementById('smSettingsName');
     if(nm){
       nm.value=(localStorage.getItem('sm_user_name')||'').trim();
       nm.focus();
     }
-    const st=document.getElementById('smSettingsSalaryStatus');
-    if(st) st.textContent=(typeof isSalaryUnlocked==='function'&&isSalaryUnlocked())?'Filled':'Not filled';
     const msg=document.getElementById('smSettingsMsg');
     if(msg){msg.style.display='none';msg.textContent='';}
   }
@@ -1208,12 +1446,11 @@ function toggleProfileMenu(){
   const menu=document.getElementById('smProfileMenu');
   const email=localStorage.getItem('sm_user_email');
   if(!email){openSmLoginModal();return;}
+  if(typeof smUpdateSalaryStatusDisplays==='function') smUpdateSalaryStatusDisplays();
   if(document.getElementById('smProfileEmailRow')) document.getElementById('smProfileEmailRow').textContent=email;
   if(document.getElementById('smProfileNameRow')) document.getElementById('smProfileNameRow').textContent=localStorage.getItem('sm_user_name')||'Not provided';
   if(document.getElementById('smProfileProfessionRow')) document.getElementById('smProfileProfessionRow').textContent=localStorage.getItem('sm_user_profession')||'Not provided';
   if(document.getElementById('smProfileCountryRow')) document.getElementById('smProfileCountryRow').textContent=localStorage.getItem('sm_user_country')||'Not provided';
-  if(document.getElementById('smProfileSalaryRow')) document.getElementById('smProfileSalaryRow').textContent=(typeof isSalaryUnlocked==='function'&&isSalaryUnlocked())?'Filled':'Not filled';
-  if(document.getElementById('smProfileNotifyRow')) document.getElementById('smProfileNotifyRow').textContent=(localStorage.getItem('sm_salary_notify')||'no')==='yes'?'Enabled':'Not enabled';
   const panel=document.getElementById('smSettingsPanel');
   if(panel) panel.style.display='none';
   if(menu) menu.style.display=menu.style.display==='none'?'block':'none';
@@ -1241,9 +1478,12 @@ function smSignOut(){
     <span class="suite-arrow">›</span>
     <a class="suite-step" id="suiteNavTxr" href="https://talentxray.talentsradar.com/"><span class="suite-step-num">2</span>TalentXRay</a>
   </div>
-  <div class="topbar-right">
+    <div class="topbar-right" style="display:flex;align-items:center;gap:8px;min-width:0;">
     <span id="trialBadge" style="display:none!important;"></span>
-    <div style="position:relative;" id="smProfileWrap">
+    <div id="smTopbarUserLine" style="display:none;flex-direction:column;align-items:flex-end;min-width:0;max-width:200px;flex-shrink:1;">
+      <span id="smTopbarEmail" style="font-size:11.5px;color:#6b7280;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;" title=""></span>
+    </div>
+    <div style="position:relative;flex-shrink:0;" id="smProfileWrap">
       <button class="btn-contact" id="smTopbarBtn" onclick="toggleProfileMenu()">
         <svg viewBox="0 0 16 16" fill="none"><path d="M8 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM3 13a5 5 0 0 1 10 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
         <span class="btn-contact-text" id="smTopbarLabel">Sign in</span>
@@ -3208,7 +3448,7 @@ async function submitPrivacyRequest(){
 }
 
 const SM_ROBOT_TOUR_LEGACY='sm_robot_tool_tour_v1_done';
-/* Onboarding: New users only — email must not exist in sm_users/txr_user before first profile save (see smUserExistsInSupabase). Returning logins call smMarkRobotTourComplete. Load: existing users marked, then maybeStart(900). New: smCompleteLogin → maybeStart(500). Tool tab: startRobotToolTour. ?tour=1 forces. */
+/* Onboarding: only if not "established" — sm_users row plus salary_contribution (or sm_users.salary_submitted_at). See smIsEstablishedUserForOnboarding. ?tour=1 forces. */
 function smIsLoginModalOpen(){
   const m=document.getElementById('loginModal');
   if(!m)return false;
@@ -3418,8 +3658,8 @@ window.addEventListener('load',async function(){
   try{const u=new URL(window.location.href);if(u.searchParams.get('tour')==='1'||u.searchParams.get('onboarding')==='1'){smClearRobotTourFlagsForUser();u.searchParams.delete('tour');u.searchParams.delete('onboarding');history.replaceState(null,'',u.pathname+u.search+u.hash);forceOnboardingTour=true;}}catch(e){}
   if(!forceOnboardingTour){
     const e0=(localStorage.getItem('sm_user_email')||'').trim();
-    if(e0 && typeof smUserExistsInSupabase==='function'){
-      try{ if(await smUserExistsInSupabase(e0)) smMarkRobotTourComplete(); }catch(e){}
+    if(e0 && typeof smIsEstablishedUserForOnboarding==='function'){
+      try{ if(await smIsEstablishedUserForOnboarding(e0)) smMarkRobotTourComplete(); }catch(e){}
     }
   }
   if(forceOnboardingTour)window._smAllowRobotTourNoSession=true;
@@ -3631,6 +3871,12 @@ async function submitSalaryContrib(){
     console.error('Salary contribution submit error:',e);
     return;
   }}
+  if(typeof smUpdateSalaryStatusDisplays==='function') smUpdateSalaryStatusDisplays();
+  if(typeof smRefreshSalaryGatingFromSession==='function') smRefreshSalaryGatingFromSession(0);
+  const _salem=(localStorage.getItem('sm_user_email')||'').trim();
+  if(_salem&&_salem!=='anonymous'&&typeof smIsEstablishedUserForOnboarding==='function'){
+    try{ if(await smIsEstablishedUserForOnboarding(_salem)&&typeof smMarkRobotTourComplete==='function') smMarkRobotTourComplete(); }catch(e){}
+  }
   setPandaMood('happy');
   document.getElementById('salContribModal').style.display='none';document.getElementById('floatingPanda').style.display='none';document.getElementById('salThanksModal').style.display='flex';
   unlockSalary();if(_pendingSalBtn){applySelectLevel(_pendingSalBtn);_pendingSalBtn=null;}
