@@ -1391,6 +1391,17 @@ function _onLoginSuccess(isNewUser){
   if(typeof smRefreshSalaryGatingFromSession==='function') smRefreshSalaryGatingFromSession(2000);
   if(!isNewUser && typeof smMarkRobotTourComplete==='function') smMarkRobotTourComplete();
   smMaybeShowSalaryPrompt();
+  (async function(){
+    try{
+      const supabase=smEnsureSupabaseClient();
+      if(!supabase)return;
+      await supabase.rpc('record_tool_login', {
+        p_tool_name: 'Skillmapper',
+        p_user_agent: navigator.userAgent,
+        p_referrer: document.referrer || null,
+      });
+    }catch(e){}
+  })();
   smTrackEvent('login_success',{is_new_user:!!isNewUser});
 }
 
