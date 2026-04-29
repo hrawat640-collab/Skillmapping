@@ -2260,6 +2260,49 @@ function _isLooseMatch(query,text){
   const hitCount=qTokens.filter(t=>tn.includes(t)).length;
   return hitCount>=Math.min(2,qTokens.length);
 }
+function _getGenericRoleFamily(raw){
+  const q=_normTitleSearchText(raw||'');
+  if(!q) return '';
+  if(/\b(software developer|software engineer|developer|engineer)\b/.test(q)) return 'engineering';
+  if(/\bmanager\b/.test(q)) return 'manager';
+  if(/\banalyst\b/.test(q)) return 'analyst';
+  if(/\bdesigner\b/.test(q)) return 'designer';
+  if(/\bconsultant\b/.test(q)) return 'consultant';
+  if(/\b(support|customer support|technical support|helpdesk)\b/.test(q)) return 'support';
+  return '';
+}
+function _isRoleInGenericFamily(role,family){
+  if(!role||!family) return false;
+  const dept=String(role.dept||'').toLowerCase();
+  const title=_normTitleSearchText(role.title||'');
+  if(family==='engineering'){
+    return dept==='engineering'&&(
+      title.includes('software')||
+      title.includes('developer')||
+      title.includes('engineer')||
+      title.includes('frontend')||
+      title.includes('backend')||
+      title.includes('full stack')||
+      title.includes('fullstack')
+    );
+  }
+  if(family==='manager'){
+    return title.includes('manager')||title.includes('head of')||title.startsWith('vp ')||title.includes('director')||title==='cto'||title==='cfo'||title==='coo'||title==='ciso';
+  }
+  if(family==='analyst'){
+    return title.includes('analyst');
+  }
+  if(family==='designer'){
+    return dept==='design'||title.includes('designer')||title.includes('ux writer');
+  }
+  if(family==='consultant'){
+    return title.includes('consultant')||title.includes('specialist')||title.includes('architect');
+  }
+  if(family==='support'){
+    return dept==='support'||title.includes('support')||title.includes('customer success')||title.includes('implementation')||title.includes('technical account manager')||title.includes('tam');
+  }
+  return false;
+}
 function getTitleGroups(query){
   const q=(query||'').trim();
   const g=window._titleBrowseGemini;
@@ -2279,10 +2322,13 @@ function getTitleGroups(query){
     return list.length?{[deptScope]:list}:{};
   }
   const qNorm=_normTitleSearchText(q);const groups={};
+  const genericFamily=_getGenericRoleFamily(q);
   (ROLES||[]).forEach(r=>{
     const roleCorpus=[r.title,...(r.keywords||[])].join(' ');
     const roleNormCorpus=[_normTitleSearchText(r.title),...(r.keywords||[]).map(_normTitleSearchText)].join(' ');
-    if(q&&!_isLooseMatch(q,roleCorpus)&&!(qNorm&&_isLooseMatch(qNorm,roleNormCorpus)))return;
+    if(q&&!_isLooseMatch(q,roleCorpus)&&!(qNorm&&_isLooseMatch(qNorm,roleNormCorpus))){
+      if(!(genericFamily&&_isRoleInGenericFamily(r,genericFamily))) return;
+    }
     if(!groups[r.dept])groups[r.dept]=[];groups[r.dept].push(r);
   });
   return groups;
