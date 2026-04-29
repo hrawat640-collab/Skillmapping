@@ -2335,7 +2335,71 @@ function getTitleGroups(query){
 }
 function renderTitleDropdown(query){
   const drop=document.getElementById('titleDropdown');const groups=getTitleGroups(query);const depts=Object.keys(groups).sort();
-  if(!depts.length){drop.innerHTML='<div style="padding:12px 16px;color:var(--ink3);font-size:13px;">No roles found</div>';drop.classList.add('open');return;}
+  if(!depts.length){
+    // Auto-select common generic queries like "software developer" where we want to show the whole family.
+    const qNorm=_normTitleSearchText(query||'');
+    const wantsSoftwareFamily=/\bsoftware\s+developer\b/i.test(qNorm)||/\bsoftware\s+engineer\b/i.test(qNorm);
+    if(wantsSoftwareFamily){
+      const matched=(ROLES||[]).filter(r=>{
+        const dept=String(r.dept||'').toLowerCase();
+        if(dept!=='engineering') return false;
+        const titleNorm=_normTitleSearchText(r.title||'');
+        const kwNorm=(r.keywords||[]).map(_normTitleSearchText).join(' ');
+        const corpus=(titleNorm+' '+kwNorm).trim();
+        return (
+          // Word forms
+          corpus.includes('software')||
+          corpus.includes('developer')||
+          corpus.includes('engineer')||
+          corpus.includes('frontend')||
+          corpus.includes('backend')||
+          corpus.includes('full stack')||
+          corpus.includes('fullstack')||
+          // Abbreviations often used in the data
+          /\bsde\b/i.test(corpus)||
+          /\bswe\b/i.test(corpus)
+        );
+      });
+      if(matched.length){
+        selectedTitleModeRoles=matched.map(function(r){return Object.assign({},r);}).slice(0,40);
+        renderSelectedTitleChips();
+        const nextGroups={};
+        matched.forEach(function(r){
+          if(!nextGroups[r.dept]) nextGroups[r.dept]=[];
+          nextGroups[r.dept].push(r);
+        });
+        // Continue rendering dropdown with the family match.
+        const nextDepts=Object.keys(nextGroups).sort();
+        if(nextDepts.length){
+          drop.innerHTML=(window._titleBrowseGemini&&window._titleBrowseGemini.usedGemini)?'':
+            `<div style="padding:8px 14px 6px;font-size:12px;color:var(--teal);font-weight:600;border-bottom:1px solid var(--border);">Auto-selected ${matched.length} software roles</div>`;
+          const q=(query||'').toLowerCase();const qNorm2=_normTitleSearchText(query||'');const variantRole=_findRoleByDesignationVariant(query||'');
+          const g=window._titleBrowseGemini;const qTrim=(query||'').trim();
+          const gemDept=(g&&g.query===qTrim&&g.browseAllDept)?g.browseAllDept:null;
+          const deptScope=gemDept||_inferBrowseByTitleDeptScope(query||'');
+          const fromAi=!!(g&&g.query===qTrim&&g.usedGemini);
+          const deptBanner=deptScope?`<div style="padding:8px 14px 6px;font-size:12px;color:var(--teal);font-weight:600;border-bottom:1px solid var(--border);">Showing all ${deptScope} roles — pick one or more${fromAi?' <span style="font-weight:500;opacity:.9">(AI)</span>':''}</div>`:
+            (fromAi&&g.roles&&g.roles.length?`<div style="padding:8px 14px 6px;font-size:12px;color:var(--teal);font-weight:600;border-bottom:1px solid var(--border);">AI matched your designation to ${g.roles.length} role(s) in our database</div>`:'');
+          drop.innerHTML=deptBanner+nextDepts.map(function(dept){
+            const items=nextGroups[dept].map(function(r){
+              const isSel=selectedTitleModeRoles.some(function(s){return s.title===r.title;});
+              const titleMatch=String(r.title||'').toLowerCase().includes(q);
+              const kwHit=!titleMatch?(r.keywords||[]).find(function(k){return String(k||'').toLowerCase().includes(q);}):null;
+              const designationVariant=!deptScope&&!fromAi&&!!(query&&_hasDesignationWord(query)&&qNorm2&&variantRole&&(_normTitleSearchText(r.title)===_normTitleSearchText((variantRole||{}).title||'')));
+              const displayLabel=kwHit?`<strong style="color:var(--teal)">${kwHit}</strong> <span style="font-size:11px;color:var(--ink3);">— ${r.title}</span>`:r.title;
+              const searchedAs=(deptScope?r.title:(designationVariant?String(query||'').trim():(kwHit||r.title))).replace(/'/g,"\\'");
+              const canonTitle=String(r.title||'').replace(/'/g,"\\'");
+              return `<div class="td-item${isSel?' selected':''}" data-title="${r.title}" data-searched="${searchedAs}" onmousedown="toggleTitleMode('${canonTitle}','${searchedAs}')">${displayLabel} <span class="td-check">&#x2713;</span></div>`;
+            }).join('');
+            return `<div class="td-dept">${dept}</div>${items}`;
+          }).join('');
+          drop.classList.add('open');titleDropFocused=-1;
+          return;
+        }
+      }
+    }
+    drop.innerHTML='<div style="padding:12px 16px;color:var(--ink3);font-size:13px;">No roles found</div>';drop.classList.add('open');return;
+  }
   const q=(query||'').toLowerCase();const qNorm=_normTitleSearchText(query||'');const variantRole=_findRoleByDesignationVariant(query||'');
   const g=window._titleBrowseGemini;const qTrim=(query||'').trim();
   const gemDept=(g&&g.query===qTrim&&g.browseAllDept)?g.browseAllDept:null;
