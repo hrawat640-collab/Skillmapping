@@ -6,6 +6,7 @@ import path from "path";
 import { connectDb } from "./db.js";
 import authRoutes from "./routes/auth.js";
 import evaluateRoutes from "./routes/evaluate.js";
+import searchRolesRoutes from "./routes/searchRoles.js";
 
 dotenv.config();
 const app = express();
@@ -19,6 +20,7 @@ app.use(express.urlencoded({ extended: true }));
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 app.use("/api/auth", authRoutes);
 app.use("/api", evaluateRoutes);
+app.use("/api", searchRolesRoutes);
 
 const port = process.env.PORT || 5000;
 connectDb(process.env.MONGODB_URI)

@@ -890,7 +890,7 @@ const SM_USER_ID_KEY='sm_user_id';
 const SM_USER_UUID_KEY='sm_user_uuid';
 const SM_SALARY_CONTRIB_TABLES=['sm_salary_contribution'];
 const SM_USER_TABLE='sm_users';
-const SM_EVENT_TABLE='event_log';
+const SM_EVENT_TABLE='product_events';
 const SM_SESSION_ID_KEY='sm_session_id';
 function smEnsureLocalUserUuid(){
   const existing=(localStorage.getItem(SM_USER_UUID_KEY)||'').trim();
@@ -917,20 +917,37 @@ function smGetSessionId(){
   localStorage.setItem(SM_SESSION_ID_KEY,sid);
   return sid;
 }
+const _SM_EVENT_NAME_MAP={
+  login_success:'login_completed',
+  salary_submit_success:'salary_submitted',
+  search_logged:'search_performed'
+};
+const _smEventDedupeTs={};
 function smTrackEvent(eventName,meta){
   try{
     if(!_sb||!eventName) return;
+    const rawMeta=(meta&&typeof meta==='object')?meta:{};
+    let canonical=_SM_EVENT_NAME_MAP[String(eventName)]||String(eventName);
+    if(canonical==='search_performed'&&rawMeta.no_result)canonical='no_result_search';
+    const dedupeKey=String(rawMeta.dedupe_key||'');
+    if(dedupeKey){
+      const now=Date.now();
+      const prev=_smEventDedupeTs[dedupeKey]||0;
+      if(now-prev<1500)return;
+      _smEventDedupeTs[dedupeKey]=now;
+    }
+    const metadata=Object.assign({},rawMeta);
+    delete metadata.page;delete metadata.source;delete metadata.role_id;delete metadata.role_level_id;delete metadata.search_query;delete metadata.dedupe_key;
     const payload={
-      event_name:String(eventName),
-      session_id:smGetSessionId(),
       user_uuid:String(localStorage.getItem(SM_USER_UUID_KEY)||'').trim()||null,
-      email:String(localStorage.getItem('sm_user_email')||'anonymous').trim()||'anonymous',
-      country:String(localStorage.getItem('sm_user_country')||'').trim()||null,
-      profession:String(localStorage.getItem('sm_user_profession')||'').trim()||null,
-      user_agent:(typeof navigator!=='undefined'&&navigator.userAgent)?String(navigator.userAgent).slice(0,500):null,
-      referrer:(typeof document!=='undefined'&&document.referrer)?String(document.referrer).slice(0,500):null,
-      loc_detected:typeof USER_LOCATION!=='undefined'?USER_LOCATION:null,
-      event_meta:meta&&typeof meta==='object'?meta:{},
+      session_id:smGetSessionId(),
+      event_name:canonical,
+      page:String(rawMeta.page||((typeof location!=='undefined'&&location.pathname)?location.pathname:'/')).slice(0,200),
+      source:String(rawMeta.source||'skillmapper_web').slice(0,120),
+      role_id:rawMeta.role_id?String(rawMeta.role_id):null,
+      role_level_id:rawMeta.role_level_id?String(rawMeta.role_level_id):null,
+      search_query:rawMeta.search_query?String(rawMeta.search_query).slice(0,1000):null,
+      metadata:metadata,
       created_at:new Date().toISOString()
     };
     _sb.from(SM_EVENT_TABLE).insert(payload).then(function(){}).catch(function(){});
@@ -2036,56 +2053,30 @@ function smSignOut(){
 
 /* ── Search analytics ── */
 function logSearch(mode,query,resultCount,noResult){
-  const sb=smEnsureSupabaseClient();
-  if(!sb)return;
-  try{
-    const payload={
-      email:localStorage.getItem('sm_user_email')||'anonymous',
-      mode:mode,
-      query:String(query||'').slice(0,500),
-      result_count:resultCount||0,
-      no_result:noResult||false,
-      profession:localStorage.getItem('sm_user_profession')||'',
-      country:localStorage.getItem('sm_user_country')||'',
-      created_at:new Date().toISOString()
-    };
-    (async function(){
-      // Schema-adaptive insert: remove unknown columns and retry.
-      let attempt=Object.assign({},payload);
-      let r=null;
-      for(let i=0;i<8;i++){
-        r=await sb.from('search_logs').insert(attempt);
-        if(r&&!r.error) break;
-        const em=String((r&&r.error&&r.error.message)||'');
-        const m=em.match(/Could not find the '([^']+)' column/i);
-        if(!m||!m[1]) break;
-        const miss=m[1];
-        if(!Object.prototype.hasOwnProperty.call(attempt,miss)) break;
-        delete attempt[miss];
-        if(!Object.keys(attempt).length){attempt={query:String(query||'').slice(0,500)};}
-      }
-      if(r&&r.error) console.error('logSearch:',r.error);
-    })().catch(function(e){console.error('logSearch catch:',e);});
-  }catch(e){console.error('logSearch outer:',e);}
-  smTrackEvent('search_logged',{mode:String(mode||''),result_count:resultCount||0,no_result:!!noResult});
+  smTrackEvent('search_logged',{
+    source:String(mode||'search'),
+    search_query:String(query||'').slice(0,1000),
+    result_count:resultCount||0,
+    no_result:!!noResult,
+    page:'/skillmapper',
+    dedupe_key:'search|'+String(mode||'')+'|'+String(query||'').toLowerCase().trim()+'|'+(resultCount||0)+'|'+(noResult?1:0)
+  });
+}
+function trackRoleCardViewed(roleObj,source,searchQuery){
+  if(!roleObj) return;
+  const rid=roleObj.id?String(roleObj.id):'';
+  const rtitle=String(roleObj.title||'').trim();
+  smTrackEvent('role_card_viewed',{
+    source:String(source||'search'),
+    search_query:String(searchQuery||'').slice(0,1000),
+    role_id:rid||null,
+    role_title:rtitle||null,
+    page:'/skillmapper',
+    dedupe_key:'role_card|'+String(source||'')+'|'+String(searchQuery||'').toLowerCase().trim()+'|'+(rid||rtitle.toLowerCase())
+  });
 }
 function logNlSearchOutcome(sentence,status,resultCount,usedGemini){
-  if(!_sb)return;
-  const payload={
-    email:localStorage.getItem('sm_user_email')||'anonymous',
-    sentence:String(sentence||'').slice(0,1000),
-    status:status==='success'?'success':'failed',
-    result_count:resultCount||0,
-    used_gemini:!!usedGemini,
-    profession:localStorage.getItem('sm_user_profession')||'',
-    country:localStorage.getItem('sm_user_country')||'',
-    created_at:new Date().toISOString()
-  };
-  try{
-    _sb.from('nl_search_logs').insert(payload).then(function(res){
-      if(res&&res.error)console.warn('nl_search_logs insert:',res.error.message||res.error);
-    }).catch(function(){});
-  }catch(e){}
+  return;
 }
 const TRIAL_DAYS = 30;
 function checkTrialExpiry(prefix){
@@ -2592,7 +2583,8 @@ function runTitleMode(){
     const reqSkills=(r.required||[]).map(s=>`<span class="skill-pill skill-matched">${s}</span>`).join('');
     const niceSkills=(r.nice||[]).map(s=>`<span class="skill-pill skill-missing">${s}</span>`).join('');
     let altNames=(r.keywords||[]).slice(1);if(r._searchedAs&&r._searchedAs!==r.title)altNames=[r.title,...altNames.filter(k=>k!==r._searchedAs)];
-    const alsoKnownAs=altNames.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:2px;"><span style="font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;margin-right:2px;white-space:nowrap;">Also called</span><span style="font-size:12.5px;color:var(--ink2);font-weight:500;">${altNames.join(' &middot; ')}</span></div>`:'';
+    const alsoCalledInline=buildAlsoCalledLabel(altNames,cardId+'_aka');
+    const alsoKnownAs=alsoCalledInline?`<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:2px;"><span style="font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;margin-right:2px;white-space:nowrap;">Also called</span><span style="font-size:12.5px;color:var(--ink2);font-weight:500;">${alsoCalledInline}</span></div>`:'';
     const altTitlesParam=encodeURIComponent((r.keywords||[]).slice(1,2).join(','));
     const allPassSkills=[...(r.required||[])].slice(0,8);
     return`<div class="result-card match-high"><div class="rc-top"><div class="rc-left"><div class="rc-dept"><span style="background:${dcolor.bg};color:${dcolor.color};padding:2px 8px;border-radius:20px;font-size:11px;">${r.dept}</span></div><div class="rc-title">${r._searchedAs||r.title}</div><div class="rc-desc">${r.desc||''}</div>${r.hint?`<div class="rc-hint"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.4"/><path d="M8 7v4M8 5.5v.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg><span>${r.hint}</span></div>`:''}</div></div><div class="rc-bottom"><div style="width:100%;display:flex;flex-direction:column;gap:8px;"><div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;"><span style="font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;margin-right:2px;">Experience &amp; Salary</span><div class="salary-selector" id="${cardId}">${salBtns}</div></div><div class="sal-display" id="${cardId}_sal">${defaultSal}</div><div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;"><span style="font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;margin-right:2px;">Required skills</span>${reqSkills}</div><div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;"><span style="font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;margin-right:2px;">Nice to have</span>${niceSkills}</div>${alsoKnownAs}</div><div class="rc-actions" style="margin-top:10px;">${getRoleActionHtml(r.title,altTitlesParam,allPassSkills)}</div></div></div>`;
@@ -2601,6 +2593,9 @@ function runTitleMode(){
   document.getElementById('deptFilter').style.display='none';
   const _cb=document.getElementById('currencyBar');if(_cb)_cb.style.display='flex';
   logSearch('title',selectedTitleModeRoles.map(r=>r.title).join(', '),selectedTitleModeRoles.length,false);
+  selectedTitleModeRoles.slice(0,10).forEach(function(r){
+    trackRoleCardViewed(r,'title',selectedTitleModeRoles.map(function(x){return x.title;}).join(', '));
+  });
   setTimeout(()=>area.scrollIntoView({behavior:'smooth',block:'nearest'}),200);
 }
 
@@ -3015,16 +3010,17 @@ function render(){
       const isMatched=r.matchedNice.includes(nLower);
       return`<span class="skill-pill ${isMatched?'skill-matched':'skill-missing'}">${nic}</span>`;
     }).join('');
-    const missingReq=(r.required||[]).filter(function(req){return!r.matchedReq.includes(String(req).toLowerCase());});
-    const missingNote=missingReq.length?`<div class="rc-missing-note">Also typically needs: <strong>${missingReq.join(', ')}</strong></div>`:'';
     const altTitlesParam=encodeURIComponent((r.keywords||[]).slice(1,2).join(','));
     const allPassSkills=[...new Set([...(r.required||[]),...(r.matchedUserInputs||[]),...r.matched.slice(0,3)])].slice(0,8);
-    return`<div class="result-card ${matchClass}"><div class="rc-top"><div class="rc-left"><div class="rc-dept" style="color:${dcolor.color}"><span style="background:${dcolor.bg};padding:2px 8px;border-radius:20px;font-size:11px;">${r.dept}</span></div><div class="rc-title">${r.title}</div><div class="rc-desc">${r.desc}</div>${r.hint?`<div class="rc-hint"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.4"/><path d="M8 7v4M8 5.5v.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg><span>${r.hint}</span></div>`:''}${missingNote}</div><div class="rc-score-wrap"><div class="rc-score" style="color:${matchColor}">${matchPct}%</div><div class="rc-score-lbl">skill match</div></div></div><div class="rc-bottom"><div style="width:100%;display:flex;flex-direction:column;gap:8px;"><div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;"><span style="font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;margin-right:2px;">Experience &amp; Salary</span>${expHtml}</div><div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;"><span style="font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;margin-right:2px;">Required skills</span>${requiredSkillsHtml}</div><div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;"><span style="font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;margin-right:2px;">Nice to have</span>${niceSkillsHtml}</div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between;"><div style="font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;">Also called <span style="font-size:12.5px;color:var(--ink2);font-weight:500;text-transform:none;letter-spacing:normal;margin-left:6px;">${(r.keywords&&r.keywords.length?r.keywords:[r.title]).join(' &middot; ')}</span></div><div class="rc-actions"><button class="btn-copy-title" onclick="copyTitle('${(r.title||'').replace(/'/g,"\\'")}',this)">Copy title</button>${getRoleActionHtml(r.title,altTitlesParam,allPassSkills)}</div></div></div></div></div>`;
+    return`<div class="result-card ${matchClass}"><div class="rc-top"><div class="rc-left"><div class="rc-dept" style="color:${dcolor.color}"><span style="background:${dcolor.bg};padding:2px 8px;border-radius:20px;font-size:11px;">${r.dept}</span></div><div class="rc-title">${r.title}</div><div class="rc-desc">${r.desc}</div>${r.hint?`<div class="rc-hint"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.4"/><path d="M8 7v4M8 5.5v.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg><span>${r.hint}</span></div>`:''}</div><div class="rc-score-wrap"><div class="rc-score" style="color:${matchColor}">${matchPct}%</div><div class="rc-score-lbl">skill match</div></div></div><div class="rc-bottom"><div style="width:100%;display:flex;flex-direction:column;gap:8px;"><div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;"><span style="font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;margin-right:2px;">Experience &amp; Salary</span>${expHtml}</div><div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;"><span style="font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;margin-right:2px;">Required skills</span>${requiredSkillsHtml}</div><div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;"><span style="font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;margin-right:2px;">Nice to have</span>${niceSkillsHtml}</div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between;"><div style="font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;">Also called <span style="font-size:12.5px;color:var(--ink2);font-weight:500;text-transform:none;letter-spacing:normal;margin-left:6px;">${buildAlsoCalledLabel((r.keywords&&r.keywords.length?r.keywords:[r.title]),cardId+'_aka')}</span></div><div class="rc-actions"><button class="btn-copy-title" onclick="copyTitle('${(r.title||'').replace(/'/g,"\\'")}',this)">Copy title</button>${getRoleActionHtml(r.title,altTitlesParam,allPassSkills)}</div></div></div></div></div>`;
   }).join('');
   const matchNote=(activeDept!=='all'&&results.length>filtered.length)?`<div class="info-strip"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.4"/></svg>Showing <strong>${activeDept}</strong> roles only · <button onclick="filterDept('all')" style="background:none;border:none;color:var(--teal);cursor:pointer;font-size:13px;padding:0;font-weight:600;">Show all ${results.length} →</button></div>`:'';
   area.innerHTML=`<div class="results-header"><div class="results-title">${results.length} matching role${results.length!==1?'s':''}</div><div style="display:flex;align-items:center;gap:10px;"><div class="results-count">${skills.length} skill${skills.length!==1?'s':''} entered</div><button onclick="clearAndTryAgain()" style="padding:4px 10px;background:transparent;border:1.5px solid var(--border);border-radius:20px;font-size:11.5px;font-weight:600;color:var(--ink3);cursor:pointer;font-family:var(--sans);">&#x21A9; New search</button></div></div>${matchNote}<div class="result-grid">${html}</div>`;
   const bar=document.getElementById('currencyBar');if(bar)bar.style.display='flex';
   logSearch('skills',skills.join(', '),filtered.length,filtered.length===0);
+  filtered.slice(0,10).forEach(function(r){
+    trackRoleCardViewed(r,'skills',skills.join(', '));
+  });
   if(isSalaryPromptEligible()&&!isSalaryUnlocked()){const fp=document.getElementById('floatingPanda');if(fp)fp.style.display='block';}
 }
 
@@ -3265,6 +3261,24 @@ function buildImpliesMap(skills){window.SKILL_IMPLIES={};(skills||[]).forEach(s=
 /* ══ CV Evaluator ══ */
 let cvSelectedRole=null,cvInputMode='upload',cvExtractedText='';let cvLastReport=null;
 function escapeHtml(str){if(str==null)return'';return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');}
+let _alsoCalledSeq=0;
+function buildAlsoCalledLabel(names,prefix){
+  const list=[...new Set((names||[]).map(function(n){return String(n||'').trim();}).filter(Boolean))];
+  if(!list.length)return'';
+  const shown=list.slice(0,5);
+  const hidden=list.slice(5);
+  if(!hidden.length)return shown.join(' &middot; ');
+  _alsoCalledSeq++;
+  const id=(prefix||'aka')+'_'+_alsoCalledSeq;
+  return`${shown.join(' &middot; ')}<span id="${id}" style="display:none;"> &middot; ${hidden.join(' &middot; ')}</span><button type="button" style="background:none;border:none;color:var(--teal);font-size:12px;font-weight:600;cursor:pointer;padding:0;margin-left:6px;" onclick="toggleAlsoCalled('${id}',this)">more</button>`;
+}
+function toggleAlsoCalled(id,btn){
+  const el=document.getElementById(id);
+  if(!el)return;
+  const isHidden=el.style.display==='none'||!el.style.display;
+  el.style.display=isHidden?'inline':'none';
+  if(btn)btn.textContent=isHidden?'less':'more';
+}
 function onCvRoleFocus(){onCvRoleInput({target:document.getElementById('cvRoleInput')});}
 function onCvRoleInput(e){
   const q=e.target.value.trim();document.getElementById('cvRoleNotFound').style.display='none';const drop=document.getElementById('cvRoleDropdown');
@@ -4024,6 +4038,9 @@ function robotToolTourNext(){
 window.robotToolTourNext=robotToolTourNext;
 function finishRobotToolTour(wasSkip){
   smMarkRobotTourComplete();
+  if(!wasSkip){
+    smTrackEvent('onboarding_completed',{source:'onboarding',page:'/skillmapper'});
+  }
   const nb=document.getElementById('tourNextBtn');
   if(nb&&_tourNextClickHandler){nb.removeEventListener('click',_tourNextClickHandler,true);_tourNextClickHandler=null;}
   const dots=document.getElementById('tourStepDots');
