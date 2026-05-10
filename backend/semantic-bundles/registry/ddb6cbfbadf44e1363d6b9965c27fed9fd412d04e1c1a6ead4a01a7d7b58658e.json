@@ -1,0 +1,36 @@
+{
+  "manifest": {
+    "semantic_bundle_version": "semantic_bundle_v1",
+    "template_versions": {
+      "engineering": "engineering_template_v1.0",
+      "data_analytics": "data_analytics_template_v1.0",
+      "design_product": "design_product_template_v1.0",
+      "hr_people_ops": "hr_people_ops_template_v1.0"
+    },
+    "archetype_versions": {
+      "engineering": "engineering_archetypes_v1.0",
+      "data_analytics": "data_analytics_archetypes_v1.0",
+      "design_product": "design_product_archetypes_v1.0",
+      "hr_people_ops": "hr_people_ops_archetypes_v1.0"
+    },
+    "validator_pack_version": "shadow_validator_pack_v1",
+    "ranking_eval_suite_version": "ranking_eval_suite_v1",
+    "merge_engine_version": "shadow_merge_engine_v1",
+    "generated_at": "2026-05-09T08:15:16.078Z",
+    "phase1_family_scope": [
+      "engineering",
+      "data_analytics",
+      "design_product",
+      "hr_people_ops"
+    ],
+    "record_count": 0
+  },
+  "records": [],
+  "validation": {
+    "ok": true,
+    "issues": []
+  },
+  "dropped_count": 0,
+  "bundle_hash": "ddb6cbfbadf44e1363d6b9965c27fed9fd412d04e1c1a6ead4a01a7d7b58658e",
+  "created_at_ms": 1778314516078
+}

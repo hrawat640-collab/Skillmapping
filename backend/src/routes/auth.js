@@ -1,7 +1,7 @@
 import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { User } from "../models/User.js";
+import { getSupabaseAdmin } from "../supabaseClient.js";
 
 const router = express.Router();
 
@@ -10,29 +10,62 @@ router.post("/register", async (req, res) => {
   if (!name || !email || !password) {
     return res.status(400).json({ error: "Missing required fields" });
   }
-  const exists = await User.findOne({ email: email.toLowerCase() });
-  if (exists) return res.status(409).json({ error: "User already exists" });
+  const sb = getSupabaseAdmin();
+  if (!sb) {
+    return res.status(503).json({
+      error: "Auth unavailable: configure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_ANON_KEY)."
+    });
+  }
+
+  const normalizedEmail = String(email || "").toLowerCase().trim();
+  const { data: existsRows, error: existsErr } = await sb
+    .from("sm_users")
+    .select("id")
+    .eq("email", normalizedEmail)
+    .limit(1);
+  if (existsErr) return res.status(500).json({ error: existsErr.message || "User lookup failed" });
+  if (Array.isArray(existsRows) && existsRows.length) {
+    return res.status(409).json({ error: "User already exists" });
+  }
 
   const passwordHash = await bcrypt.hash(password, 10);
-  const user = await User.create({ name, email, passwordHash });
-  const token = jwt.sign({ sub: user._id, email: user.email }, process.env.JWT_SECRET, {
+  const { data: inserted, error: insertErr } = await sb
+    .from("sm_users")
+    .insert({ name: String(name || "").trim(), email: normalizedEmail, password_hash: passwordHash })
+    .select("id, name, email")
+    .single();
+  if (insertErr) return res.status(500).json({ error: insertErr.message || "User create failed" });
+
+  const token = jwt.sign({ sub: inserted.id, email: inserted.email }, process.env.JWT_SECRET, {
     expiresIn: "7d"
   });
-  res.json({ token, user: { id: user._id, name: user.name, email: user.email } });
+  res.json({ token, user: { id: inserted.id, name: inserted.name, email: inserted.email } });
 });
 
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
-  const user = await User.findOne({ email: String(email || "").toLowerCase() });
+  const sb = getSupabaseAdmin();
+  if (!sb) {
+    return res.status(503).json({
+      error: "Auth unavailable: configure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_ANON_KEY)."
+    });
+  }
+  const normalizedEmail = String(email || "").toLowerCase().trim();
+  const { data: user, error: userErr } = await sb
+    .from("sm_users")
+    .select("id, name, email, password_hash")
+    .eq("email", normalizedEmail)
+    .maybeSingle();
+  if (userErr) return res.status(500).json({ error: userErr.message || "User lookup failed" });
   if (!user) return res.status(401).json({ error: "Invalid credentials" });
 
-  const ok = await bcrypt.compare(password || "", user.passwordHash);
+  const ok = await bcrypt.compare(password || "", user.password_hash || "");
   if (!ok) return res.status(401).json({ error: "Invalid credentials" });
 
-  const token = jwt.sign({ sub: user._id, email: user.email }, process.env.JWT_SECRET, {
+  const token = jwt.sign({ sub: user.id, email: user.email }, process.env.JWT_SECRET, {
     expiresIn: "7d"
   });
-  res.json({ token, user: { id: user._id, name: user.name, email: user.email } });
+  res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
 });
 
 export default router;

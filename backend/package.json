@@ -6,7 +6,17 @@
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
-    "seed": "node src/seed.js"
+    "seed": "node src/seed.js",
+    "semantic:regen": "node src/scripts/regenerateRoleSemanticMetadata.js",
+    "semantic:regen:dry": "node src/scripts/regenerateRoleSemanticMetadata.js --dry-run",
+    "semantic:regen:strict": "node src/scripts/regenerateRoleSemanticMetadata.js --strict",
+    "semantic:generate:one": "node src/scripts/generateRoleSemanticMetadata.js",
+    "semantic:diagnostics": "node src/scripts/semanticMetadataDiagnostics.js",
+    "semantic:eval": "node src/scripts/debugRankingEval.js",
+    "semantic:shadow:build": "node src/scripts/buildSemanticShadowBundle.js",
+    "semantic:shadow:build:force": "node src/scripts/buildSemanticShadowBundle.js --force",
+    "semantic:shadow:eval": "node src/scripts/evaluateSemanticShadow.js",
+    "semantic:shadow:replay": "node src/scripts/replaySemanticShadowBundle.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
@@ -16,7 +26,6 @@
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.8.3",
     "multer": "^1.4.5-lts.1"
   },
   "devDependencies": {
