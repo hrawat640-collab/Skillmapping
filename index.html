@@ -83,39 +83,6 @@ var DB_ROLES  = [];
 var DB_SKILLS = {};
 var DB_DEPTS  = {};
 var DB_LOADED = false;
-function smSetBackendStatusBadge(ok,message){
-  const el=document.getElementById('backendStatusBadge');
-  if(!el)return;
-  el.className='backend-status-badge '+(ok?'ok':'err');
-  el.textContent=message;
-  el.title=message;
-}
-function smFormatBackendHealthError(err){
-  const msg=String((err&&err.message)||err||'').trim();
-  if(!msg)return'Backend unavailable';
-  if(/Failed to fetch|NetworkError|Network request failed/i.test(msg))return'Backend unavailable (network/CORS)';
-  if(/timed out|timeout/i.test(msg))return'Backend unavailable (timeout)';
-  const statusMatch=msg.match(/\((\d{3})\)/);
-  if(statusMatch)return`Backend unavailable (${statusMatch[1]})`;
-  return`Backend unavailable (${msg.slice(0,60)})`;
-}
-async function smCheckBackendHealth(){
-  const controller=typeof AbortController!=='undefined'?new AbortController():null;
-  let timer=null;
-  if(controller){
-    timer=setTimeout(function(){controller.abort();},3500);
-  }
-  let resp;
-  try{
-    resp = await fetch(`${API_BASE_URL}/api/health`,controller?{signal:controller.signal}:{});
-  }finally{
-    if(timer)clearTimeout(timer);
-  }
-  if(!resp.ok){
-    throw new Error(`Backend health check failed (${resp.status})`);
-  }
-  return resp.json();
-}
 </script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230f766e'/%3E%3Cpath d='M6 16h20M16 6l10 10-10 10' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230f766e'/%3E%3Cpath d='M6 16h20M16 6l10 10-10 10' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
@@ -204,12 +171,6 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15p
 .topbar-name{font-weight:800;font-size:16px;letter-spacing:-0.02em;color:var(--ink);}
 .topbar-name span{color:var(--teal);}
 .topbar-right{display:flex;align-items:center;gap:10px;}
-.backend-status-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;font-size:11px;font-weight:700;line-height:1;border:1px solid transparent;white-space:nowrap;}
-.backend-status-badge::before{content:'';width:7px;height:7px;border-radius:50%;display:inline-block;}
-.backend-status-badge.ok{color:#047857;background:#ecfdf5;border-color:#a7f3d0;}
-.backend-status-badge.ok::before{background:#10b981;}
-.backend-status-badge.err{color:#b91c1c;background:#fef2f2;border-color:#fecaca;}
-.backend-status-badge.err::before{background:#ef4444;}
 .btn-contact{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--teal);color:#fff;border:none;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:all .15s;}
 .btn-contact:hover{background:#0d5e58;transform:translateY(-1px);}
 .main{max-width:860px;margin:0 auto;padding:32px 24px 80px;}
@@ -310,6 +271,9 @@ button:active, .btn-find:active, .sal-btn:active, .cur-chip:active, .dept-btn:ac
 .empty-title{font-size:16px;font-weight:700;color:var(--ink2);margin-bottom:6px;}
 .empty-sub{font-size:13.5px;color:var(--ink3);line-height:1.6;}
 .result-grid{display:flex;flex-direction:column;gap:10px;padding:2px 0;}
+.rc-skel-card{background:var(--white);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);}
+.rc-skel-line{height:11px;border-radius:7px;background:linear-gradient(90deg,#f1f5f9 0%,#e8ecf1 45%,#f1f5f9 90%);background-size:220% 100%;animation:rcSkelShimmer 1.05s ease-in-out infinite;}
+@keyframes rcSkelShimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}
 .result-card{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:0;overflow:hidden;box-shadow:var(--shadow);transition:border-color .15s,box-shadow .15s,transform .15s;animation:smoothFadeUp 0.4s cubic-bezier(0.16,1,0.3,1) forwards;}
 .result-card:hover{border-color:var(--teal);box-shadow:var(--shadow-md);transform:translateY(-2px);}
 .result-card.match-high{border:1px solid var(--border);box-shadow:var(--shadow);}
@@ -458,9 +422,10 @@ button:active, .btn-find:active, .sal-btn:active, .cur-chip:active, .dept-btn:ac
 .sal-btn-skip:focus-visible{outline:none;text-decoration:underline;text-underline-offset:3px;}
 @media (max-width:560px){
   .sal-field-grid{grid-template-columns:1fr;gap:12px;}
-  .sal-modal-card{max-width:100%;}
+  .sal-modal-overlay{align-items:flex-end;padding:0;padding-bottom:env(safe-area-inset-bottom,0);justify-content:center;}
+  .sal-modal-card{max-width:100%;max-height:min(88dvh,720px);border-radius:16px 16px 0 0;}
   .sal-modal-head{padding:15px 44px 13px 17px;}
-  .sal-modal-body{padding:0 17px 16px;}
+  .sal-modal-body{padding:0 17px max(16px,env(safe-area-inset-bottom));}
 }
 .page{display:none;}
 .page.active{display:block;}
@@ -491,14 +456,25 @@ button:active, .btn-find:active, .sal-btn:active, .cur-chip:active, .dept-btn:ac
 .sm-used-badge{font-size:11px;font-family:var(--mono);color:var(--amber);background:var(--amber-lt);border:1px solid rgba(180,83,9,0.2);padding:3px 9px;border-radius:20px;display:none;}
 .sm-used-badge.show{display:inline;}
 .sorry-state{background:var(--white);border:1px solid var(--border);border-radius:16px;padding:48px 32px;text-align:center;box-shadow:var(--shadow);}
+.sorry-icon.calm{font-size:40px;line-height:1;margin:0 auto 10px;}
+.sorry-hint-lead{font-size:13.5px;color:var(--ink2);line-height:1.55;margin:0 auto 14px;max-width:34em;text-align:center;}
+.sorry-hints{text-align:left;font-size:13px;color:var(--ink3);line-height:1.5;margin:0 auto 22px;padding-left:1.25em;max-width:36em;}
+.sorry-hints li{margin:7px 0;}
+.sorry-actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:center;margin-top:6px;}
 .sorry-bot{font-size:64px;margin-bottom:12px;animation:botwiggle .6s ease-in-out infinite alternate;}
 @keyframes botwiggle{from{transform:rotate(-5deg)}to{transform:rotate(5deg)}}
 .sorry-title{font-size:18px;font-weight:800;color:var(--ink);margin-bottom:8px;letter-spacing:-0.02em;}
-.sorry-sub{font-size:13.5px;color:var(--ink2);line-height:1.6;margin-bottom:20px;max-width:400px;margin-left:auto;margin-right:auto;}
+.sorry-sub{font-size:13.5px;color:var(--ink2);line-height:1.6;margin-bottom:14px;max-width:400px;margin-left:auto;margin-right:auto;}
 .btn-report{display:inline-flex;align-items:center;gap:8px;padding:11px 22px;border-radius:9px;background:var(--amber-lt);color:var(--amber);border:1.5px solid rgba(180,83,9,0.3);font-family:var(--sans);font-size:13.5px;font-weight:700;cursor:pointer;transition:all .15s;text-decoration:none;}
 .btn-report:hover{background:var(--amber);color:#fff;transform:translateY(-1px);}
-.btn-try-again{display:inline-flex;align-items:center;gap:7px;padding:10px 18px;border-radius:9px;background:var(--white);color:var(--ink2);border:1.5px solid var(--border);font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;margin-left:10px;}
+.btn-try-again{display:inline-flex;align-items:center;gap:7px;padding:10px 18px;border-radius:9px;background:var(--white);color:var(--ink2);border:1.5px solid var(--border);font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;}
 .btn-try-again:hover{border-color:var(--teal);color:var(--teal);}
+.rc-feedback{display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:10px;border-top:1px solid var(--border);flex-wrap:wrap;}
+.rc-feedback-lbl{font-size:11.5px;color:var(--ink3);font-weight:600;}
+.rc-fb-btn{font-size:15px;line-height:1;padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--white);cursor:pointer;opacity:.88;transition:opacity .15s,border-color .15s,background .15s;}
+.rc-fb-btn:hover{opacity:1;border-color:var(--border2);}
+.rc-fb-btn:disabled{opacity:.42;cursor:default;}
+.rc-fb-btn--on{border-color:var(--teal);background:var(--teal-lt);}
 .nudge-banner{display:none;align-items:flex-start;gap:10px;padding:12px 16px;background:var(--amber-lt);border:1px solid rgba(180,83,0.2);border-radius:10px;margin-top:12px;font-size:13px;color:var(--amber);line-height:1.55;}
 .nudge-banner.show{display:flex;}
 .salary-selector{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;}
@@ -535,10 +511,6 @@ button:active, .btn-find:active, .sal-btn:active, .cur-chip:active, .dept-btn:ac
 .upgrade-cta:hover{background:#0d5e58;}
 .upgrade-sent{display:none;font-size:13px;color:#0d7a4e;font-weight:600;padding:10px;background:#f0faf6;border-radius:8px;margin-bottom:10px;}
 .upgrade-note{font-size:11.5px;color:#999;font-family:Outfit,sans-serif;}
-.trial-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;color:#fff;white-space:nowrap;}
-.trial-badge.warning{background:rgba(251,191,36,0.2);border-color:rgba(251,191,36,0.4);color:#fbbf24;}
-.trial-badge.urgent{background:rgba(239,68,68,0.2);border-color:rgba(239,68,68,0.4);color:#f87171;}
-.trial-dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0;}
 .title-search-wrap{position:relative;margin-bottom:14px;}
 .title-search-input{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:var(--sans);color:var(--ink);background:var(--white);box-sizing:border-box;outline:none;transition:border-color .15s;}
 .title-search-input:focus{border-color:var(--teal);}
@@ -587,6 +559,7 @@ button:active, .btn-find:active, .sal-btn:active, .cur-chip:active, .dept-btn:ac
   .dept-filter{gap:5px;overflow-x:auto;flex-wrap:nowrap;padding-bottom:6px;-webkit-overflow-scrolling:touch;}
   .dept-filter::-webkit-scrollbar{display:none;}
   .dept-btn{font-size:11px;padding:5px 10px;white-space:nowrap;flex-shrink:0;}
+  .results-header{position:sticky;top:0;z-index:25;background:linear-gradient(180deg,rgba(250,250,252,0.97) 0%,#fff 55%);padding-top:10px;padding-bottom:10px;margin-bottom:8px;border-bottom:1px solid var(--border);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
   .result-card{border-radius:12px;}
   .rc-top{flex-direction:column;gap:10px;padding:14px 16px 12px;}
   .rc-score-wrap{flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:4px;text-align:left;min-width:0;}
@@ -618,6 +591,8 @@ button:active, .btn-find:active, .sal-btn:active, .cur-chip:active, .dept-btn:ac
   .mode-tab{font-size:11px;padding:9px 4px;}
   .mode-pane{padding:12px 10px 14px;}
   .topbar-right a,.topbar-right button{font-size:11px;padding:6px 9px;}
+  .sorry-state{padding:32px 18px 36px;}
+  .sorry-hints{font-size:12.5px;}
   .rc-title{font-size:15px;}
   .rc-top{padding:12px 12px 8px;}
   .rc-bottom{padding:8px 12px 10px;}
@@ -632,7 +607,6 @@ button:active, .btn-find:active, .sal-btn:active, .cur-chip:active, .dept-btn:ac
 .upgrade-wall{position:fixed;inset:0;z-index:99998;background:rgba(15,14,12,0.92);display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px);}
 .upgrade-wall.show{display:flex;}
 @media(max-width:480px){.upgrade-card{padding:28px 20px;}.upgrade-price strong{font-size:24px;}}
-@media(max-width:640px){.trial-badge{font-size:10px;padding:2px 7px;}}
 </style>
 </head>
 <body>
@@ -885,7 +859,12 @@ function smGetSessionId(){
 const _SM_EVENT_NAME_MAP={
   login_success:'login_completed',
   salary_submit_success:'salary_submitted',
-  search_logged:'search_performed'
+  search_logged:'search_performed',
+  nl_search_run:'describe_query_submitted',
+  seniority_changed:'seniority_toggled',
+  role_card_feedback:'match_feedback',
+  search_quality_signal:'search_quality_signal',
+  client_runtime_error:'client_error'
 };
 const _smEventDedupeTs={};
 function smTrackEvent(eventName,meta){
@@ -918,6 +897,33 @@ function smTrackEvent(eventName,meta){
     _sb.from(SM_EVENT_TABLE).insert(payload).then(function(){}).catch(function(){});
   }catch(e){}
 }
+(function smInstallClientErrorHooks(){
+  if(window._smClientErrHooks)return;
+  window._smClientErrHooks=true;
+  window.addEventListener('error',function(ev){
+    try{
+      smTrackEvent('client_runtime_error',{
+        kind:'error',
+        message:String(ev&&ev.message||'').slice(0,240),
+        source:String(ev&&ev.filename||'').slice(0,200),
+        lineno:ev&&ev.lineno!=null?ev.lineno:null,
+        colno:ev&&ev.colno!=null?ev.colno:null,
+        page:'/skillmapper'
+      });
+    }catch(e){}
+  });
+  window.addEventListener('unhandledrejection',function(ev){
+    try{
+      const r=ev&&ev.reason;
+      const msg=r&&r.message!=null?String(r.message):String(r||'');
+      smTrackEvent('client_runtime_error',{
+        kind:'unhandledrejection',
+        message:msg.slice(0,240),
+        page:'/skillmapper'
+      });
+    }catch(e){}
+  });
+})();
 function smRefreshSalaryGatingFromSession(delayMs){
   const go=function(){
     const fp=document.getElementById('floatingPanda');
@@ -941,26 +947,6 @@ function smRefreshSalaryGatingFromSession(delayMs){
 }
 window.smRefreshSalaryGatingFromSession=smRefreshSalaryGatingFromSession;
 
-/* ── Early definitions (hoisted to Block 8) ── */
-function checkTrialExpiry(prefix){
-  const email=localStorage.getItem((prefix?prefix+'_':'')+'user_email');
-  const loginDate=localStorage.getItem((prefix?prefix+'_':'')+'login_date');
-  if(!email||!loginDate)return;
-  const daysSince=(Date.now()-parseInt(loginDate))/(1000*60*60*24);
-  if(daysSince>=TRIAL_DAYS)document.getElementById('upgradeWall').classList.add('show');
-}
-function renderTrialBadgeSM(){
-  const loginDate=localStorage.getItem('sm_login_date');
-  const badge=document.getElementById('trialBadge');
-  if(!badge)return;
-  if(!loginDate){badge.style.display='none';return;}
-  const daysLeft=Math.max(0,30-Math.floor((Date.now()-parseInt(loginDate))/(1000*60*60*24)));
-  badge.style.display='inline-flex';
-  if(daysLeft>10){badge.className='trial-badge';badge.innerHTML='<span class="trial-dot"></span> '+daysLeft+' days free trial left';}
-  else if(daysLeft>3){badge.className='trial-badge warning';badge.innerHTML='<span class="trial-dot"></span> '+daysLeft+' days left';}
-  else if(daysLeft>0){badge.className='trial-badge urgent';badge.innerHTML='<span class="trial-dot"></span> '+daysLeft+' day'+(daysLeft===1?'':'s')+' left';}
-  else{badge.className='trial-badge urgent';badge.innerHTML='<span class="trial-dot"></span> Trial ended';}
-}
 function isSalaryUnlocked(){
   if(localStorage.getItem(SM_SALARY_SUBMITTED_AT_KEY))return true;
   const until=parseInt(localStorage.getItem(SAL_UNLOCK_KEY)||'0');
@@ -1705,8 +1691,6 @@ function smSignOut(){
     <a class="suite-step" id="suiteNavTxr" href="https://talentxray.talentsradar.com/"><span class="suite-step-num">2</span>TalentXRay</a>
   </div>
   <div class="topbar-right">
-    <span id="backendStatusBadge" class="backend-status-badge" aria-live="polite" title="Backend connectivity status">Checking backend…</span>
-    <span id="trialBadge" style="display:none!important;"></span>
     <div style="position:relative;" id="smProfileWrap">
       <button class="btn-contact" id="smTopbarBtn" onclick="toggleProfileMenu()">
         <svg viewBox="0 0 16 16" fill="none"><path d="M8 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM3 13a5 5 0 0 1 10 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
@@ -1871,9 +1855,98 @@ function smSignOut(){
 <div class="toast" id="toast"></div>
 <script>
 
-/* ── Trial ── */
-
 /* ── Search analytics ── */
+function smUserFacingSearchError(err){
+  const m=String(err&&err.message!=null?err.message:err||'').trim();
+  if(/RATE_LIMIT|429|Too many requests/i.test(m))return'You’re moving quickly. Give us a moment, then try again.';
+  if(/Network|CORS|Failed to fetch|Load failed|reach backend/i.test(m))return'We couldn’t reach the server. Check your connection and try again.';
+  if(/timed out|timeout|504|WORKFLOW_SEARCH_TIMEOUT/i.test(m))return'That took longer than expected. Please try again in a moment.';
+  if(/500|502|503|Backend search|Search failed|WORKFLOW_SEARCH_FAILED/i.test(m))return'We couldn’t finish that search. Please try again.';
+  if(/Invalid backend response/i.test(m))return'We got an unexpected response. Please try again.';
+  return'We couldn’t complete that search. Please try again.';
+}
+function smBumpSearchRetry(workflowKey,query){
+  const fp=String(workflowKey||'w')+'|'+String(query||'').toLowerCase().trim().slice(0,500);
+  try{
+    const raw=sessionStorage.getItem('sm_search_retry_v1');
+    let o=raw?JSON.parse(raw):null;
+    if(!o||typeof o!=='object')o={};
+    const n=o.fp===fp?Number(o.n||0)+1:0;
+    sessionStorage.setItem('sm_search_retry_v1',JSON.stringify({fp:fp,n:n,t:Date.now()}));
+    return{retry_count:n};
+  }catch(e){
+    return{retry_count:0};
+  }
+}
+function smLogSearchQualitySignal(opts){
+  opts=opts||{};
+  const st=String(opts.signal_type||'unknown');
+  const sq=String(opts.search_query||'').slice(0,1000);
+  const stype=String(opts.search_type||'');
+  smTrackEvent('search_quality_signal',{
+    signal_type:st,
+    search_type:stype,
+    search_query:sq,
+    result_count:opts.result_count!=null?opts.result_count:null,
+    max_score:opts.max_score!=null?opts.max_score:null,
+    retry_count:opts.retry_count!=null?opts.retry_count:null,
+    reason:opts.reason?String(opts.reason):null,
+    page:'/skillmapper',
+    dedupe_key:opts.dedupe_key||('sq|'+st+'|'+stype+'|'+sq.toLowerCase().trim().slice(0,120))
+  });
+}
+function smEnsureMinSkeletonMs(minMs){
+  const t=window._smSkelShownAt;
+  if(!t)return Promise.resolve();
+  const wait=Math.max(0,(minMs||320)-(Date.now()-t));
+  if(wait<=0)return Promise.resolve();
+  return new Promise(function(r){setTimeout(r,wait);});
+}
+function smMaybeLogWeakSearchResults(rows,searchType,queryStr){
+  const list=Array.isArray(rows)?rows:[];
+  const pos=list.filter(function(r){return Number(r&&r.score)>0;});
+  if(!pos.length)return;
+  const maxScore=pos.reduce(function(m,r){return Math.max(m,Number(r&&r.score)||0);},0);
+  if(maxScore>=42)return;
+  const q=String(queryStr||'').slice(0,1000);
+  smLogSearchQualitySignal({
+    signal_type:'weak_results',
+    search_type:searchType==='intent'?'intent':'structured',
+    search_query:q,
+    result_count:pos.length,
+    max_score:Math.round(maxScore),
+    page:'/skillmapper',
+    dedupe_key:'sq|weak|'+String(searchType||'')+'|'+q.toLowerCase().trim().slice(0,120)
+  });
+}
+function smOnRoleCardClick(cardEl){
+  if(!cardEl||!cardEl.dataset)return;
+  const id=String(cardEl.dataset.rid||'').trim();
+  const title=String(cardEl.dataset.rtitle||'').trim();
+  smTrackEvent('role_card_clicked',{
+    role_id:id||null,
+    role_title:title||null,
+    search_mode:String(currentMode||''),
+    page:'/skillmapper',
+    dedupe_key:'rclk|'+String(currentMode||'')+'|'+id+'|'+(title||'').toLowerCase().slice(0,80)
+  });
+}
+function smSubmitRoleFeedback(btn,roleId,titleEnc,helpful){
+  if(!btn)return;
+  const title=(function(){try{return decodeURIComponent(titleEnc||'');}catch(e){return'';}})();
+  const card=btn.closest('.result-card');
+  if(card){
+    card.querySelectorAll('.rc-fb-btn').forEach(function(b){b.disabled=true;});
+  }
+  btn.classList.add('rc-fb-btn--on');
+  smTrackEvent('role_card_feedback',{
+    helpful:helpful===1,
+    role_id:roleId?String(roleId):null,
+    role_title:title||null,
+    search_mode:String(currentMode||''),
+    page:'/skillmapper'
+  });
+}
 function logSearch(mode,query,resultCount,noResult){
   smTrackEvent('search_logged',{
     source:String(mode||'search'),
@@ -1919,7 +1992,28 @@ function trackRoleCardViewed(roleObj,source,searchQuery){
   });
 }
 function logNlSearchOutcome(sentence,status,resultCount,usedGemini){
-  return;
+  const q=String(sentence||'').slice(0,1000);
+  const rc=Number(resultCount)||0;
+  const retry=smBumpSearchRetry('intent',q);
+  if(status==='failed'){
+    smLogSearchQualitySignal({
+      signal_type:'request_error',
+      search_type:'intent',
+      search_query:q,
+      result_count:rc,
+      retry_count:retry.retry_count,
+      dedupe_key:'sq|intent|err|'+q.toLowerCase().trim().slice(0,160)
+    });
+  }else if(status==='no_match'||(status==='success'&&rc===0)){
+    smLogSearchQualitySignal({
+      signal_type:'zero_results',
+      search_type:'intent',
+      search_query:q,
+      result_count:rc,
+      retry_count:retry.retry_count,
+      dedupe_key:'sq|intent|zero|'+q.toLowerCase().trim().slice(0,160)
+    });
+  }
 }
 const TRIAL_DAYS = 30;
 function checkTrialExpiry(prefix){
@@ -1938,18 +2032,7 @@ function requestUpgrade(prefix){
   if(sentEl)sentEl.style.display='block';
   if(btnEl)btnEl.style.display='none';
 }
-function renderTrialBadgeSM(){
-  const loginDate=localStorage.getItem('sm_login_date');
-  const badge=document.getElementById('trialBadge');
-  if(!badge)return;
-  if(!loginDate){badge.style.display='none';return;}
-  const daysLeft=Math.max(0,30-Math.floor((Date.now()-parseInt(loginDate))/(1000*60*60*24)));
-  badge.style.display='inline-flex';
-  if(daysLeft>10){badge.className='trial-badge';badge.innerHTML='<span class="trial-dot"></span> '+daysLeft+' days free trial left';}
-  else if(daysLeft>3){badge.className='trial-badge warning';badge.innerHTML='<span class="trial-dot"></span> '+daysLeft+' days left';}
-  else if(daysLeft>0){badge.className='trial-badge urgent';badge.innerHTML='<span class="trial-dot"></span> '+daysLeft+' day'+(daysLeft===1?'':'s')+' left';}
-  else{badge.className='trial-badge urgent';badge.innerHTML='<span class="trial-dot"></span> Trial ended';}
-}
+function renderTrialBadgeSM(){}
 
 /* ══ Title mode ══ */
 let selectedTitleModeRoles=[];let titleDropFocused=-1;
@@ -2411,8 +2494,7 @@ function runTitleMode(){
   skills=allSkills.length?allSkills:[''];activeDept='all';window._aiTopRoles=selectedTitleModeRoles.map(r=>r.title.toLowerCase());renderBubbles();
   const area=document.getElementById('resultsArea');
   const cardHtml=selectedTitleModeRoles.map((r,i)=>{
-    const expLevels=Object.entries(r.exp||{}).filter(function(ent){return _salLevelIsRenderable(ent[1]);});
-    const defaultLvl=(r.exp&&r.exp.junior&&_salLevelIsRenderable(r.exp.junior))?'junior':(expLevels[0]?expLevels[0][0]:'junior');
+    const defaultLvl=_pickCardDefaultLvl(r);
     const cardId='tc_'+i;
     const reqSkills=(r.required||[]).map(function(s){return'<span class="skill-pill skill-matched">'+_escapeHtml(s)+'</span>';}).join('');
     const niceSkills=(r.nice||[]).map(function(s){return'<span class="skill-pill skill-missing">'+_escapeHtml(s)+'</span>';}).join('');
@@ -2473,7 +2555,7 @@ function _formatSalDisplayLine(yrsMin,yrsMax,salRaw){
   const min=yrsMin==null||yrsMin===''?NaN:Number(yrsMin);
   const max=yrsMax==null||yrsMax===''?NaN:Number(yrsMax);
   const expOk=_expBandDisplayValid(min,max);
-  const displaySal=getSalaryDisplayAllCurrencies(salRaw);
+  const displaySal=getSalaryDisplay(salRaw);
   const salMissing='<span class="rc-sal-muted">Salary benchmark not available for this band yet — anonymous contributions help everyone.</span>';
   const expVaries='Experience varies by company and specialization';
   const yrsHtml='<strong class="rc-yrs-mono">'+String(min)+'-'+String(max)+' yrs</strong>';
@@ -2556,7 +2638,10 @@ function buildUnifiedRoleCardHtml(r,cardId,opts){
   const allPassSkills=opts.allPassSkills||[];
   const copyBtn=workflow==='title'?'':'<button class="btn-copy-title" onclick="copyTitle(\''+(titleForActions||'').replace(/'/g,"\\'")+'\',this)">Copy title</button>';
   const foot='<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:'+(alsoRow?'space-between':'flex-end')+';width:100%;">'+alsoRow+'<div class="rc-actions" style="'+(alsoRow?'':'margin-left:auto;')+'">'+copyBtn+getRoleActionHtml(titleForActions,altTitlesParam,allPassSkills)+'</div></div>';
-  return'<div class="result-card '+matchClass+cardModeClass+'"><div class="rc-top"><div class="rc-left"><div class="rc-dept" style="color:'+dcolor.color+'"><span style="background:'+dcolor.bg+';padding:2px 8px;border-radius:20px;font-size:10px;">'+_escapeHtml(dept)+'</span></div><div class="rc-title">'+displayTitle+'</div>'+_aboutRoleBlockHtml(r)+_hintBlockHtml(r.hint)+'</div>'+scoreCol+'</div><div class="rc-bottom"><div style="width:100%;display:flex;flex-direction:column;gap:10px;">'+expRowInner+reqRow+niceRow+foot+'</div></div></div>';
+  const ridJs=String(r.id||'').replace(/'/g,"\\'");
+  const titleEnc=encodeURIComponent(displayTitleRaw);
+  const feedbackRow='<div class="rc-feedback" onclick="event.stopPropagation()"><span class="rc-feedback-lbl">Helpful?</span><button type="button" class="rc-fb-btn" title="Yes" aria-label="Yes, helpful" onclick="smSubmitRoleFeedback(this,\''+ridJs+'\',\''+titleEnc+'\',1)">&#x1F44D;</button><button type="button" class="rc-fb-btn" title="Not really" aria-label="Not helpful" onclick="smSubmitRoleFeedback(this,\''+ridJs+'\',\''+titleEnc+'\',0)">&#x1F44E;</button></div>';
+  return'<div class="result-card '+matchClass+cardModeClass+'" role="article" data-rid="'+_escapeHtml(String(r.id||''))+'" data-rtitle="'+_escapeHtml(displayTitleRaw)+'" onclick="smOnRoleCardClick(this)"><div class="rc-top"><div class="rc-left"><div class="rc-dept" style="color:'+dcolor.color+'"><span style="background:'+dcolor.bg+';padding:2px 8px;border-radius:20px;font-size:10px;">'+_escapeHtml(dept)+'</span></div><div class="rc-title">'+displayTitle+'</div>'+_aboutRoleBlockHtml(r)+_hintBlockHtml(r.hint)+'</div>'+scoreCol+'</div><div class="rc-bottom"><div style="width:100%;display:flex;flex-direction:column;gap:10px;">'+expRowInner+reqRow+niceRow+foot+feedbackRow+'</div></div></div>';
 }
 function _getJune30Ts(year){return new Date(year+'-06-30T23:59:59').getTime();}
 function _getCurrentSalaryYear(){const now=new Date();return now.getMonth()>=6?now.getFullYear()+1:now.getFullYear();}
@@ -2591,6 +2676,7 @@ let currentMode='skills';
 function switchMode(mode,btn,modeOpts){
   const mo=modeOpts||{};
   if(mode==='nl'&&!canUseDescribeMode()){const skillsTab=document.getElementById('modeTabSkills');if(skillsTab&&skillsTab!==btn)switchMode('skills',skillsTab);return;}
+  if(mode==='nl'){try{smTrackEvent('describe_workflow_opened',{page:'/skillmapper'});}catch(e){}}
   if(mode!=='title'){selectedTitleModeRoles=[];renderSelectedTitleChips();}
   if(mode!=='title'){window._titleBrowseGemini=null;_titleGeminiSeq++;closeTitleDrop();}
   skills=[];window._aiTopRoles=[];activeDept='all';renderBubbles();
@@ -2605,7 +2691,7 @@ function switchMode(mode,btn,modeOpts){
 }
 function setExample(el){document.getElementById('nlInput').value=el.textContent;document.getElementById('nlInput').focus();}
 
-/* NL_MAP removed: semantic inference is now backend-owned via role_semantic_metadata. */
+/* NL_MAP removed: description matching is handled on the server. */
 
 const NL_GEMINI_DAILY_LIMIT=200;
 const NL_GEMINI_GLOBAL_DAILY_LIMIT=200;
@@ -2691,14 +2777,19 @@ async function runNL(){
   try{
     testRoles=await refreshIntentSearchAndRender(query);
   }catch(e){
-    const em=(e&&e.message)?e.message:'Describe search failed.';
+    window._serverRoleResults=[];window._serverRoleResultsKey='';
+    const em=smUserFacingSearchError(e);
     document.getElementById('nudgeText').textContent=em;
     nudge.classList.add('show');
     logSearch('nl',query,0,true);
     logNlSearchOutcome(query,'failed',0,false);
+    try{
+      smTrackEvent('search_request_failed',{workflow:'intent',message:String(e&&e.message||'').slice(0,200),page:'/skillmapper'});
+    }catch(e2){}
+    render();
     return;
   }
-  if(!testRoles.length){document.getElementById('nudgeText').textContent=`We couldn't find a strong role match for that description yet. Try adding domain context (e.g. design, marketing, engineering).`;logSearch('nl',query,0,true);logNlSearchOutcome(query,'failed',0,false);nudge.classList.add('show');return;}
+  if(!testRoles.length){document.getElementById('nudgeText').textContent='We couldn’t find a strong match yet. Try a shorter line, add your domain (for example design, marketing, or engineering), or switch to skills.';logSearch('nl',query,0,true);logNlSearchOutcome(query,'no_match',0,false);nudge.classList.add('show');return;}
   const inferredFromBackend=[...new Set(testRoles.flatMap(function(r){return Array.isArray(r.matched)?r.matched:[];}))].slice(0,10);
   skills=inferredFromBackend;renderBubbles();
   nudge.classList.remove('show');document.getElementById('deptFilter').style.display='none';const _cb=document.getElementById('currencyBar');if(_cb)_cb.style.display='none';
@@ -2860,10 +2951,23 @@ function _enrichMappedRoleFromLibrary(mapped){
 function _pickCardDefaultLvl(r){
   const exp=r.exp||{};
   const levels=Object.entries(exp).filter(function(ent){return _salLevelIsRenderable(ent[1]);});
-  const pref=r&&r.salaryBandLevel;
-  if(pref&&levels.some(function(x){return x[0]===pref;}))return pref;
-  if(exp.junior&&_salLevelIsRenderable(exp.junior))return'junior';
+  const order=['junior','mid','senior','lead'];
+  for(let i=0;i<order.length;i++){
+    const lvl=order[i];
+    if(levels.some(function(x){return x[0]===lvl;}))return lvl;
+  }
   return levels[0]?levels[0][0]:'junior';
+}
+function showOrchestratedResultsSkeleton(kind){
+  window._smSkelShownAt=Date.now();
+  const area=document.getElementById('resultsArea');
+  const deptFilter=document.getElementById('deptFilter');
+  if(deptFilter)deptFilter.style.display='none';
+  const sub=kind==='intent'?'From your description':'From your skills';
+  const oneSkel='<div class="rc-skel-card"><div style="padding:16px 20px 14px;"><div class="rc-skel-line" style="width:38%;height:10px;margin-bottom:14px;"></div><div class="rc-skel-line" style="width:72%;margin-bottom:10px;"></div><div class="rc-skel-line" style="width:88%;height:9px;margin-bottom:8px;"></div><div class="rc-skel-line" style="width:52%;height:9px;"></div></div><div style="padding:14px 20px 18px;border-top:1px solid var(--border);background:#FAFBFC;"><div class="rc-skel-line" style="width:50%;height:9px;margin-bottom:12px;"></div><div class="rc-skel-line" style="width:92%;height:8px;margin-bottom:8px;"></div><div class="rc-skel-line" style="width:78%;height:8px;margin-bottom:8px;"></div><div class="rc-skel-line" style="width:64%;height:8px;"></div></div></div>';
+  const skels=[0,1,2,3,4].map(function(){return oneSkel;}).join('');
+  area.innerHTML='<div class="results-header"><div class="results-title">Finding matching roles…</div><div style="display:flex;align-items:center;gap:10px;"><div class="results-count">'+sub+'</div></div></div><div class="result-grid">'+skels+'</div>';
+  const bar=document.getElementById('currencyBar');if(bar)bar.style.display='none';
 }
 async function runServerRoleSearch(inputText,selectedDept,querySkills,workflowType){
   const currency=(selectedCurrencies&&selectedCurrencies[0])||'INR';
@@ -2888,7 +2992,8 @@ async function runServerRoleSearch(inputText,selectedDept,querySkills,workflowTy
     data=await resp.json();
   }catch(e){}
   if(!resp.ok){
-    const errMsg=(data&&data.error)?data.error:`Backend search failed (${resp.status})`;
+    let errMsg=(data&&data.error)?String(data.error):`Search could not be completed (${resp.status})`;
+    if(resp.status===429)errMsg='Too many requests. Please wait a moment.';
     throw new Error(errMsg);
   }
   if(!Array.isArray(data)){
@@ -2902,17 +3007,23 @@ async function runServerRoleSearch(inputText,selectedDept,querySkills,workflowTy
 }
 async function refreshStructuredSkillsSearchAndRender(){
   if(!skills.length){window._serverRoleResults=[];window._serverRoleResultsKey='';render();return[];}
+  showOrchestratedResultsSkeleton('structured');
   const normalizedSkills=(skills||[]).map(function(s){return String(s||'').trim();}).filter(Boolean);
   // search_roles_v3 tokenization is strict (single-token equality), so avoid commas/punctuation.
   const query=normalizedSkills.join(' ');
   const rows=await runServerRoleSearch(query,activeDept,normalizedSkills,'structured');
+  await smEnsureMinSkeletonMs(300);
+  smMaybeLogWeakSearchResults(rows,'structured',query);
   render();
   return Array.isArray(rows)?rows:[];
 }
 async function refreshIntentSearchAndRender(intentText){
   const q=String(intentText||'').trim();
   if(!q){window._serverRoleResults=[];window._serverRoleResultsKey='';render();return[];}
+  showOrchestratedResultsSkeleton('intent');
   const rows=await runServerRoleSearch(q,activeDept,[],'intent');
+  await smEnsureMinSkeletonMs(300);
+  smMaybeLogWeakSearchResults(rows,'intent',q);
   render();
   return Array.isArray(rows)?rows:[];
 }
@@ -2933,7 +3044,12 @@ function render(){
   const deptCounts={};results.forEach(r=>{deptCounts[r.dept]=(deptCounts[r.dept]||0)+1;});
   deptFilter.innerHTML=depts.map(d=>{const label=d==='all'?'All ('+results.length+')':d+' ('+(deptCounts[d]||0)+')';const active=d===activeDept?' active':'';return`<button class="dept-btn${active}" data-dept="${d}" onclick="filterDept('${d.replace(/'/g,"\\'")}')">${label}</button>`;}).join('');
   const filtered=activeDept==='all'?results:results.filter(r=>r.dept===activeDept);
-  if(!filtered.length){showSorryState(skills.join(', '));return;}
+  if(!filtered.length){
+    const reason=!results.length?'no_matches':(activeDept==='all'?'no_matches':'no_roles_for_filter');
+    const qForSorry=currentMode==='nl'?String(window._lastSearchInput||'').trim():skills.join(', ');
+    showSorryState(qForSorry||skills.join(', '),Object.assign({reason:reason},currentMode==='nl'?{mode:'nl'}:{}));
+    return;
+  }
   const html=filtered.map((r,i)=>{
     const cardId='card_'+i;
     const workflow=currentMode==='nl'?'intent':'skills';
@@ -2968,15 +3084,17 @@ function render(){
   const matchNote=(activeDept!=='all'&&results.length>filtered.length)?`<div class="info-strip"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.4"/></svg>Showing <strong>${activeDept}</strong> roles only · <button onclick="filterDept('all')" style="background:none;border:none;color:var(--teal);cursor:pointer;font-size:13px;padding:0;font-weight:600;">Show all ${results.length} →</button></div>`:'';
   area.innerHTML=`<div class="results-header"><div class="results-title">${results.length} matching role${results.length!==1?'s':''}</div><div style="display:flex;align-items:center;gap:10px;"><div class="results-count">${skills.length} skill${skills.length!==1?'s':''} entered</div><button onclick="clearAndTryAgain()" style="padding:4px 10px;background:transparent;border:1.5px solid var(--border);border-radius:20px;font-size:11.5px;font-weight:600;color:var(--ink3);cursor:pointer;font-family:var(--sans);">&#x21A9; New search</button></div></div>${matchNote}<div class="result-grid">${html}</div>`;
   const bar=document.getElementById('currencyBar');if(bar)bar.style.display='flex';
-  logSearch('skills',skills.join(', '),filtered.length,filtered.length===0);
+  const _logQ=currentMode==='nl'?String(window._lastSearchInput||'').trim():skills.join(', ');
+  const _logMode=currentMode==='nl'?'nl':'skills';
+  logSearch(_logMode,_logQ,filtered.length,filtered.length===0);
   filtered.slice(0,10).forEach(function(r){
-    trackRoleCardViewed(r,'skills',skills.join(', '));
+    trackRoleCardViewed(r,_logMode,_logQ);
   });
   if(isSalaryPromptEligible()&&!isSalaryUnlocked()){const fp=document.getElementById('floatingPanda');if(fp)fp.style.display='block';}
 }
 
 /* ══ SKILL_ALIASES ══ */
-const SKILL_ALIASES={'hrbp':'Employee Relations','hr bp':'Employee Relations','hr business partner':'Employee Relations','chro':'HR Analytics','cpo':'Product Strategy','vp hr':'HR Analytics','head of people':'HRIS','people ops':'HRIS','ta':'Talent Acquisition','ta specialist':'Talent Acquisition','ats':'Talent Acquisition','ats tool':'Applicant Tracking Systems','ats tools':'Applicant Tracking Systems','l&d':'L&D Strategy','l and d':'L&D Strategy','sde':'REST APIs','sde1':'REST APIs','sde2':'REST APIs','sde3':'REST APIs','swe':'JavaScript','swe1':'JavaScript','swe2':'JavaScript','sse':'REST APIs','mts':'REST APIs','backend dev':'REST APIs','frontend dev':'React','fullstack':'JavaScript','full-stack dev':'JavaScript','gameplay dev':'Unity','unity dev':'Unity','unity programmer':'C# (Unity)','unreal dev':'Unreal Engine','game dev':'Unity','game programmer':'C# (Unity)','ue4':'Unreal Engine','ue5':'Unreal Engine','ml engineer':'Machine Learning','ml eng':'Machine Learning','ai engineer':'LLMs','ai eng':'LLMs','ds':'Python','de':'Spark','mle':'Machine Learning','mlops engineer':'MLOps','nlp engineer':'NLP','cv engineer':'Computer Vision','pm':'Product Strategy','apm':'Product Roadmap','spm':'Product Strategy','gpm':'Product Analytics','tpm':'REST APIs','pmo':'Project Management','po':'Product Roadmap','product owner':'Product Roadmap','ux':'UX Design','ui':'UI Design','ui/ux':'Figma','ux/ui':'Figma','uxd':'UX Design','uid':'UI Design','sdet':'Automation Testing','qa':'Manual Testing','qe':'Automation Testing','qae':'Automation Testing','qa automation':'Automation Testing','test automation':'Automation Testing','automation engineer':'Automation Testing','sre':'Kubernetes','devops eng':'Docker','platform eng':'Kubernetes','infra eng':'Terraform','cloud eng':'AWS','cloud arch':'AWS','ca':'Accounting','cpa':'Accounting','cfa':'Financial Modelling','cfo':'Financial Modelling','fp&a analyst':'FP&A','fpa':'FP&A','sdr':'B2B Sales','bdr':'B2B Sales','ae':'SaaS Sales','am':'Customer Success','csm':'Customer Success','se':'SaaS Sales','pre-sales':'SaaS Sales','presales':'SaaS Sales','sfdc':'Salesforce','sf admin':'Salesforce CRM','sf developer':'Apex','sf dev':'Apex','sf architect':'Salesforce Integration','seo specialist':'SEO','sem specialist':'SEM','smm':'Social Media Management','cmo':'Content Marketing','vp marketing':'Content Marketing','growth eng':'Growth Hacking','growth hacker':'Growth Hacking','pmm':'Go-to-Market','digital marketing':'Content Marketing','social media':'Social Media Management','paid marketing':'Paid Ads','performance marketing':'Paid Ads','growth':'Growth Hacking','content':'Content Marketing','seo writing':'SEO','email mktg':'Email Marketing','manual tester':'Manual Testing','automation tester':'Automation Testing','business automation':'Process Improvement','workflow automation':'Process Improvement','rpa':'Process Improvement','robotic process automation':'Process Improvement','process automation':'Process Improvement','data analytics':'Statistical Analysis','data analysis':'Statistical Analysis','business intelligence':'Tableau','data viz':'Tableau','data visualization':'Tableau','deep learning':'Deep Learning','gen ai':'LLMs','generative ai':'LLMs','chatgpt':'OpenAI API','llm':'LLMs','rag':'RAG','vector db':'Vector DBs','devops':'CI/CD','site reliability':'Kubernetes','cloud':'AWS','infra':'Terraform','frontend':'React','backend':'REST APIs','mobile dev':'React Native','excel':'Excel','ms excel':'Excel','microsoft excel':'Excel','spreadsheet':'Excel','google sheets':'Google Sheets','sheets':'Google Sheets'};
+const SKILL_ALIASES={'employee relations':'Employee Relations','people partner':'Employee Relations','people business partner':'Employee Relations','hr partner':'Employee Relations','hr people partner':'Employee Relations','hrbp':'Employee Relations','hr bp':'Employee Relations','hr business partner':'Employee Relations','chro':'HR Analytics','cpo':'Product Strategy','vp hr':'HR Analytics','head of people':'HRIS','people ops':'HRIS','ta':'Talent Acquisition','ta specialist':'Talent Acquisition','ats':'Talent Acquisition','ats tool':'Applicant Tracking Systems','ats tools':'Applicant Tracking Systems','l&d':'L&D Strategy','l and d':'L&D Strategy','sde':'REST APIs','sde1':'REST APIs','sde2':'REST APIs','sde3':'REST APIs','swe':'JavaScript','swe1':'JavaScript','swe2':'JavaScript','sse':'REST APIs','mts':'REST APIs','backend dev':'REST APIs','frontend dev':'React','fullstack':'JavaScript','full-stack dev':'JavaScript','gameplay dev':'Unity','unity dev':'Unity','unity programmer':'C# (Unity)','unreal dev':'Unreal Engine','game dev':'Unity','game programmer':'C# (Unity)','ue4':'Unreal Engine','ue5':'Unreal Engine','ml engineer':'Machine Learning','ml eng':'Machine Learning','ai engineer':'LLMs','ai eng':'LLMs','ds':'Python','de':'Spark','mle':'Machine Learning','mlops engineer':'MLOps','nlp engineer':'NLP','cv engineer':'Computer Vision','pm':'Product Strategy','apm':'Product Roadmap','spm':'Product Strategy','gpm':'Product Analytics','tpm':'REST APIs','pmo':'Project Management','po':'Product Roadmap','product owner':'Product Roadmap','ux':'UX Design','ui':'UI Design','ui/ux':'Figma','ux/ui':'Figma','uxd':'UX Design','uid':'UI Design','sdet':'Automation Testing','qa':'Manual Testing','qe':'Automation Testing','qae':'Automation Testing','qa automation':'Automation Testing','test automation':'Automation Testing','automation engineer':'Automation Testing','sre':'Kubernetes','devops eng':'Docker','platform eng':'Kubernetes','infra eng':'Terraform','cloud eng':'AWS','cloud arch':'AWS','ca':'Accounting','cpa':'Accounting','cfa':'Financial Modelling','cfo':'Financial Modelling','fp&a analyst':'FP&A','fpa':'FP&A','sdr':'B2B Sales','bdr':'B2B Sales','ae':'SaaS Sales','am':'Customer Success','csm':'Customer Success','se':'SaaS Sales','pre-sales':'SaaS Sales','presales':'SaaS Sales','sfdc':'Salesforce','sf admin':'Salesforce CRM','sf developer':'Apex','sf dev':'Apex','sf architect':'Salesforce Integration','seo specialist':'SEO','sem specialist':'SEM','smm':'Social Media Management','cmo':'Content Marketing','vp marketing':'Content Marketing','growth eng':'Growth Hacking','growth hacker':'Growth Hacking','pmm':'Go-to-Market','digital marketing':'Content Marketing','social media':'Social Media Management','paid marketing':'Paid Ads','performance marketing':'Paid Ads','growth':'Growth Hacking','content':'Content Marketing','seo writing':'SEO','email mktg':'Email Marketing','manual tester':'Manual Testing','automation tester':'Automation Testing','business automation':'Process Improvement','workflow automation':'Process Improvement','rpa':'Process Improvement','robotic process automation':'Process Improvement','process automation':'Process Improvement','data analytics':'Statistical Analysis','data analysis':'Statistical Analysis','business intelligence':'Tableau','data viz':'Tableau','data visualization':'Tableau','deep learning':'Deep Learning','gen ai':'LLMs','generative ai':'LLMs','chatgpt':'OpenAI API','llm':'LLMs','rag':'RAG','vector db':'Vector DBs','devops':'CI/CD','site reliability':'Kubernetes','cloud':'AWS','infra':'Terraform','frontend':'React','backend':'REST APIs','mobile dev':'React Native','excel':'Excel','ms excel':'Excel','microsoft excel':'Excel','spreadsheet':'Excel','google sheets':'Google Sheets','sheets':'Google Sheets'};
 
 /* ══ Bubbles ══ */
 function resolveAlias(raw){const lower=raw.toLowerCase().trim();return SKILL_ALIASES[lower]||raw.trim();}
@@ -2986,7 +3104,7 @@ function findTitleMatch(raw){
   const exactTitle=ROLES.find(r=>r.title.toLowerCase()===lower);if(exactTitle)return exactTitle;
   const byKeyword=ROLES.find(r=>r.keywords&&r.keywords.some(k=>k.toLowerCase()===lower));if(byKeyword)return byKeyword;
   const byDesignation=_findRoleByDesignationVariant(raw);if(byDesignation)return byDesignation;
-  const TITLE_ABBREVS=['sde','sde1','sde2','sde3','swe','swe1','swe2','sse','mts','smts','pmts','ic3','ic4','ic5','tpm','pmm','cra','sdet','csm','ae','sdr','bdr','hrbp','chro','cpo','vp hr','vp engineering','vp product','vp sales','cto','cfo','coo','ciso','cmo','cos','em','apm','spm','gpm','tl','pm','po','pmo','ux','uid','uxd','sre','tam','kam','qe','qae','mle','nlp engineer','cv engineer','sfdc','sf admin','sf developer','sf dev','sf architect','ib analyst','ca','cpa','cfa','cs qualified','devrel'];
+  const TITLE_ABBREVS=['sde','sde1','sde2','sde3','swe','swe1','swe2','sse','mts','smts','pmts','ic3','ic4','ic5','tpm','pmm','cra','sdet','csm','ae','sdr','bdr','hrbp','people partner','employee relations','chro','cpo','vp hr','vp engineering','vp product','vp sales','cto','cfo','coo','ciso','cmo','cos','em','apm','spm','gpm','tl','pm','po','pmo','ux','uid','uxd','sre','tam','kam','qe','qae','mle','nlp engineer','cv engineer','sfdc','sf admin','sf developer','sf dev','sf architect','ib analyst','ca','cpa','cfa','cs qualified','devrel'];
   if(TITLE_ABBREVS.includes(lower)){const fromAlias=SKILL_ALIASES[lower];if(fromAlias){const r=ROLES.find(ro=>(ro.required||[]).includes(fromAlias)||(ro.nice||[]).includes(fromAlias));if(r)return r;}const byKw=ROLES.find(r=>r.keywords&&r.keywords.some(k=>k.toLowerCase()===lower));if(byKw)return byKw;}
   return null;
 }
@@ -3012,10 +3130,23 @@ async function addTyped(){
   try{
     const testRoles=await refreshStructuredSkillsSearchAndRender();
     if(!testRoles.length){showSorryState(skills.join(', '));input.focus();return;}
-    render();input.focus();
+    input.focus();
   }catch(e){
-    showToast((e&&e.message)?e.message:'Skill search failed.','err');
-    showSorryState(skills.join(', '));
+    showToast(smUserFacingSearchError(e),'err');
+    try{
+      smTrackEvent('search_request_failed',{workflow:'structured',message:String(e&&e.message||'').slice(0,200),page:'/skillmapper'});
+    }catch(e2){}
+    const retry=smBumpSearchRetry('structured',skills.join(', '));
+    smLogSearchQualitySignal({
+      signal_type:'request_error',
+      search_type:'structured',
+      search_query:skills.join(', ').slice(0,1000),
+      result_count:0,
+      retry_count:retry.retry_count,
+      page:'/skillmapper',
+      dedupe_key:'sq|err|struct|'+String(skills.join(',')).toLowerCase().trim().slice(0,120)
+    });
+    showSorryState(skills.join(', '),{reason:'request_failed',mode:'skills'});
     input.focus();
   }
 }
@@ -3172,16 +3303,64 @@ function renderSug(q){
   drop.classList.add('open');
 }
 function pickSug(s){document.getElementById('mainInput').value='';hideSug();addSkill(resolveAlias(s));document.getElementById('mainInput').focus();}
-function filterDept(dept){if(dept&&typeof dept==='object'&&dept.dataset)dept=dept.dataset.dept||'all';activeDept=dept;if(!skills.length&&!(window._serverRoleResults||[]).length){render();return;}if(currentMode==='nl'){const q=document.getElementById('nlInput')?document.getElementById('nlInput').value:'';refreshIntentSearchAndRender(q);}else refreshStructuredSkillsSearchAndRender();}
+function filterDept(dept){if(dept&&typeof dept==='object'&&dept.dataset)dept=dept.dataset.dept||'all';activeDept=dept;if(!skills.length&&!(window._serverRoleResults||[]).length){render();return;}if(currentMode==='nl'){const q=document.getElementById('nlInput')?document.getElementById('nlInput').value:'';refreshIntentSearchAndRender(q).catch(function(e){showToast(smUserFacingSearchError(e),'err');});}else refreshStructuredSkillsSearchAndRender().catch(function(e){showToast(smUserFacingSearchError(e),'err');});}
 function copyToClipboard(text){if(navigator.clipboard&&window.isSecureContext)return navigator.clipboard.writeText(text);const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;top:-9999px;left:-9999px;opacity:0;';document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand('copy');}catch(e){}document.body.removeChild(ta);return Promise.resolve();}
 function copyTitle(title,btn){copyToClipboard(title).then(()=>{btn.classList.add('ok');btn.textContent='Copied!';setTimeout(()=>{btn.classList.remove('ok');btn.textContent='Copy title';},2000);showToast('"'+title+'" copied','ok');});}
 function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(type||'');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
-function showSorryState(query){
-  logSearch('skills',query,0,true);const area=document.getElementById('resultsArea');const reportEmail='contactus@talentsradar.com';const subject=encodeURIComponent('SkillMapper: Missing role for "'+query+'"');const body=encodeURIComponent('Hi,\n\nSkillMapper did not return results for:\n\n"'+query+'"\n\nPlease add this role/skills.\n\nThank you!');area.innerHTML=`<div class="sorry-state"><div class="sorry-bot">&#x1F916;</div><div class="sorry-title">No role found yet</div><div class="sorry-sub">Sorry, we couldn't find a matching role for <strong>"${query.slice(0,60)}"</strong>. Help us improve!</div><a class="btn-report" href="mailto:${reportEmail}?subject=${subject}&body=${body}" target="_blank"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 4h12v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4z" stroke="currentColor" stroke-width="1.4"/><path d="M2 4l6 5 6-5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Report to Developer</a><button class="btn-try-again" onclick="clearAndTryAgain()">&#x21A9; Try something else</button></div>`;}
+function showSorryState(query,opts){
+  opts=opts||{};
+  const q=String(query||'').trim();
+  const modeKey=(opts.mode||(currentMode==='nl'?'nl':'skills'));
+  const retry=smBumpSearchRetry(modeKey==='nl'?'intent':'structured',modeKey==='nl'?(window._lastSearchInput||q):q);
+  logSearch(modeKey,q,0,true);
+  if(opts.reason!=='request_failed'){
+    smLogSearchQualitySignal({
+      signal_type:'zero_results',
+      search_type:modeKey==='nl'?'intent':'structured',
+      search_query:q.slice(0,1000),
+      result_count:0,
+      retry_count:retry.retry_count,
+      reason:opts.reason?String(opts.reason):null,
+      dedupe_key:'sq|zero|'+modeKey+'|'+q.toLowerCase().trim().slice(0,160)
+    });
+  }
+  const area=document.getElementById('resultsArea');
+  const reportEmail='contactus@talentsradar.com';
+  const subject=encodeURIComponent('SkillMapper: No match for "'+q.slice(0,80)+'"');
+  const body=encodeURIComponent('Hi,\n\nI tried SkillMapper with:\n\n"'+q+'"\n\nNo strong matches came back.\n\nThanks,\n');
+  const hintBlock=(opts.reason==='no_roles_for_filter')
+    ?'<p class="sorry-hint-lead">No roles in this department for your current search. Try <strong>All departments</strong> above, or widen your skills.</p>'
+    :'<p class="sorry-hint-lead">We couldn’t find a strong match yet. Try fewer or broader skills, remove punctuation, or describe the role in plain language.</p>';
+  const suggestions='<ul class="sorry-hints"><li>Add one core skill at a time (for example Figma, Python, SQL).</li><li>Switch to <strong>Describe</strong> and add context: team, product, or industry.</li><li>Try <strong>Search by title</strong> if you already know the role name.</li></ul>';
+  area.innerHTML='<div class="sorry-state"><div class="sorry-icon calm" aria-hidden="true">&#x1F50D;</div><div class="sorry-title">No strong matches yet</div><div class="sorry-sub">For <strong>"'+_escapeHtml(q.slice(0,72))+(q.length>72?'…':'')+'"</strong></div>'+hintBlock+suggestions+'<div class="sorry-actions"><a class="btn-report" href="mailto:'+reportEmail+'?subject='+subject+'&body='+body+'" target="_blank" rel="noopener"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 4h12v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4z" stroke="currentColor" stroke-width="1.4"/><path d="M2 4l6 5 6-5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Email the team</a><button type="button" class="btn-try-again" onclick="clearAndTryAgain()">&#x21A9; Start over</button></div></div>';
+}
 function clearAndTryAgain(){skills=[];window._aiTopRoles=[];renderBubbles();document.getElementById('nudgeBanner')?.classList.remove('show');document.getElementById('aiBanner').classList.remove('show');document.getElementById('deptFilter').style.display='none';const _cb=document.getElementById('currencyBar');if(_cb)_cb.style.display='none';const fp=document.getElementById('floatingPanda');if(fp)fp.style.display=(isSalaryPromptEligible()&&!isSalaryUnlocked())?'block':'none';document.getElementById('resultsArea').innerHTML=`<div class="empty-state"><div class="empty-icon" style="font-size:36px;margin-bottom:10px;">&#x1F3AF;</div><div class="empty-title">Start above to see role matches</div><div class="empty-sub">Type skills, search by title, or describe what you need.</div></div>`;document.getElementById('nlInput').value='';document.getElementById('mainInput').value='';const am=document.querySelector('.mode-tab.active');if(am&&am.textContent.includes('Describe'))document.getElementById('nlInput').focus();else document.getElementById('mainInput').focus();}
 function selectLevel(btn){const lvl=btn.dataset.lvl;if(isSalaryPromptEligible()&&lvl!=='junior'&&!isSalaryUnlocked()){showSalaryContrib(btn);return;}applySelectLevel(btn);}
-function applySelectLevel(btn){const cardId=btn.dataset.card;const yrsMin=btn.dataset.min;const yrsMax=btn.dataset.max;const sal=btn.dataset.sal;const group=document.getElementById(cardId);if(group){group.querySelectorAll('.sal-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}const el=document.getElementById(cardId+'_sal');if(!el)return;el.innerHTML=_formatSalDisplayLine(yrsMin,yrsMax,sal);if(typeof maybeSoftSalaryReprompt==='function')maybeSoftSalaryReprompt('seniority');}
-function toggleCurrency(cur){const idx=selectedCurrencies.indexOf(cur);if(idx>-1){if(selectedCurrencies.length===1)return;selectedCurrencies.splice(idx,1);}else selectedCurrencies.push(cur);document.querySelectorAll('#currencyBar .cur-chip').forEach(chip=>{chip.classList.toggle('active',selectedCurrencies.includes(chip.dataset.cur));});if(!skills.length&&!(window._serverRoleResults||[]).length){document.querySelectorAll('.sal-btn.active').forEach(btn=>applySelectLevel(btn));return;}if(currentMode==='nl'){const q=document.getElementById('nlInput')?document.getElementById('nlInput').value:'';refreshIntentSearchAndRender(q);}else refreshStructuredSkillsSearchAndRender();if(typeof maybeSoftSalaryReprompt==='function')maybeSoftSalaryReprompt('currency');}
+function applySelectLevel(btn){const cardId=btn.dataset.card;const yrsMin=btn.dataset.min;const yrsMax=btn.dataset.max;const sal=btn.dataset.sal;const group=document.getElementById(cardId);if(group){group.querySelectorAll('.sal-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}const el=document.getElementById(cardId+'_sal');if(!el)return;el.innerHTML=_formatSalDisplayLine(yrsMin,yrsMax,sal);if(typeof maybeSoftSalaryReprompt==='function')maybeSoftSalaryReprompt('seniority');try{smTrackEvent('seniority_changed',{level:String(btn&&btn.dataset&&btn.dataset.lvl||''),card_id:String(btn&&btn.dataset&&btn.dataset.card||''),page:'/skillmapper'});}catch(e){}}
+function toggleCurrency(cur){
+  const idx=selectedCurrencies.indexOf(cur);
+  if(idx>-1){selectedCurrencies.splice(idx,1);}
+  else{selectedCurrencies.push(cur);}
+  if(selectedCurrencies.length===0){selectedCurrencies.push('INR','USD');}
+  else{
+    const order={INR:0,USD:1};
+    selectedCurrencies.sort(function(a,b){return (order[a]!==undefined?order[a]:9)-(order[b]!==undefined?order[b]:9);});
+  }
+  document.querySelectorAll('#currencyBar .cur-chip').forEach(function(chip){
+    chip.classList.toggle('active',selectedCurrencies.includes(chip.dataset.cur));
+  });
+  if(!skills.length&&!(window._serverRoleResults||[]).length){
+    document.querySelectorAll('.sal-btn.active').forEach(function(btn){applySelectLevel(btn);});
+    return;
+  }
+  if(currentMode==='nl'){
+    const q=document.getElementById('nlInput')?document.getElementById('nlInput').value:'';
+    refreshIntentSearchAndRender(q).catch(function(e){showToast(smUserFacingSearchError(e),'err');});
+  }else{
+    refreshStructuredSkillsSearchAndRender().catch(function(e){showToast(smUserFacingSearchError(e),'err');});
+  }
+  if(typeof maybeSoftSalaryReprompt==='function')maybeSoftSalaryReprompt('currency');
+}
 
 /* ══ Data loader ══ */
 async function loadAppData(){
@@ -3465,10 +3644,6 @@ document.addEventListener('keydown',function(e){
 });
 
 window.addEventListener('load',async function(){
-  smSetBackendStatusBadge(false,'Checking backend...');
-  smCheckBackendHealth()
-    .then(function(){smSetBackendStatusBadge(true,'Backend connected');})
-    .catch(function(err){smSetBackendStatusBadge(false,smFormatBackendHealthError(err));});
   ['mainInput','nlInput','titleModeInput'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   await loadAppData();
   skills=[];window._aiTopRoles=[];activeDept='all';renderBubbles();
@@ -3707,6 +3882,9 @@ function showSalaryContrib(btn,opts){
   smTrackEvent('salary_modal_open',{from_level:(btn&&btn.dataset&&btn.dataset.lvl)?btn.dataset.lvl:'',from_intro:!!opts.fromIntro});
 }
 function skipSalaryContrib(){
+  try{
+    smTrackEvent('salary_skipped',{from_intro:!!window._salModalFromIntro,page:'/skillmapper'});
+  }catch(e){}
   const modal=document.getElementById('salContribModal');
   if(_pandaTimer)clearTimeout(_pandaTimer);if(_pandaImpatientTimer)clearTimeout(_pandaImpatientTimer);
   if(modal){const c=modal.querySelector('.sal-modal-card');if(c)c.classList.remove('sal-momentum-in');modal.style.display='none';}
@@ -3745,7 +3923,7 @@ async function submitSalaryContrib(){
       const ensured=await smEnsureSmUsersRowForSalary(email,userUuid||'');
       if(!ensured.ok){
         const emsg=(ensured.error&&ensured.error.message)?String(ensured.error.message):'Please try again.';
-        err.textContent='Could not prepare your account for salary save: '+emsg;
+        err.textContent='We couldn’t prepare your profile for this step. Please try again, or sign out and back in.';
         err.style.display='block';
         return;
       }
@@ -3754,7 +3932,7 @@ async function submitSalaryContrib(){
     }
     if(userUuid)row.user_uuid=userUuid;
     if(!row.user_uuid){
-      err.textContent='Could not map your account ID. Please sign out and sign in once, then try again.';
+      err.textContent='Your session needs a quick refresh. Sign out, sign in once, then try again.';
       err.style.display='block';
       return;
     }
@@ -3762,7 +3940,7 @@ async function submitSalaryContrib(){
     if(!ins.ok){
       localStorage.removeItem('sm_salary_submitted_at');
       const detail=(ins.error&&ins.error.message)?String(ins.error.message):'Could not save to database. Please try again.';
-      err.textContent='Could not save to database: '+detail;
+      err.textContent='We couldn’t save that just now. Please try again in a moment.';
       err.style.display='block';
       console.error('Salary contribution save failed:',ins.error);
       smTrackEvent('salary_submit_failed',{reason:'insert_failed'});
@@ -3788,7 +3966,7 @@ async function submitSalaryContrib(){
     }
   }catch(e){
     localStorage.removeItem('sm_salary_submitted_at');
-    err.textContent='Could not save to database: '+(e&&e.message?e.message:'Please try again.');
+    err.textContent='We couldn’t save that just now. Please try again in a moment.';
     err.style.display='block';
     console.error('Salary contribution submit error:',e);
     smTrackEvent('salary_submit_failed',{reason:'exception'});

@@ -1,4 +1,15 @@
 import { getSupabaseAdmin } from "../../supabaseClient.js";
+import {
+  mergePhraseAndDbOwnership,
+  ownershipScoreAdjustments,
+  resolveOwnershipContext
+} from "./ownershipFamilySignals.js";
+import {
+  buildSkillAliasIndexes,
+  fetchOwnershipFamiliesFromSkillIds,
+  resolveProfessionalConcepts
+} from "./skillAliasResolution.js";
+import { fetchSkillGraphRoleRows } from "./skillGraphRetrieval.js";
 
 function normalizeIntentQuery(rawQuery) {
   const base = String(rawQuery || "")
@@ -392,7 +403,7 @@ function classifyRoleExecutionFamily(r) {
   };
 }
 
-function scoreWithIntentPriors(rows, intentCtx) {
+function scoreWithIntentPriors(rows, intentCtx, ownershipCtx = null) {
   const activePriors = intentCtx.activePriors || [];
   const exec = intentCtx.executionIntent || { acts: [], surfaces: [], ownershipIntensity: "low" };
   if (!rows.length) return rows;
@@ -448,10 +459,19 @@ function scoreWithIntentPriors(rows, intentCtx) {
     const genericWhy = /(semantic match via|keywords|search phrases|overlap)/i.test(whyNorm);
     if (genericWhy && activeSignals === 0 && base < 0.55) suppression += 0.08;
 
+    const mskills = Number(r?.matched_skill_count || 0);
+    const ownAdj = ownershipScoreAdjustments(r, ownershipCtx, {
+      requiredHitCount: mskills > 0 ? 1 : 0,
+      niceHitCount: mskills > 1 ? 1 : 0
+    });
+
     // Score spread amplification:
     // - boost separation at top-end
     // - compress weak/noisy lower end
-    const preSpread = Math.max(0, Math.min(1, base + priorBoost + executionSurfaceBoost - suppression - executionSuppression));
+    const preSpread = Math.max(
+      0,
+      Math.min(1, base + priorBoost + executionSurfaceBoost + ownAdj.boost - suppression - executionSuppression - ownAdj.penalty)
+    );
     const spread = preSpread >= 0.5 ? Math.pow(preSpread, 0.72) : Math.pow(preSpread, 1.35);
     const final = Math.max(0, Math.min(1, spread));
 
@@ -469,7 +489,10 @@ function scoreWithIntentPriors(rows, intentCtx) {
         executionIntent: exec,
         roleFamily: fam,
         spreadIn: preSpread,
-        spreadOut: final
+        spreadOut: final,
+        ownership: ownershipCtx
+          ? { rules: ownershipCtx.ruleIds || [], boost: ownAdj.boost, penalty: ownAdj.penalty }
+          : null
       }
     };
   });
@@ -568,10 +591,15 @@ export async function semanticIntentEngine(params) {
     console.info("[semanticIntentEngine] removed stop-word tokens", stopWordFilteredOut);
   }
 
-  const { data: metadataRows, error: metadataErr } = await sb
-    .from("role_semantic_metadata")
-    .select("role_id, keywords, search_phrases, responsibilities, work_examples, tools, output_types")
-    .limit(2000);
+  const [{ data: metadataRows, error: metadataErr }, { data: intentCanonicalRows }, { data: intentAliasRows }] =
+    await Promise.all([
+      sb
+        .from("role_semantic_metadata")
+        .select("role_id, keywords, search_phrases, responsibilities, work_examples, tools, output_types")
+        .limit(2000),
+      sb.from("skills_v2").select("id, canonical_name"),
+      sb.from("skill_aliases").select("skill_id, alias")
+    ]);
   if (metadataErr && shouldLogDebug) console.warn("[semanticIntentEngine] metadata probe failed", metadataErr.message || metadataErr);
   const metadataCoverage = {
     totalRows: Array.isArray(metadataRows) ? metadataRows.length : 0,
@@ -580,8 +608,33 @@ export async function semanticIntentEngine(params) {
     withResponsibilities: (metadataRows || []).filter((r) => Array.isArray(r.responsibilities) ? r.responsibilities.length : !!r.responsibilities).length
   };
 
+  const intentAliasIdx = buildSkillAliasIndexes(intentCanonicalRows || [], intentAliasRows || []);
+  const intentConceptResolution = resolveProfessionalConcepts(
+    [normalizedQuery, String(params.rawQuery || ""), ...(Array.isArray(params.skills) ? params.skills : [])].filter(
+      Boolean
+    ),
+    intentAliasIdx
+  );
+  const intentInputText = [normalizedQuery, ...intentConceptResolution.resolvedCanonicalLower]
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const canonicalDerivedTokens = [
+    ...new Set(
+      (intentConceptResolution.resolvedCanonicalLower || []).flatMap((c) =>
+        String(c || "")
+          .split(/\s+/)
+          .map((w) => w.trim())
+          .filter((w) => w.length >= 2 && !stopWords.has(w))
+      )
+    )
+  ];
+  const filteredTokensForIntent = [...new Set([...filteredTokens, ...canonicalDerivedTokens])];
+
   const { data, error } = await sb.rpc("search_roles_intent_v1", {
-    input_text: normalizedQuery,
+    input_text: intentInputText,
     selected_department: params.selectedDepartment || null,
     currency: params.currency || "INR",
     limit_count: params.limitCount || 10
@@ -589,27 +642,48 @@ export async function semanticIntentEngine(params) {
 
   if (error) throw new Error(error.message || "search_roles_intent_v1 failed");
   const rawResults = Array.isArray(data) ? data : [];
-  const intentCtx = computeIntentContext(normalizedQuery, filteredTokens);
-  const executionIntent = inferExecutionIntent(normalizedQuery, intentCtx.expandedTokens);
+  const intentCtx = computeIntentContext(intentInputText, filteredTokensForIntent);
+  const executionIntent = inferExecutionIntent(intentInputText, intentCtx.expandedTokens);
   let fallbackPrior = { rows: [], debug: { used: false, reason: "not_checked" } };
   if (!rawResults.length) {
-    fallbackPrior = await fallbackIntentPriorSearch(sb, normalizedQuery, intentCtx, params.limitCount || 10);
+    fallbackPrior = await fallbackIntentPriorSearch(sb, intentInputText, intentCtx, params.limitCount || 10);
   }
   const retrievalEnrichment = await enrichIntentCandidates(
     sb,
-    normalizedQuery,
-    filteredTokens,
+    intentInputText,
+    filteredTokensForIntent,
     intentCtx,
     executionIntent,
     params.limitCount || 10
   );
+  let skillGraphIntentRows = [];
+  if (intentConceptResolution.resolvedSkillIds?.length) {
+    const graphPack = await fetchSkillGraphRoleRows(sb, {
+      canonicalSkillIds: intentConceptResolution.resolvedSkillIds,
+      normalizedSkills: filteredTokensForIntent,
+      selectedDepartment: params.selectedDepartment || null,
+      limitCount: params.limitCount || 10,
+      currency: params.currency || "INR",
+      minScore: 0.06
+    });
+    skillGraphIntentRows = graphPack.results || [];
+  }
   const mergedRawPreFilter = dedupeIntentResults(
-    [...(rawResults.length ? rawResults : fallbackPrior.rows), ...(retrievalEnrichment.rows || [])],
+    [
+      ...(rawResults.length ? rawResults : fallbackPrior.rows),
+      ...(retrievalEnrichment.rows || []),
+      ...skillGraphIntentRows
+    ],
     50
   );
-  const mobileRefinement = refineMobileProductCandidates(mergedRawPreFilter, normalizedQuery, intentCtx.expandedTokens);
+  const mobileRefinement = refineMobileProductCandidates(mergedRawPreFilter, intentInputText, intentCtx.expandedTokens);
   const deduped = dedupeIntentResults(mobileRefinement.rows || [], 50);
-  const rescored = scoreWithIntentPriors(deduped, { ...intentCtx, executionIntent });
+  const intentDbOwnership = await fetchOwnershipFamiliesFromSkillIds(sb, intentConceptResolution.resolvedSkillIds);
+  const ownershipMerged = mergePhraseAndDbOwnership(
+    resolveOwnershipContext(intentInputText, intentConceptResolution.resolvedCanonicalLower),
+    intentDbOwnership
+  );
+  const rescored = scoreWithIntentPriors(deduped, { ...intentCtx, executionIntent }, ownershipMerged);
   const results = rescored.slice(0, Math.min(Math.max(1, Number(params.limitCount || 10)), 50));
   const scoreBreakdown = results.slice(0, 5).map((r) => ({
     role_id: r?.role_id || null,
@@ -619,7 +693,8 @@ export async function semanticIntentEngine(params) {
     why_matched: r?.why_matched || ""
   }));
   if (shouldLogDebug) {
-    console.info("[semanticIntentEngine] semantic_terms", filteredTokens);
+    console.info("[semanticIntentEngine] intent_input_text", intentInputText);
+    console.info("[semanticIntentEngine] semantic_terms", filteredTokensForIntent);
     console.info("[semanticIntentEngine] metadata category coverage", metadataCoverage);
     console.info("[semanticIntentEngine] score breakdown (top 5)", scoreBreakdown);
     console.info("[semanticIntentEngine] candidate role count", results.length);
@@ -632,10 +707,17 @@ export async function semanticIntentEngine(params) {
     console.info("[semanticIntentEngine] execution intent", executionIntent);
   }
 
+  const detectedSkills = [
+    ...new Set([
+      ...(Array.isArray(params.skills) ? params.skills.map((s) => normalizeIntentQuery(String(s))) : []),
+      ...intentConceptResolution.resolvedCanonicalLower
+    ])
+  ].filter(Boolean);
+
   return {
     workflowType: "intent",
-    normalizedQuery,
-    detectedSkills: [],
+    normalizedQuery: intentInputText,
+    detectedSkills,
     inferredRoleIds: results.map((r) => r?.role_id).filter(Boolean),
     results,
     responseTimeMs: Date.now() - startedAt,
@@ -643,11 +725,17 @@ export async function semanticIntentEngine(params) {
       rawTokens,
       filteredTokens,
       stopWordFilteredOut,
-      semanticTerms: filteredTokens,
-      normalizedQuery,
+      semanticTerms: filteredTokensForIntent,
+      normalizedQueryPreAlias: normalizedQuery,
+      intentSkillResolution: {
+        resolvedCanonicals: intentConceptResolution.resolvedCanonicalLower,
+        resolvedSkillIds: intentConceptResolution.resolvedSkillIds
+      },
       tokenization: {
         rawTokens,
         filteredTokens,
+        filteredTokensForIntent,
+        canonicalDerivedTokens,
         stopWordFilteredOut
       },
       synonymExpansion: {
@@ -659,6 +747,7 @@ export async function semanticIntentEngine(params) {
       metadataCoverage,
       dedupe: { before: rawResults.length, after: deduped.length },
       priorFallback: fallbackPrior.debug,
+      skillGraphCandidates: skillGraphIntentRows.length,
       retrievalEnrichment: retrievalEnrichment.debug,
       mobileRefinement: mobileRefinement.debug,
       intentPriors: intentCtx.activePriors.map((p) => p.name),

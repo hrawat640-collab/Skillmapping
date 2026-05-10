@@ -4,6 +4,7 @@ import fs from "fs";
 import axios from "axios";
 import { authMiddleware } from "../middleware/auth.js";
 import { getSupabaseAdmin } from "../supabaseClient.js";
+import { evaluateLimiter } from "../middleware/rateLimit.js";
 import { fetchJobDescriptions } from "../services/jobs.js";
 import { generateSuggestions } from "../services/suggestions.js";
 
@@ -18,7 +19,7 @@ const upload = multer({
   }
 });
 
-router.post("/evaluate", authMiddleware, upload.single("cv"), async (req, res) => {
+router.post("/evaluate", evaluateLimiter, authMiddleware, upload.single("cv"), async (req, res) => {
   const filePath = req.file?.path;
   try {
     if (!filePath) return res.status(400).json({ error: "CV file is required" });
@@ -50,6 +51,15 @@ router.post("/evaluate", authMiddleware, upload.single("cv"), async (req, res) =
       .limit(1)
       .maybeSingle();
     if (roleErr) {
+      console.error(
+        JSON.stringify({
+          level: "error",
+          event: "supabase_query_failed",
+          request_id: req.requestId || null,
+          route: "evaluate_role_lookup",
+          message: roleErr.message || "Role lookup failed"
+        })
+      );
       return res.status(500).json({ error: roleErr.message || "Role lookup failed" });
     }
     if (!roleRow?.id) {
@@ -72,9 +82,42 @@ router.post("/evaluate", authMiddleware, upload.single("cv"), async (req, res) =
         sb.from("skills_v2").select("id, canonical_name")
       ]);
 
-    if (semanticErr) return res.status(500).json({ error: semanticErr.message || "Semantic lookup failed" });
-    if (roleSkillErr) return res.status(500).json({ error: roleSkillErr.message || "Role skills lookup failed" });
-    if (skillsErr) return res.status(500).json({ error: skillsErr.message || "Skills lookup failed" });
+    if (semanticErr) {
+      console.error(
+        JSON.stringify({
+          level: "error",
+          event: "supabase_query_failed",
+          request_id: req.requestId || null,
+          route: "evaluate_semantic_lookup",
+          message: semanticErr.message || "Role details lookup failed"
+        })
+      );
+      return res.status(500).json({ error: semanticErr.message || "Role details lookup failed" });
+    }
+    if (roleSkillErr) {
+      console.error(
+        JSON.stringify({
+          level: "error",
+          event: "supabase_query_failed",
+          request_id: req.requestId || null,
+          route: "evaluate_role_skills",
+          message: roleSkillErr.message || "Role skills lookup failed"
+        })
+      );
+      return res.status(500).json({ error: roleSkillErr.message || "Role skills lookup failed" });
+    }
+    if (skillsErr) {
+      console.error(
+        JSON.stringify({
+          level: "error",
+          event: "supabase_query_failed",
+          request_id: req.requestId || null,
+          route: "evaluate_skills_v2",
+          message: skillsErr.message || "Skills lookup failed"
+        })
+      );
+      return res.status(500).json({ error: skillsErr.message || "Skills lookup failed" });
+    }
 
     const semantic = (semanticRows && semanticRows[0]) || {};
     const skillNameById = new Map((skillsRows || []).map((s) => [s.id, s.canonical_name]));
@@ -123,6 +166,14 @@ router.post("/evaluate", authMiddleware, upload.single("cv"), async (req, res) =
       suggestions
     });
   } catch (err) {
+    console.error(
+      JSON.stringify({
+        level: "error",
+        event: "evaluate_request_failed",
+        request_id: req.requestId || null,
+        message: err?.message || String(err)
+      })
+    );
     return res.status(500).json({ error: err.message || "Evaluation failed" });
   } finally {
     if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);

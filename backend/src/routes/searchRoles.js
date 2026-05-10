@@ -1,6 +1,7 @@
 import express from "express";
 import { getSupabaseAdmin } from "../supabaseClient.js";
 import { routeSearchRequest } from "../services/search/routeSearchRequest.js";
+import { searchLegacyLimiter, searchOrchestratedLimiter } from "../middleware/rateLimit.js";
 
 const router = express.Router();
 const SEARCH_TIMEOUT_MS = Number(process.env.SEARCH_TIMEOUT_MS || 12000);
@@ -31,7 +32,7 @@ function withTimeout(promise, timeoutMs) {
  * Body: { "input_text": "..." }
  * Response: JSON array of role objects (strict UI shape from search_roles RPC).
  */
-router.post("/search-roles", async (req, res) => {
+router.post("/search-roles", searchLegacyLimiter, async (req, res) => {
   const inputText = typeof req.body?.input_text === "string" ? req.body.input_text : "";
 
   const sb = getSupabaseAdmin();
@@ -71,7 +72,7 @@ router.post("/search-roles", async (req, res) => {
  * - structured -> deterministic graph matching (`search_roles_v3`)
  * - intent -> semantic inference (`search_roles_intent_v1`)
  */
-router.post("/search-roles-orchestrated", async (req, res) => {
+router.post("/search-roles-orchestrated", searchOrchestratedLimiter, async (req, res) => {
   try {
     if (req.body?.input_text != null && typeof req.body?.input_text !== "string") {
       return res.status(400).json({ error: "input_text must be a string", code: "INVALID_INPUT_TEXT" });
@@ -118,6 +119,7 @@ router.post("/search-roles-orchestrated", async (req, res) => {
         JSON.stringify({
           level: "warn",
           event: "search_zero_results",
+          request_id: req.requestId || null,
           workflow_type: workflowType || "auto",
           input_text: inputText,
           selected_department: selectedDepartment,
@@ -128,16 +130,18 @@ router.post("/search-roles-orchestrated", async (req, res) => {
     return res.json(publicResults);
   } catch (e) {
     const isTimeout = /Search timeout/.test(e?.message || "");
+    const safeMsg = e?.message || "Search failed";
     console.error(
       JSON.stringify({
         level: "error",
         event: "search_request_failed",
-        message: e?.message || "Search failed",
+        request_id: req.requestId || null,
+        message: safeMsg,
         code: isTimeout ? "WORKFLOW_SEARCH_TIMEOUT" : "WORKFLOW_SEARCH_FAILED"
       })
     );
     return res.status(isTimeout ? 504 : 500).json({
-      error: isTimeout ? "Search timed out. Please retry." : e.message || "Search failed",
+      error: isTimeout ? "Search timed out. Please retry." : safeMsg,
       code: isTimeout ? "WORKFLOW_SEARCH_TIMEOUT" : "WORKFLOW_SEARCH_FAILED"
     });
   }

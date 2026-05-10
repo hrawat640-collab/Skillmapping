@@ -1,4 +1,15 @@
 import { getSupabaseAdmin } from "../../supabaseClient.js";
+import {
+  mergePhraseAndDbOwnership,
+  ownershipScoreAdjustments,
+  resolveOwnershipContext
+} from "./ownershipFamilySignals.js";
+import {
+  buildSkillAliasIndexes,
+  fetchOwnershipFamiliesFromSkillIds,
+  resolveProfessionalConcepts
+} from "./skillAliasResolution.js";
+import { fetchSkillGraphRoleRows, mergeRpcAndGraphCandidates } from "./skillGraphRetrieval.js";
 
 function normalizeSkillQuery(rawQuery, explicitSkills) {
   const fromSkills = Array.isArray(explicitSkills)
@@ -26,25 +37,8 @@ function normalizeSkillList(rawQuery, explicitSkills) {
   return [...new Set(q.split(" ").map((x) => x.trim()).filter((x) => x.length >= 2))];
 }
 
-const SKILL_QUERY_ALIASES = {
-  sde: "rest apis",
-  sde1: "rest apis",
-  sde2: "rest apis",
-  swe: "javascript",
-  swe1: "javascript",
-  swe2: "javascript",
-  sse: "rest apis",
-  fullstack: "javascript",
-  "full-stack": "javascript",
-  "backend dev": "rest apis",
-  "frontend dev": "react",
-  ml: "machine learning",
-  ai: "llms",
-  bi: "tableau",
-  pm: "product strategy",
-  ux: "ux design",
-  ui: "ui design"
-};
+/** Fallback only when skill_aliases has no row; prefer DB. */
+const SKILL_QUERY_ALIASES = Object.freeze({});
 
 function mapConfidence(score) {
   if (score >= 0.7) return "high";
@@ -82,6 +76,20 @@ function normalizeList(list) {
   return [...new Set((list || []).map((x) => normalizeToken(x)).filter(Boolean))];
 }
 
+/** True if user-entered skill phrase aligns with a catalog skill (exact, substring, or shared meaningful tokens). */
+function userSkillTouchesCatalogSkill(userSkill, catalogSkill) {
+  const u = normalizeToken(userSkill);
+  const c = normalizeToken(catalogSkill);
+  if (!u || !c) return false;
+  if (u === c) return true;
+  if (c.includes(u) || u.includes(c)) return true;
+  const uWords = u.split(" ").filter((w) => w.length > 2);
+  const cWords = c.split(" ").filter((w) => w.length > 2);
+  if (!uWords.length || !cWords.length) return false;
+  const cSet = new Set(cWords);
+  return uWords.some((w) => cSet.has(w));
+}
+
 function expandSkillAliases(normalizedSkills) {
   const out = new Set(normalizedSkills || []);
   for (const s of normalizedSkills || []) {
@@ -100,8 +108,15 @@ function isSpecificSkillToken(token) {
   return false;
 }
 
-function rerankStructuredResults(rows, normalizedSkills) {
-  const userSkills = expandSkillAliases(normalizeList(normalizedSkills || []));
+function rerankStructuredResults(rows, normalizedSkills, options = {}) {
+  const normalizedQueryOpt = String(options.normalizedQuery || "");
+  const ownershipQuery = [normalizedQueryOpt, ...(Array.isArray(normalizedSkills) ? normalizedSkills : [])]
+    .filter(Boolean)
+    .join(" ");
+  const ownershipCtx =
+    options.ownershipCtx != null ? options.ownershipCtx : resolveOwnershipContext(ownershipQuery, []);
+  const combinedForRank = [...(normalizedSkills || []), ...(options.dbCanonicalExtras || [])];
+  const userSkills = expandSkillAliases(normalizeList(combinedForRank));
   const userSet = new Set(userSkills);
   if (!rows.length || !userSkills.length) return rows;
 
@@ -120,9 +135,15 @@ function rerankStructuredResults(rows, normalizedSkills) {
     const requiredSet = new Set(required);
     const niceSet = new Set(nice);
 
-    const requiredHits = userSkills.filter((s) => requiredSet.has(s));
-    const niceHits = userSkills.filter((s) => !requiredSet.has(s) && niceSet.has(s));
-    const matchedHits = userSkills.filter((s) => matched.includes(s) || requiredSet.has(s) || niceSet.has(s));
+    const requiredHits = userSkills.filter((s) => required.some((r) => userSkillTouchesCatalogSkill(s, r)));
+    const niceHits = userSkills.filter(
+      (s) => !required.some((r) => userSkillTouchesCatalogSkill(s, r)) && nice.some((n) => userSkillTouchesCatalogSkill(s, n))
+    );
+    const matchedHits = userSkills.filter((s) =>
+      matched.some((m) => userSkillTouchesCatalogSkill(s, m)) ||
+      required.some((r) => userSkillTouchesCatalogSkill(s, r)) ||
+      nice.some((n) => userSkillTouchesCatalogSkill(s, n))
+    );
     const specificityHits = userSkills.filter((s) => isSpecificSkillToken(s));
     const broadHits = userSkills.filter((s) => BROAD_COMMON_SKILLS.has(s));
     const titleNorm = normalizeToken(row?.canonical_title || "");
@@ -184,8 +205,17 @@ function rerankStructuredResults(rows, normalizedSkills) {
       )
     );
 
-    const requiredMissPenalty = requiredHits.length === 0 ? 0.14 : 0;
-    const adjusted = Math.max(0, Math.min(1, rankScore - requiredMissPenalty));
+    const userTouchesRequired =
+      required.length === 0 || userSkills.some((s) => required.some((r) => userSkillTouchesCatalogSkill(s, r)));
+    const requiredMissPenalty = !userTouchesRequired ? 0.14 : 0;
+    const ownAdj = ownershipScoreAdjustments(row, ownershipCtx, {
+      requiredHitCount: requiredHits.length,
+      niceHitCount: niceHits.length
+    });
+    const adjusted = Math.max(
+      0,
+      Math.min(1, rankScore + ownAdj.boost - ownAdj.penalty - requiredMissPenalty)
+    );
 
     return {
       ...row,
@@ -202,7 +232,8 @@ function rerankStructuredResults(rows, normalizedSkills) {
         noisyFamilyHit,
         distributedMismatchSuppression,
         requiredHits: requiredHits.length,
-        niceHits: niceHits.length
+        niceHits: niceHits.length,
+        ownership: { boost: ownAdj.boost, penalty: ownAdj.penalty, rules: ownershipCtx?.ruleIds || [] }
       }
     };
   });
@@ -216,108 +247,17 @@ function rerankStructuredResults(rows, normalizedSkills) {
 
 async function fallbackDeterministicSkillSearch(sb, { canonicalSkillIds, normalizedSkills, selectedDepartment, limitCount, currency }) {
   if (!canonicalSkillIds.length) return { results: [], debug: { fallbackUsed: true, reason: "no_canonical_skills" } };
-
-  const [{ data: roleSkillsRows, error: roleSkillsErr }, { data: skillsRows, error: skillsErr }, { data: rolesRows, error: rolesErr }, { data: aliasesRows, error: aliasesErr }, { data: levelsRows, error: levelsErr }] =
-    await Promise.all([
-      sb.from("role_skills").select("role_id, skill_id, importance, weight"),
-      sb.from("skills_v2").select("id, canonical_name"),
-      sb.from("roles_v2").select("id, canonical_title, role_family, hint, active").eq("active", true),
-      sb.from("role_aliases").select("role_id, alias"),
-      sb.from("role_levels_valid").select("role_id, level_code, min_exp, max_exp")
-    ]);
-
-  if (roleSkillsErr) throw new Error(roleSkillsErr.message || "role_skills fallback query failed");
-  if (skillsErr) throw new Error(skillsErr.message || "skills_v2 fallback query failed");
-  if (rolesErr) throw new Error(rolesErr.message || "roles_v2 fallback query failed");
-  if (aliasesErr) throw new Error(aliasesErr.message || "role_aliases fallback query failed");
-  if (levelsErr) throw new Error(levelsErr.message || "role_levels_valid fallback query failed");
-
-  const skillNameById = new Map((skillsRows || []).map((s) => [s.id, String(s.canonical_name || "").toLowerCase()]));
-  const matchedSkillSet = new Set(canonicalSkillIds);
-  const roleSkillsByRole = new Map();
-  for (const rs of roleSkillsRows || []) {
-    const list = roleSkillsByRole.get(rs.role_id) || [];
-    list.push(rs);
-    roleSkillsByRole.set(rs.role_id, list);
-  }
-  const aliasesByRole = new Map();
-  for (const a of aliasesRows || []) {
-    const list = aliasesByRole.get(a.role_id) || [];
-    if (a.alias) list.push(String(a.alias));
-    aliasesByRole.set(a.role_id, list);
-  }
-  const levelsByRole = new Map();
-  for (const l of levelsRows || []) {
-    const list = levelsByRole.get(l.role_id) || [];
-    list.push(l);
-    levelsByRole.set(l.role_id, list);
-  }
-
-  const rows = (rolesRows || [])
-    .filter((r) => !selectedDepartment || String(r.role_family || "").toLowerCase() === String(selectedDepartment).toLowerCase())
-    .map((role) => {
-      const roleSkills = roleSkillsByRole.get(role.id) || [];
-      if (!roleSkills.length) return null;
-      const totalWeight = roleSkills.reduce((s, x) => s + Number(x.weight || 1), 0);
-      const matchedRows = roleSkills.filter((x) => matchedSkillSet.has(x.skill_id));
-      if (!matchedRows.length) return null;
-      const matchedWeight = matchedRows.reduce((s, x) => s + Number(x.weight || 1), 0);
-      const weightedOverlap = totalWeight > 0 ? matchedWeight / totalWeight : 0;
-      const coverage = normalizedSkills.length > 0 ? matchedRows.length / normalizedSkills.length : 0;
-      const score = Math.min(1, weightedOverlap * 0.75 + coverage * 0.25);
-      const requiredRows = roleSkills.filter((x) => x.importance === "required");
-      const gthRows = roleSkills.filter((x) => x.importance === "good_to_have");
-      const reqHit = requiredRows.filter((x) => matchedSkillSet.has(x.skill_id)).length;
-      const gthHit = gthRows.filter((x) => matchedSkillSet.has(x.skill_id)).length;
-      const levelList = levelsByRole.get(role.id) || [];
-      const level = levelList.find((x) => x.level_code === "L2") || levelList[0] || null;
-      const requiredSkills = requiredRows.map((x) => skillNameById.get(x.skill_id)).filter(Boolean);
-      const goodToHave = gthRows.map((x) => skillNameById.get(x.skill_id)).filter(Boolean);
-      const matchedSkills = matchedRows.map((x) => skillNameById.get(x.skill_id)).filter(Boolean);
-      const missingSkills = requiredRows
-        .filter((x) => !matchedSkillSet.has(x.skill_id))
-        .map((x) => skillNameById.get(x.skill_id))
-        .filter(Boolean);
-      return {
-        role_id: role.id,
-        canonical_title: role.canonical_title,
-        department_name: role.role_family || "General",
-        level_code: level?.level_code || "L2",
-        level_display:
-          level?.level_code === "L1" ? "Junior" : level?.level_code === "L2" ? "Mid" : level?.level_code === "L3" ? "Senior" : "Lead",
-        final_score: score,
-        confidence: mapConfidence(score),
-        hint: role.hint || "",
-        required_skills: requiredSkills,
-        good_to_have: goodToHave,
-        aliases: aliasesByRole.get(role.id) || [],
-        matched_skills: matchedSkills,
-        missing_skills: missingSkills,
-        matched_skill_count: matchedSkills.length,
-        missing_skill_count: missingSkills.length,
-        why_matched: `Deterministic weighted overlap. matched_weight=${matchedWeight.toFixed(2)}, total_weight=${totalWeight.toFixed(2)}, req_hit=${reqHit}, gth_hit=${gthHit}`,
-        semantic_terms: normalizedSkills,
-        percentile_25: null,
-        percentile_75: null,
-        benchmark_currency: (currency || "INR").toUpperCase(),
-        salary_display: "",
-        min_exp: level?.min_exp ?? null,
-        max_exp: level?.max_exp ?? null
-      };
-    })
-    .filter(Boolean)
-    .filter((r) => r.final_score >= 0.12)
-    .sort((a, b) => b.final_score - a.final_score || a.canonical_title.localeCompare(b.canonical_title))
-    .slice(0, Math.min(Math.max(1, limitCount || 10), 50));
-
+  const { results, debug } = await fetchSkillGraphRoleRows(sb, {
+    canonicalSkillIds,
+    normalizedSkills,
+    selectedDepartment,
+    limitCount,
+    currency,
+    minScore: 0.12
+  });
   return {
-    results: rows,
-    debug: {
-      fallbackUsed: true,
-      normalizedSkills,
-      canonicalSkillIdsCount: canonicalSkillIds.length,
-      candidateRoles: rows.length
-    }
+    results,
+    debug: { fallbackUsed: true, normalizedSkills, ...debug }
   };
 }
 
@@ -340,15 +280,41 @@ export async function skillSearchEngine(params) {
 
   const canonicalMap = new Map((canonicalSkillRows || []).map((r) => [String(r.canonical_name || "").toLowerCase(), r.id]));
   const aliasMap = new Map((aliasRows || []).map((r) => [String(r.alias || "").toLowerCase(), r.skill_id]));
-  const canonicalSkillIds = [...new Set(skillLookupTokens.map((t) => canonicalMap.get(t) || aliasMap.get(t)).filter(Boolean))];
+  const aliasIdx = buildSkillAliasIndexes(canonicalSkillRows || [], aliasRows || []);
+  const conceptResolution = resolveProfessionalConcepts(
+    [...normalizedSkills, normalizedQuery, String(params.rawQuery || "")].filter(Boolean),
+    aliasIdx
+  );
+  const enrichedQuery = [normalizedQuery, ...conceptResolution.resolvedCanonicalLower]
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const canonicalSkillIds = [
+    ...new Set([
+      ...skillLookupTokens.map((t) => canonicalMap.get(t) || aliasMap.get(t)).filter(Boolean),
+      ...conceptResolution.resolvedSkillIds
+    ])
+  ];
+
+  const dbOwnership = await fetchOwnershipFamiliesFromSkillIds(sb, canonicalSkillIds);
+  const ownershipPhrase = resolveOwnershipContext(
+    [enrichedQuery, ...normalizedSkills].filter(Boolean).join(" "),
+    []
+  );
+  const ownershipMerged = mergePhraseAndDbOwnership(ownershipPhrase, dbOwnership);
 
   if (shouldLogDebug) {
     console.info("[skillSearchEngine] normalized skills", normalizedSkills);
+    console.info("[skillSearchEngine] enriched query", enrichedQuery);
+    console.info("[skillSearchEngine] concept resolution", conceptResolution);
     console.info("[skillSearchEngine] canonical skill ids", canonicalSkillIds);
+    console.info("[skillSearchEngine] ownership merge", ownershipMerged);
   }
 
   const { data, error } = await sb.rpc("search_roles_v3", {
-    input_text: normalizedQuery,
+    input_text: enrichedQuery,
     selected_department: params.selectedDepartment || null,
     currency: params.currency || "INR",
     limit_count: params.limitCount || 10
@@ -360,7 +326,29 @@ export async function skillSearchEngine(params) {
     console.info("[skillSearchEngine] rpc candidate count", rpcResults.length);
   }
 
-  let finalResults = rerankStructuredResults(rpcResults, normalizedSkills);
+  let skillGraphDebug = null;
+  let mergedPreRank = rpcResults;
+  if (canonicalSkillIds.length) {
+    const graphPack = await fetchSkillGraphRoleRows(sb, {
+      canonicalSkillIds,
+      normalizedSkills,
+      selectedDepartment: params.selectedDepartment || null,
+      limitCount: params.limitCount || 10,
+      currency: params.currency || "INR",
+      minScore: 0.06
+    });
+    skillGraphDebug = graphPack.debug;
+    mergedPreRank = mergeRpcAndGraphCandidates(rpcResults, graphPack.results);
+    if (shouldLogDebug) {
+      console.info("[skillSearchEngine] skill graph candidates", graphPack.results.length, "merged", mergedPreRank.length);
+    }
+  }
+
+  let finalResults = rerankStructuredResults(mergedPreRank, normalizedSkills, {
+    normalizedQuery: enrichedQuery,
+    dbCanonicalExtras: conceptResolution.resolvedCanonicalLower,
+    ownershipCtx: ownershipMerged
+  });
   let fallbackDebug = null;
   if (!finalResults.length) {
     const fallback = await fallbackDeterministicSkillSearch(sb, {
@@ -370,7 +358,11 @@ export async function skillSearchEngine(params) {
       limitCount: params.limitCount || 10,
       currency: params.currency || "INR"
     });
-    finalResults = rerankStructuredResults(fallback.results, normalizedSkills);
+    finalResults = rerankStructuredResults(fallback.results, normalizedSkills, {
+      normalizedQuery: enrichedQuery,
+      dbCanonicalExtras: conceptResolution.resolvedCanonicalLower,
+      ownershipCtx: ownershipMerged
+    });
     fallbackDebug = fallback.debug;
   }
 
@@ -382,8 +374,15 @@ export async function skillSearchEngine(params) {
 
   const debug = {
     normalizedSkills,
-    expandedSkillTokens: expandSkillAliases(normalizeList(normalizedSkills || [])),
+    enrichedQuery,
+    resolvedCanonicals: conceptResolution.resolvedCanonicalLower,
+    expandedSkillTokens: expandSkillAliases(
+      normalizeList([...normalizedSkills, ...conceptResolution.resolvedCanonicalLower])
+    ),
     canonicalSkillIds,
+    ownershipMerged,
+    skillGraphRetrieval: skillGraphDebug,
+    mergedPreRankCount: mergedPreRank.length,
     rpcCandidateCount: rpcResults.length,
     matchedRoleSkillsRows,
     finalCandidateCount: finalResults.length,
@@ -393,7 +392,9 @@ export async function skillSearchEngine(params) {
         const req = normalizeList(r?.required_skills || []);
         const nice = normalizeList(r?.good_to_have || []);
         const matched = normalizeList(r?.matched_skills || []);
-        const input = expandSkillAliases(normalizeList(normalizedSkills || []));
+        const input = expandSkillAliases(
+          normalizeList([...normalizedSkills, ...conceptResolution.resolvedCanonicalLower])
+        );
         const reqHits = input.filter((s) => req.includes(s));
         const niceHits = input.filter((s) => !req.includes(s) && nice.includes(s));
         return {
@@ -413,7 +414,7 @@ export async function skillSearchEngine(params) {
 
   return {
     workflowType: "structured",
-    normalizedQuery,
+    normalizedQuery: enrichedQuery,
     detectedSkills: normalizedSkills,
     inferredRoleIds: finalResults.map((r) => r?.role_id).filter(Boolean),
     results: finalResults,

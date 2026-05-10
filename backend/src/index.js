@@ -15,6 +15,9 @@ import { getSupabaseAdmin } from "./supabaseClient.js";
 const app = express();
 const isProduction = process.env.NODE_ENV === "production";
 
+/** Honor X-Forwarded-For on hosts like Render for rate limiting and logs. */
+app.set("trust proxy", 1);
+
 function validateRuntimeConfig() {
   const required = ["SUPABASE_URL"];
   const hasService = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -120,6 +123,7 @@ app.use((err, req, res, next) => {
       JSON.stringify({
         level: "warn",
         event: "cors_blocked",
+        request_id: req.requestId || null,
         origin: req.headers.origin || null,
         path: req.originalUrl
       })
@@ -130,6 +134,7 @@ app.use((err, req, res, next) => {
     JSON.stringify({
       level: "error",
       event: "unhandled_http_error",
+      request_id: req.requestId || null,
       message: err?.message || String(err),
       path: req.originalUrl
     })
@@ -166,7 +171,8 @@ process.on("uncaughtException", (err) => {
     JSON.stringify({
       level: "error",
       event: "uncaught_exception",
-      message: err?.message || String(err)
+      message: err?.message || String(err),
+      stack: isProduction ? undefined : err?.stack
     })
   );
 });
@@ -176,7 +182,8 @@ process.on("unhandledRejection", (reason) => {
     JSON.stringify({
       level: "error",
       event: "unhandled_rejection",
-      message: reason?.message || String(reason)
+      message: reason?.message || String(reason),
+      stack: isProduction ? undefined : reason?.stack
     })
   );
 });

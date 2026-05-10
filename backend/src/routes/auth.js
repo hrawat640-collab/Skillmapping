@@ -2,10 +2,11 @@ import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { getSupabaseAdmin } from "../supabaseClient.js";
+import { authLoginLimiter, authRegisterLimiter } from "../middleware/rateLimit.js";
 
 const router = express.Router();
 
-router.post("/register", async (req, res) => {
+router.post("/register", authRegisterLimiter, async (req, res) => {
   const { name, email, password } = req.body;
   if (!name || !email || !password) {
     return res.status(400).json({ error: "Missing required fields" });
@@ -23,7 +24,18 @@ router.post("/register", async (req, res) => {
     .select("id")
     .eq("email", normalizedEmail)
     .limit(1);
-  if (existsErr) return res.status(500).json({ error: existsErr.message || "User lookup failed" });
+  if (existsErr) {
+    console.error(
+      JSON.stringify({
+        level: "error",
+        event: "supabase_query_failed",
+        request_id: req.requestId || null,
+        route: "auth_register_lookup",
+        message: existsErr.message || "User lookup failed"
+      })
+    );
+    return res.status(500).json({ error: existsErr.message || "User lookup failed" });
+  }
   if (Array.isArray(existsRows) && existsRows.length) {
     return res.status(409).json({ error: "User already exists" });
   }
@@ -34,7 +46,18 @@ router.post("/register", async (req, res) => {
     .insert({ name: String(name || "").trim(), email: normalizedEmail, password_hash: passwordHash })
     .select("id, name, email")
     .single();
-  if (insertErr) return res.status(500).json({ error: insertErr.message || "User create failed" });
+  if (insertErr) {
+    console.error(
+      JSON.stringify({
+        level: "error",
+        event: "supabase_query_failed",
+        request_id: req.requestId || null,
+        route: "auth_register_insert",
+        message: insertErr.message || "User create failed"
+      })
+    );
+    return res.status(500).json({ error: insertErr.message || "User create failed" });
+  }
 
   const token = jwt.sign({ sub: inserted.id, email: inserted.email }, process.env.JWT_SECRET, {
     expiresIn: "7d"
@@ -42,7 +65,7 @@ router.post("/register", async (req, res) => {
   res.json({ token, user: { id: inserted.id, name: inserted.name, email: inserted.email } });
 });
 
-router.post("/login", async (req, res) => {
+router.post("/login", authLoginLimiter, async (req, res) => {
   const { email, password } = req.body;
   const sb = getSupabaseAdmin();
   if (!sb) {
@@ -56,7 +79,18 @@ router.post("/login", async (req, res) => {
     .select("id, name, email, password_hash")
     .eq("email", normalizedEmail)
     .maybeSingle();
-  if (userErr) return res.status(500).json({ error: userErr.message || "User lookup failed" });
+  if (userErr) {
+    console.error(
+      JSON.stringify({
+        level: "error",
+        event: "supabase_query_failed",
+        request_id: req.requestId || null,
+        route: "auth_login_lookup",
+        message: userErr.message || "User lookup failed"
+      })
+    );
+    return res.status(500).json({ error: userErr.message || "User lookup failed" });
+  }
   if (!user) return res.status(401).json({ error: "Invalid credentials" });
 
   const ok = await bcrypt.compare(password || "", user.password_hash || "");
