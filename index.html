@@ -12,6 +12,15 @@
 <script src="supabase-config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
+/* Production API host (Render). Injected before any smResolveApiBaseUrl / fetch usage. Local dev: hostname localhost/127.0.0.1/"" skips this so localhost:5001 still works. */
+var SM_STABLE_PRODUCTION_API_BASE = 'https://skillmapping.onrender.com';
+(function(){
+  var h = String(window.location && window.location.hostname || '').toLowerCase();
+  var isLocalDev = h === 'localhost' || h === '127.0.0.1' || h === '';
+  if(isLocalDev) return;
+  window.__SKILLMAPPER_API_BASE_URL__ = SM_STABLE_PRODUCTION_API_BASE;
+  window.SKILLMAPPER_API_BASE_URL = SM_STABLE_PRODUCTION_API_BASE;
+})();
 (function(){
   var cfg = window.__SKILLMAPPER_SUPABASE__ || {};
   var url = (cfg.url || '').trim();
@@ -66,8 +75,8 @@ function smResolveApiBaseUrl(){
   if(isLocal){
     return 'http://localhost:5001';
   }
-  // Production-safe fallback: same-origin only, never localhost.
-  return String(window.location.origin || '').replace(/\/+$/,'');
+  // Production: always use Render API — never same-origin (Netlify/static) or accidental HTML responses.
+  return typeof SM_STABLE_PRODUCTION_API_BASE !== 'undefined' ? SM_STABLE_PRODUCTION_API_BASE : 'https://skillmapping.onrender.com';
 }
 const API_BASE_URL = smResolveApiBaseUrl();
 var DB_ROLES  = [];
