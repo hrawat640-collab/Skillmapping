@@ -1771,7 +1771,7 @@ function smSignOut(){
       </button>
     </div>
     <div class="mode-pane" id="pane-nl">
-      <textarea class="nl-textarea" id="nlInput" autocomplete="off" placeholder="e.g. I need someone to manage our Salesforce CRM and automate our sales workflows&#10;or: we want to grow our product on social media and run paid campaigns&#10;or: need a backend developer who can build APIs and handle our cloud infra" rows="3"></textarea>
+      <textarea class="nl-textarea" id="nlInput" autocomplete="off" placeholder="Describe the responsibilities, tools, or outcomes you need." rows="3"></textarea>
       <div class="nudge-banner" id="nudgeBanner"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2L14.9 14H1.1L8 2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 7v3M8 11.5v.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg><span id="nudgeText">We couldn't find a match for that.</span></div>
       <div style="display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap;">
         <button class="btn-find" onclick="runNL()"><svg viewBox="0 0 16 16" fill="none"><path d="M13 8H3M8 3l5 5-5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Find matching roles</button>
@@ -2685,7 +2685,7 @@ function switchMode(mode,btn,modeOpts){
   document.getElementById('nlInput').value='';document.getElementById('mainInput').value='';document.getElementById('titleModeInput').value='';
   currentMode=mode;document.querySelectorAll('.mode-tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.mode-pane').forEach(p=>p.classList.remove('active'));
   btn.classList.add('active');document.getElementById('pane-'+mode).classList.add('active');
-  if(mode==='nl')document.getElementById('nlInput').focus();
+  if(mode==='nl'){const nlx=document.getElementById('nlExamples');if(nlx)nlx.style.display='';document.getElementById('nlInput').focus();}
   else if(mode==='title'){window._aiTopRoles=[];if(!mo.skipTitleInputFocus){setTimeout(function(){const ti=document.getElementById('titleModeInput');if(ti)ti.focus();},0);}}
   else{window._aiTopRoles=[];document.getElementById('mainInput').focus();}
 }
@@ -2771,6 +2771,7 @@ async function runGeminiNlRoleSuggestion(query){
 async function runNL(){
   const query=document.getElementById('nlInput').value.trim();if(!query){document.getElementById('nlInput').focus();return;}
   smTrackEvent('nl_search_run',{query_len:query.length});
+  const nlxHide=document.getElementById('nlExamples');if(nlxHide)nlxHide.style.display='none';
   const nudge=document.getElementById('nudgeBanner');nudge.classList.remove('show');
   skills=[];activeDept='all';window._aiTopRoles=[];renderBubbles();
   let testRoles=[];
@@ -2794,16 +2795,10 @@ async function runNL(){
   skills=inferredFromBackend;renderBubbles();
   nudge.classList.remove('show');document.getElementById('deptFilter').style.display='none';const _cb=document.getElementById('currencyBar');if(_cb)_cb.style.display='none';
   const banner=document.getElementById('aiBanner');
-  if(inferredFromBackend.length){
-    const shown=inferredFromBackend.slice(0,5).map(function(s){return _escapeHtml(s);}).join(', ');
-    const more=inferredFromBackend.length>5?' +'+(inferredFromBackend.length-5)+' more':'';
-    document.getElementById('aiBannerText').innerHTML=`Skills we matched from your description: <strong>${shown}${more}</strong>`;
-    banner.classList.add('show');
-  }else{
-    document.getElementById('aiBannerText').textContent='';
-    banner.classList.remove('show');
-  }
-  document.getElementById('skillCountLbl').textContent=inferredFromBackend.length?`${inferredFromBackend.length} skills found`:'';const _nlCount=testRoles.length;logSearch('nl',query,_nlCount,false);logNlSearchOutcome(query,'success',_nlCount,false);render();
+  document.getElementById('aiBannerText').textContent='';
+  banner.classList.remove('show');
+  document.getElementById('skillCountLbl').textContent='';
+  const _nlCount=testRoles.length;logSearch('nl',query,_nlCount,false);logNlSearchOutcome(query,'success',_nlCount,false);render();
 }
 
 
@@ -2963,7 +2958,7 @@ function showOrchestratedResultsSkeleton(kind){
   const area=document.getElementById('resultsArea');
   const deptFilter=document.getElementById('deptFilter');
   if(deptFilter)deptFilter.style.display='none';
-  const sub=kind==='intent'?'From your description':'From your skills';
+  const sub=kind==='intent'?'Finding roles from your description':'From your skills';
   const oneSkel='<div class="rc-skel-card"><div style="padding:16px 20px 14px;"><div class="rc-skel-line" style="width:38%;height:10px;margin-bottom:14px;"></div><div class="rc-skel-line" style="width:72%;margin-bottom:10px;"></div><div class="rc-skel-line" style="width:88%;height:9px;margin-bottom:8px;"></div><div class="rc-skel-line" style="width:52%;height:9px;"></div></div><div style="padding:14px 20px 18px;border-top:1px solid var(--border);background:#FAFBFC;"><div class="rc-skel-line" style="width:50%;height:9px;margin-bottom:12px;"></div><div class="rc-skel-line" style="width:92%;height:8px;margin-bottom:8px;"></div><div class="rc-skel-line" style="width:78%;height:8px;margin-bottom:8px;"></div><div class="rc-skel-line" style="width:64%;height:8px;"></div></div></div>';
   const skels=[0,1,2,3,4].map(function(){return oneSkel;}).join('');
   area.innerHTML='<div class="results-header"><div class="results-title">Finding matching roles…</div><div style="display:flex;align-items:center;gap:10px;"><div class="results-count">'+sub+'</div></div></div><div class="result-grid">'+skels+'</div>';
@@ -3082,7 +3077,8 @@ function render(){
     });
   }).join('');
   const matchNote=(activeDept!=='all'&&results.length>filtered.length)?`<div class="info-strip"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.4"/></svg>Showing <strong>${activeDept}</strong> roles only · <button onclick="filterDept('all')" style="background:none;border:none;color:var(--teal);cursor:pointer;font-size:13px;padding:0;font-weight:600;">Show all ${results.length} →</button></div>`:'';
-  area.innerHTML=`<div class="results-header"><div class="results-title">${results.length} matching role${results.length!==1?'s':''}</div><div style="display:flex;align-items:center;gap:10px;"><div class="results-count">${skills.length} skill${skills.length!==1?'s':''} entered</div><button onclick="clearAndTryAgain()" style="padding:4px 10px;background:transparent;border:1.5px solid var(--border);border-radius:20px;font-size:11.5px;font-weight:600;color:var(--ink3);cursor:pointer;font-family:var(--sans);">&#x21A9; New search</button></div></div>${matchNote}<div class="result-grid">${html}</div>`;
+  const resultsCountHtml=currentMode==='nl'?'':`<div class="results-count">${skills.length} skill${skills.length!==1?'s':''} entered</div>`;
+  area.innerHTML=`<div class="results-header"><div class="results-title">${results.length} matching role${results.length!==1?'s':''}</div><div style="display:flex;align-items:center;gap:10px;">${resultsCountHtml}<button onclick="clearAndTryAgain()" style="padding:4px 10px;background:transparent;border:1.5px solid var(--border);border-radius:20px;font-size:11.5px;font-weight:600;color:var(--ink3);cursor:pointer;font-family:var(--sans);">&#x21A9; New search</button></div></div>${matchNote}<div class="result-grid">${html}</div>`;
   const bar=document.getElementById('currencyBar');if(bar)bar.style.display='flex';
   const _logQ=currentMode==='nl'?String(window._lastSearchInput||'').trim():skills.join(', ');
   const _logMode=currentMode==='nl'?'nl':'skills';
@@ -3334,7 +3330,7 @@ function showSorryState(query,opts){
   const suggestions='<ul class="sorry-hints"><li>Add one core skill at a time (for example Figma, Python, SQL).</li><li>Switch to <strong>Describe</strong> and add context: team, product, or industry.</li><li>Try <strong>Search by title</strong> if you already know the role name.</li></ul>';
   area.innerHTML='<div class="sorry-state"><div class="sorry-icon calm" aria-hidden="true">&#x1F50D;</div><div class="sorry-title">No strong matches yet</div><div class="sorry-sub">For <strong>"'+_escapeHtml(q.slice(0,72))+(q.length>72?'…':'')+'"</strong></div>'+hintBlock+suggestions+'<div class="sorry-actions"><a class="btn-report" href="mailto:'+reportEmail+'?subject='+subject+'&body='+body+'" target="_blank" rel="noopener"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 4h12v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4z" stroke="currentColor" stroke-width="1.4"/><path d="M2 4l6 5 6-5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Email the team</a><button type="button" class="btn-try-again" onclick="clearAndTryAgain()">&#x21A9; Start over</button></div></div>';
 }
-function clearAndTryAgain(){skills=[];window._aiTopRoles=[];renderBubbles();document.getElementById('nudgeBanner')?.classList.remove('show');document.getElementById('aiBanner').classList.remove('show');document.getElementById('deptFilter').style.display='none';const _cb=document.getElementById('currencyBar');if(_cb)_cb.style.display='none';const fp=document.getElementById('floatingPanda');if(fp)fp.style.display=(isSalaryPromptEligible()&&!isSalaryUnlocked())?'block':'none';document.getElementById('resultsArea').innerHTML=`<div class="empty-state"><div class="empty-icon" style="font-size:36px;margin-bottom:10px;">&#x1F3AF;</div><div class="empty-title">Start above to see role matches</div><div class="empty-sub">Type skills, search by title, or describe what you need.</div></div>`;document.getElementById('nlInput').value='';document.getElementById('mainInput').value='';const am=document.querySelector('.mode-tab.active');if(am&&am.textContent.includes('Describe'))document.getElementById('nlInput').focus();else document.getElementById('mainInput').focus();}
+function clearAndTryAgain(){skills=[];window._aiTopRoles=[];renderBubbles();document.getElementById('nudgeBanner')?.classList.remove('show');const _ab=document.getElementById('aiBanner');if(_ab)_ab.classList.remove('show');const _abt=document.getElementById('aiBannerText');if(_abt)_abt.textContent='';document.getElementById('deptFilter').style.display='none';const _cb=document.getElementById('currencyBar');if(_cb)_cb.style.display='none';const fp=document.getElementById('floatingPanda');if(fp)fp.style.display=(isSalaryPromptEligible()&&!isSalaryUnlocked())?'block':'none';const nlxReset=document.getElementById('nlExamples');if(nlxReset)nlxReset.style.display='';document.getElementById('resultsArea').innerHTML=`<div class="empty-state"><div class="empty-icon" style="font-size:36px;margin-bottom:10px;">&#x1F3AF;</div><div class="empty-title">Start above to see role matches</div><div class="empty-sub">Type skills, search by title, or describe what you need.</div></div>`;document.getElementById('nlInput').value='';document.getElementById('mainInput').value='';const am=document.querySelector('.mode-tab.active');if(am&&am.textContent.includes('Describe'))document.getElementById('nlInput').focus();else document.getElementById('mainInput').focus();}
 function selectLevel(btn){const lvl=btn.dataset.lvl;if(isSalaryPromptEligible()&&lvl!=='junior'&&!isSalaryUnlocked()){showSalaryContrib(btn);return;}applySelectLevel(btn);}
 function applySelectLevel(btn){const cardId=btn.dataset.card;const yrsMin=btn.dataset.min;const yrsMax=btn.dataset.max;const sal=btn.dataset.sal;const group=document.getElementById(cardId);if(group){group.querySelectorAll('.sal-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}const el=document.getElementById(cardId+'_sal');if(!el)return;el.innerHTML=_formatSalDisplayLine(yrsMin,yrsMax,sal);if(typeof maybeSoftSalaryReprompt==='function')maybeSoftSalaryReprompt('seniority');try{smTrackEvent('seniority_changed',{level:String(btn&&btn.dataset&&btn.dataset.lvl||''),card_id:String(btn&&btn.dataset&&btn.dataset.card||''),page:'/skillmapper'});}catch(e){}}
 function toggleCurrency(cur){
