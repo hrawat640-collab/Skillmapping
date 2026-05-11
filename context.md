@@ -1,6 +1,6 @@
 # Skillmapping — System Context (`context.md`)
 
-This document summarizes the repository for onboarding. It reflects the codebase layout as of the latest inspection.
+This document summarizes the repository for onboarding. It reflects the codebase as of the latest inspection (orchestrated role search, Supabase-backed `backend/`, semantic metadata tooling).
 
 ---
 
@@ -8,14 +8,14 @@ This document summarizes the repository for onboarding. It reflects the codebase
 
 This repository contains **two parallel deliverables**:
 
-1. **SkillMapper (production focus)** — A large **single-page application** served from the repo root as **`index.html`**. It maps skills and job titles to roles (with salary hints), supports natural-language search, CV evaluation UX, login/profile flows, salary contributions, feedback, and analytics-style logging. **Primary persistence is PostgreSQL via Supabase**, with client-side JavaScript talking directly to Supabase using the anon/publishable key and **RLS policies**.
+1. **SkillMapper (production focus)** — A large **single-page application** served from the repo root as **`index.html`**. It maps skills and job titles to roles (with salary hints), supports natural-language search, CV evaluation UX, login/profile flows, salary contributions, feedback, and analytics-style logging. **Primary persistence is PostgreSQL via Supabase**, with RLS for browser clients. **Role search** can call a small **Node + Express API** (`backend/`) that uses the **Supabase service role** to run RPCs and server-side ranking (`POST /api/search-roles-orchestrated`), configured via **`API_BASE_URL`** in `index.html`.
 
-2. **CV Evaluation SaaS scaffold (secondary / optional)** — A separate **three-tier stack** documented in `README.md`:
-   - **`frontend/`** — React + Vite dashboard calling a REST API.
-   - **`backend/`** — Node.js + Express API with JWT auth, MongoDB (Mongoose), PDF upload, and delegation to a Python microservice.
-   - **`python-service/`** — FastAPI service for PDF text extraction and NLP-style scoring.
+2. **CV Evaluation path (optional React + Python)** — Documented in `README.md`:
+   - **`frontend/`** — React + Vite dashboard calling the Express API.
+   - **`backend/`** — Node.js + Express: JWT auth against **`sm_users`** in Supabase, CV evaluation that loads **`roles_v2`**, **`role_skills`**, **`skills_v2`**, **`role_semantic_metadata`** from Supabase then **`POST`**s to the Python service.
+   - **`python-service/`** — FastAPI service for PDF text extraction and scoring.
 
-Per `README.md`, **Netlify publishes the repo root** (`netlify.toml`) so **`index.html` is the primary production path**; the React app is explicitly marked optional.
+Per `README.md`, **Netlify publishes the repo root** (`netlify.toml`) so **`index.html` is the primary production path**; the React app is explicitly marked optional. The **`backend/`** service is deployed separately (e.g. Render) when orchestrated search or protected evaluate flows are used.
 
 ---
 
@@ -24,18 +24,18 @@ Per `README.md`, **Netlify publishes the repo root** (`netlify.toml`) so **`inde
 | Layer | Technology | Where used |
 |--------|------------|------------|
 | **Primary UI** | HTML5, CSS, vanilla JavaScript | Root `index.html` |
-| **Primary DB** | **PostgreSQL** (Supabase-hosted) | SkillMapper data: users, roles, logs, salary, events, etc. |
-| **Auth (SkillMapper)** | Google Identity Services (GIS), email flows, Supabase tables/RPC | Root `index.html` |
+| **Primary DB** | **PostgreSQL** (Supabase-hosted) | `roles_v2`, `skills_v2`, `skill_aliases`, `role_skills`, `role_semantic_metadata`, `sm_users`, logs, RPCs (`search_roles_v3`, `search_roles_intent_v1`, …) |
+| **Auth (SkillMapper + API)** | Google Identity Services (GIS), email flows, JWT for API; **`sm_users`** in Supabase | `index.html`, `backend/src/routes/auth.js` |
+| **Orchestrated search API** | Express, `@supabase/supabase-js` (service role), rate limits | `backend/src/routes/searchRoles.js`, `backend/src/services/search/*` |
 | **Analytics** | Google Analytics (gtag) | Root `index.html` |
 | **AI / search assist** | Google Gemini REST API, optional Supabase RPC for quota | Root `index.html` |
 | **Optional search** | Google Custom Search Engine (config placeholders) | `supabase-config*.js` |
 | **Secondary UI** | React 18, Vite 5, Tailwind CSS 3, Recharts, jsPDF | `frontend/` |
 | **Secondary API** | Node.js, Express 4, Multer, JWT, bcryptjs, Axios | `backend/` |
-| **Secondary DB** | **MongoDB** via Mongoose | `backend/` |
 | **CV processing** | FastAPI, PyMuPDF, pdfplumber, sentence-transformers (optional), spaCy | `python-service/` |
-| **Hosting (documented)** | Netlify (root SPA + optional frontend build), Vercel (backend) | `netlify.toml`, `frontend/netlify.toml`, `backend/vercel.json` |
+| **Hosting (documented)** | Netlify (root SPA + optional frontend build), Vercel/Render (backend) | `netlify.toml`, `frontend/netlify.toml`, `backend/vercel.json` |
 
-**Not used as primary DB for SkillMapper:** MySQL is not present; NoSQL appears only in the optional **`backend`** MongoDB path.
+**Note:** The current **`backend/`** tree uses **Supabase** for users and role data in evaluate flows; it does **not** require MongoDB for those paths. Older README references to Mongoose/Mongo may describe a prior scaffold.
 
 ---
 
@@ -45,41 +45,52 @@ Per `README.md`, **Netlify publishes the repo root** (`netlify.toml`) so **`inde
 
 | Component | Responsibility |
 |-----------|----------------|
-| **`index.html`** | Entire UI, styling, client routing/tabs, role matching, NL/title/skills modes, login modals, salary modal, onboarding tour, CV evaluation flow, Supabase reads/writes, event tracking helpers. |
-| **`supabase-config.js`** | Injected globals for Supabase URL/key and optional Google CSE settings (browser-visible by design; protect data with RLS). |
-| **`supabase-config.example.js`** | Template for local/production configuration without committing secrets. |
+| **`index.html`** | Entire UI, styling, tabs, role matching, NL / title / skills modes, orchestrated search via **`runServerRoleSearch`** → **`API_BASE_URL/api/search-roles-orchestrated`**, login modals, salary modal, onboarding, CV evaluation, Supabase client usage, event tracking. Results with **`final_score` → `score`** mapping; rows with **`score === 0`** are hidden in `render()`. |
+| **`supabase-config.js`** | Injected globals for Supabase URL/key (browser; protect with RLS). |
+| **`supabase-config.example.js`** | Template without secrets. |
 | **`netlify.toml`** | Static publish from `.` and SPA fallback to `/index.html`. |
 
-### B. CV Evaluation SaaS — `frontend/` + `backend/` + `python-service/`
+### B. SkillMapper — orchestrated role search (`backend/src/services/search/`)
+
+Server-side search **does not add a new semantic architecture**: it connects existing tables (`skills_v2`, `skill_aliases`, `role_skills`, `roles_v2`, `role_semantic_metadata`, `role_aliases`) into normalization, retrieval, and reranking.
+
+| Module | Responsibility |
+|--------|----------------|
+| **`routeSearchRequest.js`** | Chooses workflow: **structured** (skills), **title** (short query), **intent** / **describe** (longer NL). Dedupes across workflows, optional shadow scoring debug, **`search_query_logs`**. |
+| **`skillSearchEngine.js`** | Loads aliases → **`resolveProfessionalConcepts`** → enriched query → **`search_roles_v3`** RPC → merges **`fetchSkillGraphRoleRows`** ( **`role_skills`** traversal for resolved skill IDs) → **`rerankStructuredResults`** (required/nice alignment uses **phrase/token overlap**, not only exact string equality, so e.g. “marketing automation” can align to “email marketing”). |
+| **`skillGraphRetrieval.js`** | **`fetchSkillGraphRoleRows`**: deterministic candidates from **`role_skills`** for canonical skill IDs; **`mergeRpcAndGraphCandidates`** unions RPC + graph rows before rerank. |
+| **`skillAliasResolution.js`** | **`buildSkillAliasIndexes`**, **`resolveProfessionalConcepts`** (n-grams), **`fetchOwnershipFamiliesFromSkillIds`** ( **`role_skills` → `roles_v2.role_family`** ). |
+| **`ownershipFamilySignals.js`** | Phrase rules + **`mergePhraseAndDbOwnership`**; boosts/penalties in structured/title/intent rerank. |
+| **`titleSearchEngine.js`** | In-memory title/alias scoring over **`roles_v2`** + **`role_aliases`** + **`role_skills`**; same alias resolution and graph boost when skills resolve. |
+| **`semanticIntentEngine.js`** | **`search_roles_intent_v1`** with intent input enriched by resolved canonicals; merges skill-graph candidates when skill IDs resolve; intent priors + ownership merge. |
+
+**Supabase SQL (see `supabase/migrations/`):**
+
+- **`search_roles_v3`** — Token + multi-word skill/alias phrase match, title/alias overlap, **`role_skills`** hit ratios in SQL score.
+- **`search_roles_intent_v1`** — Intent-style retrieval using **`role_semantic_metadata`** and related signals.
+
+### C. Express API — `backend/src/` (shared)
 
 | Component | Responsibility |
 |-----------|----------------|
-| **`frontend/src/App.jsx`** | React UI: auth card, CV upload form, charts, PDF export trigger. |
-| **`frontend/src/main.jsx`** | Vite/React entry mount. |
-| **`frontend/src/api.js`** | Axios client with JWT header; targets `VITE_API_URL`. |
-| **`frontend/src/styles.css`** | Global styles for Vite app. |
-| **`frontend/index.html`** | Vite HTML shell. |
-| **`frontend/vite.config.js`** | Vite + React plugin; dev server port. |
-| **`frontend/package.json`** | Scripts and npm dependencies for SPA. |
-| **`frontend/tailwind.config.js`** | Tailwind configuration. |
-| **`frontend/postcss.config.js`** | PostCSS pipeline for Tailwind. |
-| **`frontend/netlify.toml`** | Build `npm run build`, publish `dist`, SPA redirects. |
-| **`frontend/.env.example`** | Documents `VITE_API_URL`. |
-| **`backend/src/index.js`** | Express app bootstrap: CORS, JSON, routes, Mongo connect, listens on `PORT`. |
-| **`backend/src/db.js`** | Mongoose `connect`. |
-| **`backend/src/routes/auth.js`** | Register/login; issues JWT. |
-| **`backend/src/routes/evaluate.js`** | Protected PDF upload → load keywords from Mongo → stub JD fetch → POST to Python `/process` → suggestions JSON response. |
-| **`backend/src/middleware/auth.js`** | Bearer JWT verification. |
-| **`backend/src/models/User.js`** | Mongoose user schema (email/password hash). |
-| **`backend/src/models/RoleKeyword.js`** | Role keyword buckets (`mustHave`, `niceToHave`). |
-| **`backend/src/services/jobs.js`** | Returns **sample** job descriptions (no paid jobs API). |
-| **`backend/src/services/suggestions.js`** | Rule-based improvement strings from missing keywords. |
-| **`backend/src/seed.js`** | Seeds `RoleKeyword` documents for demo roles. |
-| **`backend/package.json`** | Backend scripts (`dev`, `start`, `seed`) and dependencies. |
-| **`backend/vercel.json`** | Vercel serverless routing to `src/index.js`. |
-| **`backend/.env.example`** | Mongo URI, JWT secret, Python service URL. |
-| **`python-service/app.py`** | FastAPI app: `/process` extracts PDF text, scores keywords/experience/similarity, returns structured payload. |
-| **`python-service/requirements.txt`** | Python dependencies. |
+| **`index.js`** | Express bootstrap: CORS (allowlist + env origins), JSON, **`trust proxy`**, routes, config validation for Supabase env. |
+| **`supabaseClient.js`** | **`getSupabaseAdmin()`** — service role or anon key for server-side queries. |
+| **`routes/searchRoles.js`** | **`POST /api/search-roles-orchestrated`** — body: `workflow_type`, `input_text`, `skills`, `selected_department`, `currency`, `limit_count`; returns **array of role rows** for `index.html`. |
+| **`routes/auth.js`** | Register/login against **`sm_users`** (bcrypt + JWT). |
+| **`routes/evaluate.js`** | PDF upload → Supabase role + semantic + **`role_skills`** → Python **`/process`**. |
+| **`middleware/auth.js`** | JWT verification. |
+| **`middleware/rateLimit.js`** | Rate limits for search, auth, evaluate. |
+| **`services/jobs.js`**, **`services/suggestions.js`** | JD stubs / suggestion strings for evaluate pipeline. |
+| **`services/semantic/`**, **`services/semanticShadow/`**, **`src/scripts/*.js`** | Role semantic metadata generation, shadow bundle eval/replay — operational tooling, not required for basic search. |
+| **`seed.js`** | Legacy noop (“deprecated”). |
+
+### D. CV Evaluation UI — `frontend/` + `python-service/`
+
+| Component | Responsibility |
+|-----------|----------------|
+| **`frontend/src/App.jsx`** | React UI: auth, CV upload, charts. |
+| **`frontend/src/api.js`** | Axios + JWT to **`VITE_API_URL`**. |
+| **`python-service/app.py`** | **`/process`** — PDF scoring payload returned to Express. |
 
 ---
 
@@ -87,56 +98,65 @@ Per `README.md`, **Netlify publishes the repo root** (`netlify.toml`) so **`inde
 
 | Integration | Role |
 |-------------|------|
-| **Supabase** (`@supabase/supabase-js` via CDN) | PostgreSQL access, RPC (e.g. login tracking, quota hooks), inserts/selects per table policies. |
-| **Google Identity Services** | “Sign in with Google” client-side token handling in SkillMapper. |
-| **Google Generative Language API (Gemini)** | NL/title assistance over HTTPS `fetch` from the browser (API key embedded in client — treat as **public** exposure; restrict key in Google Cloud Console). |
-| **Google Analytics** | Page/event telemetry via gtag snippet in `index.html`. |
-| **Google Custom Search** (optional) | Configurable API key + CSE ID for supplementary search features. |
-| **jsDelivr CDN** | Loads Supabase JS client in SkillMapper. |
-| **Google Fonts** | Typography for SkillMapper. |
-| **TalentXRay / external URLs** | Deep links from role cards for certain user personas (LinkedIn/Google search variations). |
-| **Axios** | HTTP client in backend (Python service) and frontend SPA to backend API. |
+| **Supabase** | PostgreSQL, RPCs, **`sm_users`**, role catalog, search functions, RLS for browser. |
+| **Google Identity Services** | Sign-in with Google in SkillMapper. |
+| **Google Generative Language API (Gemini)** | NL assistance from the browser (key exposure risk — restrict in GCP). |
+| **Google Analytics** | gtag in `index.html`. |
+| **Google Custom Search** (optional) | Config placeholders. |
+| **jsDelivr / Google Fonts** | CDN assets in SkillMapper. |
+| **Axios** | HTTP in Express and frontend SPA. |
 
 ---
 
 ## Data Flow & Processing
 
-### SkillMapper (`index.html` + Supabase)
+### SkillMapper (`index.html` + Supabase + optional Express)
 
-1. User loads site → `supabase-config.js` defines `window.__SKILLMAPPER_SUPABASE__` → script creates Supabase client.
-2. User authenticates (Google or email flow) → client reads/writes **`sm_users`** and related rows; optional **`record_tool_login`** RPC.
-3. Role catalog is loaded into memory (`ROLES` or equivalent from fetched dataset — embedded or fetched within the page logic) for matching.
-4. Search flows:
-   - **Skills / title / NL** compute matches client-side; relevant queries log to **`search_logs`**, **`nl_search_logs`**, **`event_log`** (when configured).
-5. Salary modal submits to **`sm_salary_contribution`** with **`user_uuid`** linkage to **`sm_users`**.
-6. Feedback → **`feedback`** table (schema-adaptive inserts in code).
-7. CV evaluation → inserts into **`cv_evaluations`** (and possibly Gemini-assisted paths).
+1. User loads site → Supabase client from config.
+2. Authenticates → **`sm_users`** (and related) via client and/or API JWT.
+3. **Structured search:** user adds skill chips → `refreshStructuredSkillsSearchAndRender` → **`POST .../search-roles-orchestrated`** with `workflow_type: structured`, `skills` array, `input_text` joined from chips.
+4. **Title-like short query** (e.g. few tokens): router may classify as **title** workflow.
+5. **Natural language:** **intent** workflow → **`search_roles_intent_v1`** path on server.
+6. Salary, feedback, CV eval, logs — Supabase tables per existing client code.
 
-All enforcement for anon web clients must assume **keys are visible** → **RLS and grants** on Supabase are mandatory.
+All browser-visible keys must rely on **RLS**; orchestrated search uses **service role** only on the server.
 
-### CV SaaS scaffold (`frontend` → `backend` → `python-service` → MongoDB)
+### Orchestrated search (high level)
 
-1. User registers/logs in → JWT stored in browser (`frontend`).
-2. Upload PDF + form fields → **`POST /api/evaluate`** with `Authorization: Bearer …`.
-3. Backend validates file, loads **`RoleKeyword`** from **MongoDB**, builds stub JD list.
-4. Backend **`POST`**s file path + payload to **`PYTHON_SERVICE_URL/process`**.
-5. Python extracts text, scores, returns JSON → backend merges **`generateSuggestions`** → JSON to frontend → charts/PDF.
+```mermaid
+flowchart LR
+  Q[Query + chips] --> A[Alias / canonical resolution DB]
+  A --> G[role_skills graph candidates]
+  A --> R[RPC search_roles_v3 or intent_v1]
+  G --> M[Merge + dedupe]
+  R --> M
+  M --> K[Rerank ownership + skill alignment]
+  K --> API[JSON array to index.html]
+```
+
+### CV evaluate (`frontend` → `backend` → Python → Supabase reads)
+
+1. JWT auth → **`POST /api/evaluate`** with multipart PDF.
+2. Express loads target role and skills from **Supabase**, calls **`PYTHON_SERVICE_URL/process`**.
+3. Response returned to client.
 
 ```mermaid
 flowchart LR
   subgraph skillmapper [SkillMapper SPA]
-    UI[index.html UI]
-    SB[(Supabase PostgreSQL)]
+    UI[index.html]
+    SB[(Supabase)]
+    API[Express search API]
     UI --> SB
+    UI -->|optional| API
+    API --> SB
   end
 
-  subgraph cvsaas [Optional CV SaaS]
+  subgraph cveval [Optional CV UI]
     FE[React frontend]
     BE[Express backend]
     PY[FastAPI python-service]
-    MG[(MongoDB)]
     FE -->|JWT REST| BE
-    BE --> MG
+    BE --> SB
     BE -->|HTTP POST /process| PY
   end
 ```
@@ -145,106 +165,77 @@ flowchart LR
 
 ## Workflow Diagrams
 
-### SkillMapper — request/response lifecycle (client-only API calls)
+### SkillMapper — orchestrated search (browser → API → Supabase)
 
 ```mermaid
 sequenceDiagram
   participant U as User
   participant B as Browser index.html
-  participant S as Supabase API
+  participant E as Express backend
+  participant S as Supabase
 
-  U->>B: Action search login salary feedback
-  B->>S: REST RPC insert select anon key
-  S-->>B: Rows errors RLS
-  B-->>U: UI update toasts cards
+  U->>B: Search skills / title / NL
+  B->>E: POST /api/search-roles-orchestrated
+  E->>S: RPC + table reads role_skills skills_v2
+  S-->>E: Rows
+  E-->>B: Array of role results
+  B-->>U: Cards filter score gt 0
 ```
 
-### CV SaaS — evaluate CV
+### CV — evaluate CV
 
 ```mermaid
 sequenceDiagram
   participant U as User
   participant F as React SPA
   participant E as Express
-  participant M as MongoDB
+  participant S as Supabase
   participant P as Python FastAPI
 
   U->>F: Submit PDF + metadata
   F->>E: POST evaluate Bearer JWT multipart
-  E->>M: RoleKeyword.findOne
-  E->>P: POST process cv_path keywords jds
-  P-->>E: scores keyword_analysis
+  E->>S: roles_v2 role_skills role_semantic_metadata
+  E->>P: POST process
+  P-->>E: scores
   E-->>F: JSON report
-```
-
-### Data fetching & persistence (high level)
-
-```mermaid
-flowchart TD
-  A[User input] --> B{Which app path}
-  B -->|Root SkillMapper| C[Client-side match logic]
-  C --> D[Supabase persist logs profile salary feedback CV eval]
-  B -->|frontend SPA| E[JWT to Express]
-  E --> F[Mongo users keywords]
-  E --> G[Python NLP PDF]
 ```
 
 ---
 
 ## Assumptions & Notes
 
-- **Dual architecture:** Operations/deployments may target **only** root SkillMapper **or** the CV SaaS stack; they share a repo but not necessarily the same runtime.
-- **Secrets:** `supabase-config.js` may contain live keys in local clones; `.gitignore` comments suggest keeping it untracked in some setups — **prefer CI/CD injection** from secrets and commit only **`supabase-config.example.js`**.
-- **Gemini / Google keys in `index.html`:** Any browser-exposed API keys should be restricted by HTTP referrer / bundle separation where possible; treat compromise as normal risk for public SPAs.
-- **MongoDB vs Postgres:** SkillMapper production data is **not** the same database as the CV scaffold’s MongoDB unless you intentionally unify them (currently **not** unified in code).
-- **`jobs.js`** returns **placeholder** JDs — not a live job board integration.
-- **Python stack:** sentence-transformers may download/use `all-MiniLM-L6-v2`; falls back to sequence similarity if the model fails to load.
+- **Dual architecture:** Root SkillMapper can run **mostly client + Supabase**; **orchestrated search** needs **`backend/`** deployed with **`SUPABASE_URL`** and service or anon key, plus CORS origin for the static site.
+- **Secrets:** Never commit **`.env`**; use **`backend/.env.example`** as a template.
+- **Data quality:** Skills with **no `role_skills` rows** still match via RPC/title overlap, but **graph-first retrieval** is weaker until edges exist (e.g. link **`marketing automation`** to marketing roles in **`role_skills`**).
+- **`python-service`:** May download embedding models; similarity fallbacks exist in code paths.
+- **Semantic shadow** bundles under **`backend/semantic-bundles/`** are for offline eval / regression tooling.
 
 ---
 
-## Purpose of Each File in the Repository
+## Purpose of Key Files (repo root relative)
 
-Paths are relative to the repo root.
-
-| File | Purpose |
+| Path | Purpose |
 |------|---------|
-| **`README.md`** | Human-facing setup for backend, frontend, Python service; states primary app target. |
+| **`README.md`** | Setup for backend, frontend, Python service; deployment notes. |
 | **`context.md`** | This onboarding/system summary. |
-| **`.gitignore`** | Ignore patterns (OS/editor; notes on Supabase config). |
-| **`index.html`** | Main SkillMapper single-page application (HTML/CSS/JS). |
-| **`netlify.toml`** | Netlify: publish `.`, SPA rewrite to `index.html`. |
-| **`supabase-config.example.js`** | Example browser globals for Supabase + optional Google CSE. |
-| **`supabase-config.js`** | Local/deployed SkillMapper Supabase (and optional CSE) configuration consumed by `index.html`. |
-| **`frontend/package.json`** | NPM metadata and scripts for the React app. |
-| **`frontend/vite.config.js`** | Vite bundler configuration. |
-| **`frontend/tailwind.config.js`** | Tailwind theme/content paths. |
-| **`frontend/postcss.config.js`** | PostCSS plugins (Tailwind). |
-| **`frontend/index.html`** | HTML entry for Vite dev/build. |
-| **`frontend/netlify.toml`** | Netlify build/publish for `frontend/dist`. |
-| **`frontend/.env.example`** | Documents `VITE_API_URL` for the SPA. |
-| **`frontend/src/main.jsx`** | React DOM render entry. |
-| **`frontend/src/App.jsx`** | CV Evaluator SaaS UI and evaluation flow. |
-| **`frontend/src/api.js`** | Axios instance + JWT interceptor. |
-| **`frontend/src/styles.css`** | Stylesheet for Vite/React app. |
-| **`backend/package.json`** | NPM metadata and scripts for Express API. |
-| **`backend/vercel.json`** | Vercel deployment mapping for Express entry. |
-| **`backend/.env.example`** | Environment template for MongoDB, JWT, Python URL. |
-| **`backend/src/index.js`** | Express server composition and startup. |
-| **`backend/src/db.js`** | MongoDB connection helper. |
-| **`backend/src/routes/auth.js`** | Registration and login endpoints. |
-| **`backend/src/routes/evaluate.js`** | Authenticated CV evaluation pipeline. |
-| **`backend/src/middleware/auth.js`** | JWT bearer verification middleware. |
-| **`backend/src/models/User.js`** | Mongoose User model. |
-| **`backend/src/models/RoleKeyword.js`** | Mongoose role keyword seed model. |
-| **`backend/src/services/jobs.js`** | Stub JD generator for scoring inputs. |
-| **`backend/src/services/suggestions.js`** | Deterministic suggestion strings. |
-| **`backend/src/seed.js`** | CLI seed script for `RoleKeyword` documents. |
-| **`python-service/requirements.txt`** | Locked Python dependency versions. |
-| **`python-service/app.py`** | FastAPI CV processing HTTP service. |
+| **`index.html`** | SkillMapper SPA; **`API_BASE_URL`** for orchestrated search. |
+| **`netlify.toml`**, **`supabase-config*.js`** | Netlify publish + browser Supabase config. |
+| **`supabase/migrations/*.sql`** | Schema and **`search_roles_v3`**, **`search_roles_intent_v1`**, indexes. |
+| **`backend/src/index.js`** | Express app and route mounting. |
+| **`backend/src/supabaseClient.js`** | Supabase admin client factory. |
+| **`backend/src/routes/searchRoles.js`** | Orchestrated search HTTP API. |
+| **`backend/src/routes/auth.js`** | Register/login vs **`sm_users`**. |
+| **`backend/src/routes/evaluate.js`** | CV PDF evaluate pipeline. |
+| **`backend/src/services/search/*.js`** | Search routing, engines, alias resolution, graph retrieval, ownership signals. |
+| **`backend/package.json`** | Dependencies (`@supabase/supabase-js`, express, …). |
+| **`backend/.env.example`** | Documents Supabase URL/keys, `FRONTEND_ORIGIN`, `PYTHON_SERVICE_URL`, JWT secret. |
+| **`frontend/*`** | Optional React CV evaluator SPA. |
+| **`python-service/app.py`** | PDF **`/process`** endpoint. |
 
 ---
 
 ## Quick onboarding checklist
 
-1. **SkillMapper:** Configure Supabase from **`supabase-config.example.js`** → **`supabase-config.js`**; deploy root per **`netlify.toml`**; verify RLS on all tables touched by the client.
-2. **CV scaffold:** Run **`backend`** with **`frontend`** and **`python-service`** using env files from **`.env.example`** files; execute **`npm run seed`** once for Mongo keywords.
+1. **SkillMapper:** Configure **`supabase-config.js`** from the example; deploy root per **`netlify.toml`**; verify RLS.
+2. **Orchestrated search:** Run **`backend/`** with env from **`backend/.env.example`**; set **`API_BASE_URL`** in the SPA to the deployed API URL; allow CORS (**`FRONTEND_ORIGIN`** / **`NETLIFY_ORIGIN`**).
+3. **CV path:** Run **`python-service`**, point **`PYTHON_SERVICE_URL`** at it; use **`frontend`** with **`VITE_API_URL`** to the Express API.
