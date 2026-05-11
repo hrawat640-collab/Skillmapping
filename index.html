@@ -760,6 +760,7 @@ function smSaveProfileAndFinish(){
   localStorage.setItem('sm_user_name', name);
   localStorage.setItem('sm_user_profession', profession);
   localStorage.setItem('sm_user_country', country);
+  smTrackEvent('signup_success',{user_type:normalizeProfession(profession),page:'/skillmapper'});
   smCompleteLogin(smPendingProfile.email, name, {profession, country});
 }
 
@@ -857,7 +858,8 @@ function smGetSessionId(){
   return sid;
 }
 const _SM_EVENT_NAME_MAP={
-  login_success:'login_completed',
+  login_modal_open:'login_started',
+  login_success:'login_success',
   salary_submit_success:'salary_submitted',
   search_logged:'search_performed',
   nl_search_run:'describe_query_submitted',
@@ -867,9 +869,42 @@ const _SM_EVENT_NAME_MAP={
   client_runtime_error:'client_error'
 };
 const _smEventDedupeTs={};
+function smIsProductionTelemetryEnabled(){
+  try{
+    const hn=String((location&&location.hostname)||'').toLowerCase();
+    if(!hn)return false;
+    if(hn==='localhost'||hn==='127.0.0.1'||hn.endsWith('.local'))return false;
+    return true;
+  }catch(e){return false;}
+}
+function smSanitizeGaParams(meta){
+  const m=meta&&typeof meta==='object'?meta:{};
+  const out={};
+  if(m.page)out.page=String(m.page).slice(0,120);
+  if(m.source)out.source=String(m.source).slice(0,80);
+  if(m.search_type)out.search_type=String(m.search_type).slice(0,40);
+  if(m.workflow)out.workflow=String(m.workflow).slice(0,40);
+  if(m.query_len!=null&&isFinite(Number(m.query_len)))out.query_len=Number(m.query_len);
+  if(m.result_count!=null&&isFinite(Number(m.result_count)))out.result_count=Number(m.result_count);
+  if(m.retry_count!=null&&isFinite(Number(m.retry_count)))out.retry_count=Number(m.retry_count);
+  if(m.reason)out.reason=String(m.reason).slice(0,80);
+  if(m.from_intro!=null)out.from_intro=!!m.from_intro;
+  if(m.search_mode)out.search_mode=String(m.search_mode).slice(0,40);
+  if(m.user_type)out.user_type=String(m.user_type).slice(0,60);
+  if(m.typo_corrected!=null)out.typo_corrected=!!m.typo_corrected;
+  if(m.unresolved!=null)out.unresolved=!!m.unresolved;
+  return out;
+}
+function smTrackGaEvent(eventName,meta){
+  try{
+    if(!smIsProductionTelemetryEnabled())return;
+    if(typeof gtag!=='function')return;
+    gtag('event',String(eventName||'').slice(0,80),smSanitizeGaParams(meta||{}));
+  }catch(e){}
+}
 function smTrackEvent(eventName,meta){
   try{
-    if(!_sb||!eventName) return;
+    if(!eventName) return;
     const rawMeta=(meta&&typeof meta==='object')?meta:{};
     let canonical=_SM_EVENT_NAME_MAP[String(eventName)]||String(eventName);
     if(canonical==='search_performed'&&rawMeta.no_result)canonical='no_result_search';
@@ -880,6 +915,8 @@ function smTrackEvent(eventName,meta){
       if(now-prev<1500)return;
       _smEventDedupeTs[dedupeKey]=now;
     }
+    smTrackGaEvent(canonical,rawMeta);
+    if(!_sb) return;
     const metadata=Object.assign({},rawMeta);
     delete metadata.page;delete metadata.source;delete metadata.role_id;delete metadata.role_level_id;delete metadata.search_query;delete metadata.dedupe_key;
     const payload={
@@ -1374,6 +1411,7 @@ function _onLoginSuccess(isNewUser){
     }catch(e){}
   })();
   smTrackEvent('login_success',{is_new_user:!!isNewUser});
+  if(!isNewUser)smTrackEvent('session_restored',{page:'/skillmapper'});
 }
 
 (function(){
@@ -1477,6 +1515,7 @@ function smHandleGoogle(response){
 function smStartEmailAuth(mode){
   const val = document.getElementById('smEmailInput').value.trim();
   const err = document.getElementById('smEmailErr');
+  smTrackEvent('login_started',{source:'email',mode:String(mode||'signin')});
   const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   if(!val || !emailRe.test(val)){
     err.style.display = 'block';
@@ -1872,6 +1911,7 @@ function smBumpSearchRetry(workflowKey,query){
     let o=raw?JSON.parse(raw):null;
     if(!o||typeof o!=='object')o={};
     const n=o.fp===fp?Number(o.n||0)+1:0;
+    if(n>0)smTrackEvent('retry_search',{retry_count:n,workflow:String(workflowKey||''),page:'/skillmapper'});
     sessionStorage.setItem('sm_search_retry_v1',JSON.stringify({fp:fp,n:n,t:Date.now()}));
     return{retry_count:n};
   }catch(e){
@@ -1946,6 +1986,7 @@ function smSubmitRoleFeedback(btn,roleId,titleEnc,helpful){
     search_mode:String(currentMode||''),
     page:'/skillmapper'
   });
+  smTrackEvent(helpful===1?'feedback_helpful':'feedback_not_helpful',{role_id:roleId?String(roleId):null,page:'/skillmapper'});
 }
 function logSearch(mode,query,resultCount,noResult){
   smTrackEvent('search_logged',{
@@ -1975,6 +2016,7 @@ function maybeSoftSalaryReprompt(reason){
     if(reason==='search'||reason==='currency'||reason==='seniority'){
       localStorage.setItem('sm_salary_soft_nudge_ts',String(Date.now()));
       showToast('Optional: share an anonymous salary data point when you have a moment — it keeps benchmarks honest for everyone.','ok');
+      smTrackEvent('salary_remind_triggered',{reason:String(reason||''),page:'/skillmapper'});
     }
   }catch(e){}
 }
@@ -2021,7 +2063,10 @@ function checkTrialExpiry(prefix){
   const loginDate=localStorage.getItem((prefix?prefix+'_':'')+'login_date');
   if(!email||!loginDate)return;
   const daysSince=(Date.now()-parseInt(loginDate))/(1000*60*60*24);
-  if(daysSince>=TRIAL_DAYS)document.getElementById('upgradeWall').classList.add('show');
+  if(daysSince>=TRIAL_DAYS){
+    document.getElementById('upgradeWall').classList.add('show');
+    smTrackEvent('upgrade_paywall_shown',{page:'/skillmapper'});
+  }
 }
 function requestUpgrade(prefix){
   const email=localStorage.getItem(prefix+'_user_email')||'unknown';
@@ -2031,6 +2076,7 @@ function requestUpgrade(prefix){
   const btnEl=document.getElementById(prefix+'UpgradeBtn');
   if(sentEl)sentEl.style.display='block';
   if(btnEl)btnEl.style.display='none';
+  smTrackEvent('upgrade_paywall_clicked',{tool:String(tool||''),page:'/skillmapper'});
 }
 function renderTrialBadgeSM(){}
 
@@ -2444,7 +2490,15 @@ function onTitleModeKeydown(e){
   const drop=document.getElementById('titleDropdown');const items=drop?[...drop.querySelectorAll('.td-item')]:[];
   if(e.key==='ArrowDown'&&items.length){e.preventDefault();titleDropFocused=Math.min(titleDropFocused+1,items.length-1);items.forEach((el,i)=>el.classList.toggle('focused',i===titleDropFocused));return;}
   if(e.key==='ArrowUp'&&items.length){e.preventDefault();titleDropFocused=Math.max(titleDropFocused-1,0);items.forEach((el,i)=>el.classList.toggle('focused',i===titleDropFocused));return;}
-  if(e.key==='Enter'){e.preventDefault();if(titleDropFocused>=0&&items[titleDropFocused]){const t=items[titleDropFocused].dataset.title;const s=items[titleDropFocused].dataset.searched;if(t)toggleTitleMode(t,s);}return;}
+  if(e.key==='Enter'){
+    e.preventDefault();
+    if(titleDropFocused>=0&&items[titleDropFocused]){
+      const t=items[titleDropFocused].dataset.title;const s=items[titleDropFocused].dataset.searched;if(t)toggleTitleMode(t,s);
+      return;
+    }
+    runTitleMode();
+    return;
+  }
   if(e.key==='Escape')closeTitleDrop();
 }
 function toggleTitleMode(titleStr,searchedAs){
@@ -2486,9 +2540,29 @@ function getRoleActionHtml(title,altTitlesParam,allPassSkills){
   return`<a class="btn-search" href="https://talentxray.talentsradar.com/?title=${titleParam}&alt=${altTitlesParam}&skills=${encodeURIComponent(allPassSkills.join(','))}&from=skillmapper${_auParam}" target="_blank"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Search professional</a>`;
 }
 
-function runTitleMode(){
-  if(!selectedTitleModeRoles.length){showToast('Select at least one job title first','err');return;}
+async function runTitleMode(){
+  const freeTitleRaw=(document.getElementById('titleModeInput')&&document.getElementById('titleModeInput').value||'').trim();
+  const freeTitleQuery=normalizeSearchInputTypos(freeTitleRaw);
+  if(!selectedTitleModeRoles.length&&!freeTitleQuery){showToast('Type or select at least one job title first','err');return;}
   smTrackEvent('title_mode_run',{selected_count:selectedTitleModeRoles.length});
+  if(!selectedTitleModeRoles.length&&freeTitleQuery){
+    smTrackEvent('free_text_role_entered',{query_len:freeTitleQuery.length,page:'/skillmapper'});
+    showOrchestratedResultsSkeleton('title');
+    try{
+      const rows=await runServerRoleSearch(freeTitleQuery,activeDept,[],'title');
+      await smEnsureMinSkeletonMs(300);
+      smMaybeLogWeakSearchResults(rows,'structured',freeTitleQuery);
+      if(!rows.length){showSorryState(freeTitleRaw||freeTitleQuery,{reason:'no_matches',mode:'skills'});return;}
+      render();
+      const area0=document.getElementById('resultsArea');
+      setTimeout(function(){if(area0)area0.scrollIntoView({behavior:'smooth',block:'nearest'});},200);
+      return;
+    }catch(e){
+      showToast(smUserFacingSearchError(e),'err');
+      showSorryState(freeTitleRaw||freeTitleQuery,{reason:'request_failed',mode:'skills'});
+      return;
+    }
+  }
   closeTitleDrop();document.getElementById('titleModeInput').value='';
   const allSkills=[];selectedTitleModeRoles.forEach(r=>{(r.required||[]).forEach(s=>{if(!allSkills.includes(s))allSkills.push(s);});});
   skills=allSkills.length?allSkills:[''];activeDept='all';window._aiTopRoles=selectedTitleModeRoles.map(r=>r.title.toLowerCase());renderBubbles();
@@ -2640,8 +2714,7 @@ function buildUnifiedRoleCardHtml(r,cardId,opts){
   const foot='<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:'+(alsoRow?'space-between':'flex-end')+';width:100%;">'+alsoRow+'<div class="rc-actions" style="'+(alsoRow?'':'margin-left:auto;')+'">'+copyBtn+getRoleActionHtml(titleForActions,altTitlesParam,allPassSkills)+'</div></div>';
   const ridJs=String(r.id||'').replace(/'/g,"\\'");
   const titleEnc=encodeURIComponent(displayTitleRaw);
-  const feedbackRow='<div class="rc-feedback" onclick="event.stopPropagation()"><span class="rc-feedback-lbl">Helpful?</span><button type="button" class="rc-fb-btn" title="Yes" aria-label="Yes, helpful" onclick="smSubmitRoleFeedback(this,\''+ridJs+'\',\''+titleEnc+'\',1)">&#x1F44D;</button><button type="button" class="rc-fb-btn" title="Not really" aria-label="Not helpful" onclick="smSubmitRoleFeedback(this,\''+ridJs+'\',\''+titleEnc+'\',0)">&#x1F44E;</button></div>';
-  return'<div class="result-card '+matchClass+cardModeClass+'" role="article" data-rid="'+_escapeHtml(String(r.id||''))+'" data-rtitle="'+_escapeHtml(displayTitleRaw)+'" onclick="smOnRoleCardClick(this)"><div class="rc-top"><div class="rc-left"><div class="rc-dept" style="color:'+dcolor.color+'"><span style="background:'+dcolor.bg+';padding:2px 8px;border-radius:20px;font-size:10px;">'+_escapeHtml(dept)+'</span></div><div class="rc-title">'+displayTitle+'</div>'+_aboutRoleBlockHtml(r)+_hintBlockHtml(r.hint)+'</div>'+scoreCol+'</div><div class="rc-bottom"><div style="width:100%;display:flex;flex-direction:column;gap:10px;">'+expRowInner+reqRow+niceRow+foot+feedbackRow+'</div></div></div>';
+  return'<div class="result-card '+matchClass+cardModeClass+'" role="article" data-rid="'+_escapeHtml(String(r.id||''))+'" data-rtitle="'+_escapeHtml(displayTitleRaw)+'" onclick="smOnRoleCardClick(this)"><div class="rc-top"><div class="rc-left"><div class="rc-dept" style="color:'+dcolor.color+'"><span style="background:'+dcolor.bg+';padding:2px 8px;border-radius:20px;font-size:10px;">'+_escapeHtml(dept)+'</span></div><div class="rc-title">'+displayTitle+'</div>'+_aboutRoleBlockHtml(r)+_hintBlockHtml(r.hint)+'</div>'+scoreCol+'</div><div class="rc-bottom"><div style="width:100%;display:flex;flex-direction:column;gap:10px;">'+expRowInner+reqRow+niceRow+foot+'</div></div></div>';
 }
 function _getJune30Ts(year){return new Date(year+'-06-30T23:59:59').getTime();}
 function _getCurrentSalaryYear(){const now=new Date();return now.getMonth()>=6?now.getFullYear()+1:now.getFullYear();}
@@ -2662,6 +2735,7 @@ function showMainToolPage(){
   const t=document.getElementById('page-tool');
   if(t)t.classList.add('active');
   window.scrollTo({top:0,behavior:'smooth'});
+  smTrackEvent('page_view',{page:'/skillmapper'});
 }
 function switchToPrivacyPage(ev){
   if(ev)ev.preventDefault();
@@ -2671,6 +2745,7 @@ function switchToPrivacyPage(ev){
   const pg=document.getElementById('page-privacy');
   if(pg)pg.classList.add('active');
   window.scrollTo({top:0,behavior:'smooth'});
+  smTrackEvent('page_view',{page:'/skillmapper/privacy'});
 }
 let currentMode='skills';
 function switchMode(mode,btn,modeOpts){
@@ -2685,6 +2760,7 @@ function switchMode(mode,btn,modeOpts){
   document.getElementById('nlInput').value='';document.getElementById('mainInput').value='';document.getElementById('titleModeInput').value='';
   currentMode=mode;document.querySelectorAll('.mode-tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.mode-pane').forEach(p=>p.classList.remove('active'));
   btn.classList.add('active');document.getElementById('pane-'+mode).classList.add('active');
+  smTrackEvent('search_type_used',{search_type:mode==='nl'?'describe':(mode==='title'?'title':'skills'),page:'/skillmapper'});
   if(mode==='nl'){const nlx=document.getElementById('nlExamples');if(nlx)nlx.style.display='';document.getElementById('nlInput').focus();}
   else if(mode==='title'){window._aiTopRoles=[];if(!mo.skipTitleInputFocus){setTimeout(function(){const ti=document.getElementById('titleModeInput');if(ti)ti.focus();},0);}}
   else{window._aiTopRoles=[];document.getElementById('mainInput').focus();}
@@ -2863,9 +2939,20 @@ function _levelDisplayToKey(v){
   return'junior';
 }
 function _fmtServerSalary(row){
-  const sd=row&&row.salary_display!=null?String(row.salary_display).trim():'';
+  function _stripP90Text(raw){
+    let t=String(raw||'').trim();
+    if(!t)return'';
+    // V1 guardrail: never render P90 or 90th percentile text in salary strings.
+    t=t.replace(/\s*(\||,|\/|;)\s*(p\s*90|90th percentile)[^|,\/;]*/ig,'');
+    t=t.replace(/\b(p\s*90|90th percentile)\b[^|,\/;]*/ig,'');
+    return t.replace(/\s{2,}/g,' ').trim();
+  }
+  const sd=row&&row.salary_display!=null?_stripP90Text(row.salary_display):'';
   if(sd)return sd;
-  if(row&&row.benchmark_salary)return String(row.benchmark_salary);
+  if(row&&row.benchmark_salary){
+    const bs=_stripP90Text(row.benchmark_salary);
+    if(bs)return bs;
+  }
   const cur=String((row&&row.benchmark_currency)||'INR').toUpperCase();
   const p25=Number(row&&row.percentile_25);const p75=Number(row&&row.percentile_75);
   if(!isFinite(p25)||!isFinite(p75)||p25<=0||p75<=0)return'';
@@ -2965,8 +3052,11 @@ function showOrchestratedResultsSkeleton(kind){
   const bar=document.getElementById('currencyBar');if(bar)bar.style.display='none';
 }
 async function runServerRoleSearch(inputText,selectedDept,querySkills,workflowType){
+  const _startedAt=Date.now();
   const currency=(selectedCurrencies&&selectedCurrencies[0])||'INR';
   const wt=workflowType==='intent'?'intent':(workflowType==='title'?'title':'structured');
+  smTrackEvent('search_started',{workflow:wt,search_type:wt,query_len:String(inputText||'').trim().length,page:'/skillmapper'});
+  smTrackEvent('query_submitted',{workflow:wt,search_type:wt,query_len:String(inputText||'').trim().length,page:'/skillmapper'});
   const payload={
     workflow_type:wt,
     input_text:String(inputText||''),
@@ -2980,6 +3070,8 @@ async function runServerRoleSearch(inputText,selectedDept,querySkills,workflowTy
   try{
     resp=await fetch(`${API_BASE_URL}/api/search-roles-orchestrated`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
   }catch(e){
+    smTrackEvent('backend_unavailable',{workflow:wt,reason:'network_or_cors',page:'/skillmapper'});
+    smTrackEvent('search_failed',{workflow:wt,reason:'network_or_cors',page:'/skillmapper'});
     throw new Error(`Network/CORS error while reaching backend at ${API_BASE_URL}: ${e&&e.message?e.message:e}`);
   }
   let data=null;
@@ -2989,12 +3081,21 @@ async function runServerRoleSearch(inputText,selectedDept,querySkills,workflowTy
   if(!resp.ok){
     let errMsg=(data&&data.error)?String(data.error):`Search could not be completed (${resp.status})`;
     if(resp.status===429)errMsg='Too many requests. Please wait a moment.';
+    if(resp.status===504||/timeout/i.test(errMsg))smTrackEvent('timeout_encountered',{workflow:wt,page:'/skillmapper'});
+    smTrackEvent('api_error',{workflow:wt,status_code:resp.status,page:'/skillmapper'});
+    smTrackEvent('search_failed',{workflow:wt,status_code:resp.status,page:'/skillmapper'});
     throw new Error(errMsg);
   }
   if(!Array.isArray(data)){
+    smTrackEvent('api_error',{workflow:wt,reason:'invalid_backend_response',page:'/skillmapper'});
+    smTrackEvent('search_failed',{workflow:wt,reason:'invalid_backend_response',page:'/skillmapper'});
     throw new Error('Invalid backend response: expected an array of role rows.');
   }
   const mapped=data.map(function(row){return _enrichMappedRoleFromLibrary(_mapServerSearchRow(row,querySkills||[]));}).filter(function(r){return r&&r.title;});
+  const _elapsed=Date.now()-_startedAt;
+  if(_elapsed>2200)smTrackEvent('slow_search_detected',{workflow:wt,elapsed_ms:_elapsed,page:'/skillmapper'});
+  smTrackEvent('search_completed',{workflow:wt,result_count:mapped.length,page:'/skillmapper'});
+  if(mapped.length===0)smTrackEvent('no_results',{workflow:wt,page:'/skillmapper'});
   window._serverRoleResults=mapped;
   window._serverRoleResultsKey=_skillsKey(querySkills||[]);
   window._lastSearchInput=String(inputText||'');
@@ -3091,9 +3192,29 @@ function render(){
 
 /* ══ SKILL_ALIASES ══ */
 const SKILL_ALIASES={'employee relations':'Employee Relations','people partner':'Employee Relations','people business partner':'Employee Relations','hr partner':'Employee Relations','hr people partner':'Employee Relations','hrbp':'Employee Relations','hr bp':'Employee Relations','hr business partner':'Employee Relations','chro':'HR Analytics','cpo':'Product Strategy','vp hr':'HR Analytics','head of people':'HRIS','people ops':'HRIS','ta':'Talent Acquisition','ta specialist':'Talent Acquisition','ats':'Talent Acquisition','ats tool':'Applicant Tracking Systems','ats tools':'Applicant Tracking Systems','l&d':'L&D Strategy','l and d':'L&D Strategy','sde':'REST APIs','sde1':'REST APIs','sde2':'REST APIs','sde3':'REST APIs','swe':'JavaScript','swe1':'JavaScript','swe2':'JavaScript','sse':'REST APIs','mts':'REST APIs','backend dev':'REST APIs','frontend dev':'React','fullstack':'JavaScript','full-stack dev':'JavaScript','gameplay dev':'Unity','unity dev':'Unity','unity programmer':'C# (Unity)','unreal dev':'Unreal Engine','game dev':'Unity','game programmer':'C# (Unity)','ue4':'Unreal Engine','ue5':'Unreal Engine','ml engineer':'Machine Learning','ml eng':'Machine Learning','ai engineer':'LLMs','ai eng':'LLMs','ds':'Python','de':'Spark','mle':'Machine Learning','mlops engineer':'MLOps','nlp engineer':'NLP','cv engineer':'Computer Vision','pm':'Product Strategy','apm':'Product Roadmap','spm':'Product Strategy','gpm':'Product Analytics','tpm':'REST APIs','pmo':'Project Management','po':'Product Roadmap','product owner':'Product Roadmap','ux':'UX Design','ui':'UI Design','ui/ux':'Figma','ux/ui':'Figma','uxd':'UX Design','uid':'UI Design','sdet':'Automation Testing','qa':'Manual Testing','qe':'Automation Testing','qae':'Automation Testing','qa automation':'Automation Testing','test automation':'Automation Testing','automation engineer':'Automation Testing','sre':'Kubernetes','devops eng':'Docker','platform eng':'Kubernetes','infra eng':'Terraform','cloud eng':'AWS','cloud arch':'AWS','ca':'Accounting','cpa':'Accounting','cfa':'Financial Modelling','cfo':'Financial Modelling','fp&a analyst':'FP&A','fpa':'FP&A','sdr':'B2B Sales','bdr':'B2B Sales','ae':'SaaS Sales','am':'Customer Success','csm':'Customer Success','se':'SaaS Sales','pre-sales':'SaaS Sales','presales':'SaaS Sales','sfdc':'Salesforce','sf admin':'Salesforce CRM','sf developer':'Apex','sf dev':'Apex','sf architect':'Salesforce Integration','seo specialist':'SEO','sem specialist':'SEM','smm':'Social Media Management','cmo':'Content Marketing','vp marketing':'Content Marketing','growth eng':'Growth Hacking','growth hacker':'Growth Hacking','pmm':'Go-to-Market','digital marketing':'Content Marketing','social media':'Social Media Management','paid marketing':'Paid Ads','performance marketing':'Paid Ads','growth':'Growth Hacking','content':'Content Marketing','seo writing':'SEO','email mktg':'Email Marketing','manual tester':'Manual Testing','automation tester':'Automation Testing','business automation':'Process Improvement','workflow automation':'Process Improvement','rpa':'Process Improvement','robotic process automation':'Process Improvement','process automation':'Process Improvement','data analytics':'Statistical Analysis','data analysis':'Statistical Analysis','business intelligence':'Tableau','data viz':'Tableau','data visualization':'Tableau','deep learning':'Deep Learning','gen ai':'LLMs','generative ai':'LLMs','chatgpt':'OpenAI API','llm':'LLMs','rag':'RAG','vector db':'Vector DBs','devops':'CI/CD','site reliability':'Kubernetes','cloud':'AWS','infra':'Terraform','frontend':'React','backend':'REST APIs','mobile dev':'React Native','excel':'Excel','ms excel':'Excel','microsoft excel':'Excel','spreadsheet':'Excel','google sheets':'Google Sheets','sheets':'Google Sheets'};
+const INPUT_TYPO_NORMALIZATION={'hrpb':'hrbp','reactjs':'react','payrol':'payroll','bussiness intelligence':'business intelligence','bussiness':'business'};
 
 /* ══ Bubbles ══ */
-function resolveAlias(raw){const lower=raw.toLowerCase().trim();return SKILL_ALIASES[lower]||raw.trim();}
+function normalizeSearchInputTypos(raw){
+  const base=String(raw||'').toLowerCase().replace(/[^a-z0-9\s-]+/g,' ').replace(/\s+/g,' ').trim();
+  if(!base)return'';
+  if(INPUT_TYPO_NORMALIZATION[base]){
+    const corrected=INPUT_TYPO_NORMALIZATION[base];
+    smTrackEvent('typo_corrected',{original_input:base,corrected_value:corrected,typo_corrected:true,page:'/skillmapper'});
+    return corrected;
+  }
+  const tokenFixed=base.split(' ').map(function(w){return INPUT_TYPO_NORMALIZATION[w]||w;}).join(' ').trim();
+  const corrected=INPUT_TYPO_NORMALIZATION[tokenFixed]||tokenFixed;
+  if(corrected!==base){
+    smTrackEvent('typo_corrected',{original_input:base,corrected_value:corrected,typo_corrected:true,page:'/skillmapper'});
+  }
+  return corrected;
+}
+function resolveAlias(raw){
+  const cleaned=normalizeSearchInputTypos(raw);
+  const lower=cleaned.toLowerCase().trim();
+  return SKILL_ALIASES[lower]||cleaned||String(raw||'').trim();
+}
 /** Skill box: only treat input as a job title when it exactly matches a role title, a role keyword, or a known short abbrev. No fuzzy/loose matching (that blocked normal skill entry). */
 function findTitleMatch(raw){
   const lower=raw.toLowerCase().trim();if(!ROLES||lower.length<2)return null;
@@ -3113,13 +3234,12 @@ function handleKey(e){
   if(e.key==='ArrowDown'&&items.length){e.preventDefault();sugFocused=Math.min(sugFocused+1,items.length-1);items.forEach((el,i)=>el.classList.toggle('focused',i===sugFocused));return;}
   if(e.key==='ArrowUp'&&items.length){e.preventDefault();sugFocused=Math.max(sugFocused-1,0);items.forEach((el,i)=>el.classList.toggle('focused',i===sugFocused));return;}
   if(e.key==='Escape'){hideSug();return;}
-  if(e.key==='Enter'){e.preventDefault();if(sugFocused>=0&&items[sugFocused]){items[sugFocused].click();return;}if(items.length&&drop.classList.contains('open')){items[0].click();return;}const val=input.value.trim();if(val){const titleMatch=findTitleMatch(val);if(titleMatch){showTitleHint(val,titleMatch.title);return;}addSkill(resolveAlias(val));input.value='';hideSug();}return;}
-  if(e.key===','){const val=input.value.trim();if(val){e.preventDefault();const titleMatch=findTitleMatch(val);if(titleMatch){input.value='';hideSug();showTitleHint(val,titleMatch.title);return;}addSkill(resolveAlias(val));input.value='';hideSug();}return;}
+  if(e.key==='Enter'){e.preventDefault();if(sugFocused>=0&&items[sugFocused]){items[sugFocused].click();return;}if(items.length&&drop.classList.contains('open')){items[0].click();return;}const val=input.value.trim();if(val){addSkill(resolveAlias(val));input.value='';hideSug();}return;}
+  if(e.key===','){const val=input.value.trim();if(val){e.preventDefault();addSkill(resolveAlias(val));input.value='';hideSug();}return;}
   if(e.key==='Backspace'&&!input.value&&skills.length){removeSkill(skills.length-1);}
 }
 async function addTyped(){
   const input=document.getElementById('mainInput');const val=input.value.trim();
-  if(val){const titleMatch=findTitleMatch(val);if(titleMatch){showTitleHint(val,titleMatch.title);return;}}
   if(val){addSkill(resolveAlias(val));input.value='';hideSug();}
   if(!skills.length){input.focus();return;}
   smTrackEvent('skills_search_submit',{skills_count:skills.length});
@@ -3215,6 +3335,7 @@ function addSkill(skill){
   activeDept='all';window._aiTopRoles=[];const clean=skill.trim();if(!clean)return;
   const resolved=resolveAlias(clean);const resolvedLower=resolved.toLowerCase();
   if(skills.find(s=>s.toLowerCase()===resolvedLower))return;
+  smTrackEvent('skills_added',{input_len:clean.length,page:'/skillmapper'});
   skills.push(resolved);renderBubbles();
   document.getElementById('skillCountLbl').textContent=skills.length?`${skills.length} skill${skills.length!==1?'s':''} added`:'';
 }
@@ -3299,7 +3420,12 @@ function renderSug(q){
   drop.classList.add('open');
 }
 function pickSug(s){document.getElementById('mainInput').value='';hideSug();addSkill(resolveAlias(s));document.getElementById('mainInput').focus();}
-function filterDept(dept){if(dept&&typeof dept==='object'&&dept.dataset)dept=dept.dataset.dept||'all';activeDept=dept;if(!skills.length&&!(window._serverRoleResults||[]).length){render();return;}if(currentMode==='nl'){const q=document.getElementById('nlInput')?document.getElementById('nlInput').value:'';refreshIntentSearchAndRender(q).catch(function(e){showToast(smUserFacingSearchError(e),'err');});}else refreshStructuredSkillsSearchAndRender().catch(function(e){showToast(smUserFacingSearchError(e),'err');});}
+function filterDept(dept){
+  if(dept&&typeof dept==='object'&&dept.dataset)dept=dept.dataset.dept||'all';
+  activeDept=dept||'all';
+  // Department toggle should be a pure client-side filter over current results.
+  render();
+}
 function copyToClipboard(text){if(navigator.clipboard&&window.isSecureContext)return navigator.clipboard.writeText(text);const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;top:-9999px;left:-9999px;opacity:0;';document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand('copy');}catch(e){}document.body.removeChild(ta);return Promise.resolve();}
 function copyTitle(title,btn){copyToClipboard(title).then(()=>{btn.classList.add('ok');btn.textContent='Copied!';setTimeout(()=>{btn.classList.remove('ok');btn.textContent='Copy title';},2000);showToast('"'+title+'" copied','ok');});}
 function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(type||'');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
@@ -3307,6 +3433,8 @@ function showSorryState(query,opts){
   opts=opts||{};
   const q=String(query||'').trim();
   const modeKey=(opts.mode||(currentMode==='nl'?'nl':'skills'));
+  smTrackEvent('unresolved_term_detected',{search_type:modeKey==='nl'?'describe':'skills',unresolved:true,page:'/skillmapper'});
+  smTrackEvent('no_results',{search_type:modeKey==='nl'?'describe':'skills',page:'/skillmapper'});
   const retry=smBumpSearchRetry(modeKey==='nl'?'intent':'structured',modeKey==='nl'?(window._lastSearchInput||q):q);
   logSearch(modeKey,q,0,true);
   if(opts.reason!=='request_failed'){
@@ -3326,13 +3454,12 @@ function showSorryState(query,opts){
   const body=encodeURIComponent('Hi,\n\nI tried SkillMapper with:\n\n"'+q+'"\n\nNo strong matches came back.\n\nThanks,\n');
   const hintBlock=(opts.reason==='no_roles_for_filter')
     ?'<p class="sorry-hint-lead">No roles in this department for your current search. Try <strong>All departments</strong> above, or widen your skills.</p>'
-    :'<p class="sorry-hint-lead">We couldn’t find a strong match yet. Try fewer or broader skills, remove punctuation, or describe the role in plain language.</p>';
-  const suggestions='<ul class="sorry-hints"><li>Add one core skill at a time (for example Figma, Python, SQL).</li><li>Switch to <strong>Describe</strong> and add context: team, product, or industry.</li><li>Try <strong>Search by title</strong> if you already know the role name.</li></ul>';
-  area.innerHTML='<div class="sorry-state"><div class="sorry-icon calm" aria-hidden="true">&#x1F50D;</div><div class="sorry-title">No strong matches yet</div><div class="sorry-sub">For <strong>"'+_escapeHtml(q.slice(0,72))+(q.length>72?'…':'')+'"</strong></div>'+hintBlock+suggestions+'<div class="sorry-actions"><a class="btn-report" href="mailto:'+reportEmail+'?subject='+subject+'&body='+body+'" target="_blank" rel="noopener"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 4h12v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4z" stroke="currentColor" stroke-width="1.4"/><path d="M2 4l6 5 6-5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Email the team</a><button type="button" class="btn-try-again" onclick="clearAndTryAgain()">&#x21A9; Start over</button></div></div>';
+    :'<p class="sorry-hint-lead">No strong match found yet. We’ve saved this role/skill request and will improve coverage soon.</p>';
+  area.innerHTML='<div class="sorry-state"><div class="sorry-icon calm" aria-hidden="true">&#x1F50D;</div><div class="sorry-title">No strong matches yet</div><div class="sorry-sub">For <strong>"'+_escapeHtml(q.slice(0,72))+(q.length>72?'…':'')+'"</strong></div>'+hintBlock+'<div class="sorry-actions"><a class="btn-report" href="mailto:'+reportEmail+'?subject='+subject+'&body='+body+'" target="_blank" rel="noopener"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 4h12v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4z" stroke="currentColor" stroke-width="1.4"/><path d="M2 4l6 5 6-5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Email the team</a><button type="button" class="btn-try-again" onclick="clearAndTryAgain()">&#x21A9; Start over</button></div></div>';
 }
 function clearAndTryAgain(){skills=[];window._aiTopRoles=[];renderBubbles();document.getElementById('nudgeBanner')?.classList.remove('show');const _ab=document.getElementById('aiBanner');if(_ab)_ab.classList.remove('show');const _abt=document.getElementById('aiBannerText');if(_abt)_abt.textContent='';document.getElementById('deptFilter').style.display='none';const _cb=document.getElementById('currencyBar');if(_cb)_cb.style.display='none';const fp=document.getElementById('floatingPanda');if(fp)fp.style.display=(isSalaryPromptEligible()&&!isSalaryUnlocked())?'block':'none';const nlxReset=document.getElementById('nlExamples');if(nlxReset)nlxReset.style.display='';document.getElementById('resultsArea').innerHTML=`<div class="empty-state"><div class="empty-icon" style="font-size:36px;margin-bottom:10px;">&#x1F3AF;</div><div class="empty-title">Start above to see role matches</div><div class="empty-sub">Type skills, search by title, or describe what you need.</div></div>`;document.getElementById('nlInput').value='';document.getElementById('mainInput').value='';const am=document.querySelector('.mode-tab.active');if(am&&am.textContent.includes('Describe'))document.getElementById('nlInput').focus();else document.getElementById('mainInput').focus();}
 function selectLevel(btn){const lvl=btn.dataset.lvl;if(isSalaryPromptEligible()&&lvl!=='junior'&&!isSalaryUnlocked()){showSalaryContrib(btn);return;}applySelectLevel(btn);}
-function applySelectLevel(btn){const cardId=btn.dataset.card;const yrsMin=btn.dataset.min;const yrsMax=btn.dataset.max;const sal=btn.dataset.sal;const group=document.getElementById(cardId);if(group){group.querySelectorAll('.sal-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}const el=document.getElementById(cardId+'_sal');if(!el)return;el.innerHTML=_formatSalDisplayLine(yrsMin,yrsMax,sal);if(typeof maybeSoftSalaryReprompt==='function')maybeSoftSalaryReprompt('seniority');try{smTrackEvent('seniority_changed',{level:String(btn&&btn.dataset&&btn.dataset.lvl||''),card_id:String(btn&&btn.dataset&&btn.dataset.card||''),page:'/skillmapper'});}catch(e){}}
+function applySelectLevel(btn){const cardId=btn.dataset.card;const yrsMin=btn.dataset.min;const yrsMax=btn.dataset.max;const sal=btn.dataset.sal;const group=document.getElementById(cardId);if(group){group.querySelectorAll('.sal-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}const el=document.getElementById(cardId+'_sal');if(!el)return;el.innerHTML=_formatSalDisplayLine(yrsMin,yrsMax,sal);if(typeof maybeSoftSalaryReprompt==='function')maybeSoftSalaryReprompt('seniority');try{smTrackEvent('seniority_changed',{level:String(btn&&btn.dataset&&btn.dataset.lvl||''),card_id:String(btn&&btn.dataset&&btn.dataset.card||''),page:'/skillmapper'});smTrackEvent('salary_band_viewed',{level:String(btn&&btn.dataset&&btn.dataset.lvl||''),page:'/skillmapper'});}catch(e){}}
 function toggleCurrency(cur){
   const idx=selectedCurrencies.indexOf(cur);
   if(idx>-1){selectedCurrencies.splice(idx,1);}
@@ -3596,6 +3723,7 @@ function startRobotToolTour(){
   if(!_tourStepsCache.length)return;
   if(tourOverride){try{delete window._smAllowRobotTourNoSession;}catch(e){void 0;}}
   _tourIndex=0;
+  smTrackEvent('onboarding_started',{source:'onboarding',page:'/skillmapper'});
   const root=document.getElementById('robotToolTour');
   if(root)root.classList.add('tour-on');
   document.body.style.overflow='hidden';
@@ -3610,6 +3738,7 @@ function robotToolTourNext(){
 window.robotToolTourNext=robotToolTourNext;
 function finishRobotToolTour(wasSkip){
   smMarkRobotTourComplete();
+  if(wasSkip)smTrackEvent('onboarding_skipped',{source:'onboarding',page:'/skillmapper'});
   if(!wasSkip){
     smTrackEvent('onboarding_completed',{source:'onboarding',page:'/skillmapper'});
   }
@@ -3640,6 +3769,7 @@ document.addEventListener('keydown',function(e){
 });
 
 window.addEventListener('load',async function(){
+  smTrackEvent('page_view',{page:'/skillmapper'});
   ['mainInput','nlInput','titleModeInput'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   await loadAppData();
   skills=[];window._aiTopRoles=[];activeDept='all';renderBubbles();
@@ -3876,6 +4006,7 @@ function showSalaryContrib(btn,opts){
   modal.style.display='flex';
   setPandaMood('pace');
   smTrackEvent('salary_modal_open',{from_level:(btn&&btn.dataset&&btn.dataset.lvl)?btn.dataset.lvl:'',from_intro:!!opts.fromIntro});
+  smTrackEvent('salary_modal_shown',{from_intro:!!opts.fromIntro,page:'/skillmapper'});
 }
 function skipSalaryContrib(){
   try{
@@ -3900,6 +4031,7 @@ async function submitSalaryContrib(){
   if(!ctc){err.textContent='Add your annual compensation.';err.style.display='block';return;}
   const companyBase=(document.getElementById('salCompany')?.value.trim())||'';
   if(!companyBase){err.textContent='Add where you work — it stays anonymous and sharpens benchmarks.';err.style.display='block';return;}
+  smTrackEvent('salary_submission_started',{page:'/skillmapper'});
   err.style.display='none';
   const designation=document.getElementById('salRole').value.trim();const dept=document.getElementById('salDept').value;const subDeptSel=document.getElementById('salSubDept').value;const customDept=document.getElementById('salCustomDept')?.value.trim()||'';const subDeptOther=document.getElementById('salSubOther')?.value.trim()||'';const effectiveDept=dept==='Other'?(customDept||'Other'):dept;const subDept=(dept==='Other'||subDeptSel==='Other')?subDeptOther:subDeptSel;const yrs=document.getElementById('salYrs').value;const cur=document.getElementById('salCurrency').value;const country=document.getElementById('salCountry').value;const roleDesc=document.getElementById('salRoleDesc')?.value.trim()||'';const companyStage=document.getElementById('salCompanyStage')?.value.trim()||'';const company=companyBase+(companyStage?(companyBase?' · ':'')+'Stage: '+companyStage:'');const notifyPref=document.getElementById('salNotifyChange')?.checked?'yes':'no';
   const salarySubmittedAt=new Date().toISOString();
@@ -3969,6 +4101,7 @@ async function submitSalaryContrib(){
     return;
   }}
   smTrackEvent('salary_submit_success',{});
+  smTrackEvent('salary_submitted',{page:'/skillmapper'});
   try{
     localStorage.setItem('sm_salary_prompt_last_completed_at',new Date().toISOString());
     window._salModalFromIntro=false;

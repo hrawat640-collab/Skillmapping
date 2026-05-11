@@ -7,6 +7,7 @@ import {
 import {
   buildSkillAliasIndexes,
   fetchOwnershipFamiliesFromSkillIds,
+  resolveDefinitionHintConcepts,
   resolveProfessionalConcepts
 } from "./skillAliasResolution.js";
 import { fetchSkillGraphRoleRows } from "./skillGraphRetrieval.js";
@@ -196,7 +197,7 @@ function inferExecutionIntent(normalizedQuery, expandedTokens) {
     analyze: ["analyze", "analysis", "insight", "trend", "dashboard", "reporting", "report"],
     design: ["design", "interface", "ui", "ux", "wireframe", "prototype", "screen"],
     automate: ["automate", "automation"],
-    operate: ["operate", "run", "maintain", "monitor"],
+    operate: ["operate", "run", "maintain", "monitor", "manage"],
     support: ["support", "assist", "help", "resolve"],
     document: ["document", "documentation", "write", "writer"],
     test: ["test", "testing", "qa", "quality"]
@@ -418,6 +419,9 @@ function scoreWithIntentPriors(rows, intentCtx, ownershipCtx = null) {
     let suppression = 0;
     let activeSignals = 0;
     const fam = classifyRoleExecutionFamily(r);
+    const broadManagerialIntent =
+      exec.acts.includes("operate") ||
+      /\b(manage|manager|operations|operation|daily)\b/.test(intentCtx?.expandedQuery || "");
     for (const prior of activePriors) {
       const roleHit = containsAny(titleNorm, prior.includeRoleTokens);
       const deptHit = (prior.includeDepts || []).some((d) => deptNorm.includes(normalizeIntentQuery(d)));
@@ -455,6 +459,24 @@ function scoreWithIntentPriors(rows, intentCtx, ownershipCtx = null) {
       if (fam.support || fam.document || fam.test) executionSuppression += 0.08;
     }
 
+    // Bounded generalist-family calibration:
+    // broad management queries should not collapse to tiny confidence when family alignment is strong.
+    let familyAlignmentBoost = 0;
+    if (broadManagerialIntent) {
+      const opsFamilyHit =
+        fam.people_ops ||
+        deptNorm.includes("operations") ||
+        deptNorm.includes("operation") ||
+        titleNorm.includes("operations manager") ||
+        titleNorm.includes("people operations") ||
+        titleNorm.includes("revenue operations") ||
+        titleNorm.includes("project manager") ||
+        titleNorm.includes("program manager");
+      if (opsFamilyHit) familyAlignmentBoost += 0.14;
+      if (fam.backend || fam.infrastructure) familyAlignmentBoost += 0.08;
+      if (fam.support || fam.document || fam.test) familyAlignmentBoost -= 0.06;
+    }
+
     // Penalize generic overlap-only matches when role-family intent signals are absent.
     const genericWhy = /(semantic match via|keywords|search phrases|overlap)/i.test(whyNorm);
     if (genericWhy && activeSignals === 0 && base < 0.55) suppression += 0.08;
@@ -470,9 +492,22 @@ function scoreWithIntentPriors(rows, intentCtx, ownershipCtx = null) {
     // - compress weak/noisy lower end
     const preSpread = Math.max(
       0,
-      Math.min(1, base + priorBoost + executionSurfaceBoost + ownAdj.boost - suppression - executionSuppression - ownAdj.penalty)
+      Math.min(
+        1,
+        base +
+        priorBoost +
+        executionSurfaceBoost +
+        familyAlignmentBoost +
+        ownAdj.boost -
+        suppression -
+        executionSuppression -
+        ownAdj.penalty
+      )
     );
-    const spread = preSpread >= 0.5 ? Math.pow(preSpread, 0.72) : Math.pow(preSpread, 1.35);
+    let spread = preSpread >= 0.5 ? Math.pow(preSpread, 0.72) : Math.pow(preSpread, 1.35);
+    if (broadManagerialIntent && familyAlignmentBoost > 0 && spread < 0.18) {
+      spread = Math.min(1, 0.18 + spread * 0.25);
+    }
     const final = Math.max(0, Math.min(1, spread));
 
     return {
@@ -485,6 +520,7 @@ function scoreWithIntentPriors(rows, intentCtx, ownershipCtx = null) {
         executionSurfaceBoost,
         executionSuppression,
         suppression,
+        familyAlignmentBoost,
         activeSignals,
         executionIntent: exec,
         roleFamily: fam,
@@ -597,7 +633,7 @@ export async function semanticIntentEngine(params) {
         .from("role_semantic_metadata")
         .select("role_id, keywords, search_phrases, responsibilities, work_examples, tools, output_types")
         .limit(2000),
-      sb.from("skills_v2").select("id, canonical_name"),
+      sb.from("skills_v2").select("id, canonical_name, short_definition"),
       sb.from("skill_aliases").select("skill_id, alias")
     ]);
   if (metadataErr && shouldLogDebug) console.warn("[semanticIntentEngine] metadata probe failed", metadataErr.message || metadataErr);
@@ -615,7 +651,24 @@ export async function semanticIntentEngine(params) {
     ),
     intentAliasIdx
   );
-  const intentInputText = [normalizedQuery, ...intentConceptResolution.resolvedCanonicalLower]
+  const definitionHints =
+    (intentConceptResolution.resolvedSkillIds || []).length > 0
+      ? { resolvedSkillIds: [], resolvedCanonicalLower: [], matchedDefinitionTerms: [] }
+      : resolveDefinitionHintConcepts(
+        [normalizedQuery, String(params.rawQuery || ""), ...(Array.isArray(params.skills) ? params.skills : [])].filter(Boolean),
+        intentCanonicalRows || [],
+        { minTokenHits: 2, maxSkills: 3 }
+      );
+  const mergedResolvedSkillIds = [
+    ...new Set([...(intentConceptResolution.resolvedSkillIds || []), ...(definitionHints.resolvedSkillIds || [])])
+  ];
+  const mergedResolvedCanonicals = [
+    ...new Set([
+      ...(intentConceptResolution.resolvedCanonicalLower || []),
+      ...(definitionHints.resolvedCanonicalLower || [])
+    ])
+  ];
+  const intentInputText = [normalizedQuery, ...mergedResolvedCanonicals]
     .filter(Boolean)
     .join(" ")
     .replace(/\s+/g, " ")
@@ -623,7 +676,7 @@ export async function semanticIntentEngine(params) {
 
   const canonicalDerivedTokens = [
     ...new Set(
-      (intentConceptResolution.resolvedCanonicalLower || []).flatMap((c) =>
+      (mergedResolvedCanonicals || []).flatMap((c) =>
         String(c || "")
           .split(/\s+/)
           .map((w) => w.trim())
@@ -657,9 +710,9 @@ export async function semanticIntentEngine(params) {
     params.limitCount || 10
   );
   let skillGraphIntentRows = [];
-  if (intentConceptResolution.resolvedSkillIds?.length) {
+  if (mergedResolvedSkillIds?.length) {
     const graphPack = await fetchSkillGraphRoleRows(sb, {
-      canonicalSkillIds: intentConceptResolution.resolvedSkillIds,
+      canonicalSkillIds: mergedResolvedSkillIds,
       normalizedSkills: filteredTokensForIntent,
       selectedDepartment: params.selectedDepartment || null,
       limitCount: params.limitCount || 10,
@@ -678,9 +731,9 @@ export async function semanticIntentEngine(params) {
   );
   const mobileRefinement = refineMobileProductCandidates(mergedRawPreFilter, intentInputText, intentCtx.expandedTokens);
   const deduped = dedupeIntentResults(mobileRefinement.rows || [], 50);
-  const intentDbOwnership = await fetchOwnershipFamiliesFromSkillIds(sb, intentConceptResolution.resolvedSkillIds);
+  const intentDbOwnership = await fetchOwnershipFamiliesFromSkillIds(sb, mergedResolvedSkillIds);
   const ownershipMerged = mergePhraseAndDbOwnership(
-    resolveOwnershipContext(intentInputText, intentConceptResolution.resolvedCanonicalLower),
+    resolveOwnershipContext(intentInputText, mergedResolvedCanonicals),
     intentDbOwnership
   );
   const rescored = scoreWithIntentPriors(deduped, { ...intentCtx, executionIntent }, ownershipMerged);
@@ -710,7 +763,7 @@ export async function semanticIntentEngine(params) {
   const detectedSkills = [
     ...new Set([
       ...(Array.isArray(params.skills) ? params.skills.map((s) => normalizeIntentQuery(String(s))) : []),
-      ...intentConceptResolution.resolvedCanonicalLower
+      ...mergedResolvedCanonicals
     ])
   ].filter(Boolean);
 
@@ -728,8 +781,10 @@ export async function semanticIntentEngine(params) {
       semanticTerms: filteredTokensForIntent,
       normalizedQueryPreAlias: normalizedQuery,
       intentSkillResolution: {
-        resolvedCanonicals: intentConceptResolution.resolvedCanonicalLower,
-        resolvedSkillIds: intentConceptResolution.resolvedSkillIds
+        resolvedCanonicals: mergedResolvedCanonicals,
+        resolvedSkillIds: mergedResolvedSkillIds,
+        definitionHintCanonicals: definitionHints.resolvedCanonicalLower || [],
+        definitionHintTerms: definitionHints.matchedDefinitionTerms || []
       },
       tokenization: {
         rawTokens,
