@@ -51,111 +51,7 @@ function dedupeResultsAcrossWorkflows(rows, limitCount) {
     .slice(0, Math.min(Math.max(1, Number(limitCount || 10)), 50));
 }
 
-function normalizeInputText(v) {
-  return String(v || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-const INPUT_TYPO_NORMALIZATION = Object.freeze({
-  hrpb: "hrbp",
-  reactjs: "react",
-  payrol: "payroll",
-  "bussiness intelligence": "business intelligence",
-  bussiness: "business"
-});
-
-function normalizeWithTypoCorrection(v) {
-  const original = normalizeInputText(v);
-  if (!original) return { original_input: "", corrected_value: "", typo_corrected: false };
-  if (INPUT_TYPO_NORMALIZATION[original]) {
-    const corrected = INPUT_TYPO_NORMALIZATION[original];
-    return { original_input: original, corrected_value: corrected, typo_corrected: corrected !== original };
-  }
-  const tokenCorrected = original
-    .split(" ")
-    .map((w) => INPUT_TYPO_NORMALIZATION[w] || w)
-    .join(" ")
-    .trim();
-  const corrected = INPUT_TYPO_NORMALIZATION[tokenCorrected] || tokenCorrected;
-  return { original_input: original, corrected_value: corrected, typo_corrected: corrected !== original };
-}
-
-async function detectMissingSkillInputs(sb, skills) {
-  const normalized = [...new Set((skills || []).map((s) => normalizeWithTypoCorrection(s).original_input).filter(Boolean))];
-  if (!sb || !normalized.length) return { provided: [], unmatched: [], checks: [] };
-  const checks = [];
-  const unmatched = [];
-  for (const s of normalized) {
-    const correction = normalizeWithTypoCorrection(s);
-    const [{ data: canonicalRows, error: canonicalErr }, { data: aliasRows, error: aliasErr }] = await Promise.all([
-      sb.from("skills_v2").select("id").ilike("canonical_name", correction.corrected_value).limit(1),
-      sb.from("skill_aliases").select("skill_id").ilike("alias", correction.corrected_value).limit(1)
-    ]);
-    const known = !canonicalErr && !aliasErr && ((canonicalRows && canonicalRows.length) || (aliasRows && aliasRows.length));
-    const row = {
-      original_input: correction.original_input,
-      corrected_value: correction.corrected_value,
-      typo_corrected: correction.typo_corrected,
-      resolved: !!known
-    };
-    checks.push(row);
-    if (!known) unmatched.push(row.original_input);
-  }
-  return { provided: normalized, unmatched, checks };
-}
-
-async function detectTitleKnown(sb, rawQuery) {
-  const q = normalizeWithTypoCorrection(rawQuery);
-  if (!sb || !q.corrected_value) return { provided: q.original_input || "", known: null, correction: q };
-  const [{ data: roleRows, error: roleErr }, { data: aliasRows, error: aliasErr }] = await Promise.all([
-    sb.from("roles_v2").select("id").ilike("canonical_title", q.corrected_value).limit(1),
-    sb.from("role_aliases").select("role_id").ilike("alias", q.corrected_value).limit(1)
-  ]);
-  const known =
-    !roleErr &&
-    !aliasErr &&
-    (((roleRows && roleRows.length) || 0) > 0 || ((aliasRows && aliasRows.length) || 0) > 0);
-  return { provided: q.corrected_value, known, correction: q };
-}
-
-async function buildNoResultMetadata(sb, { rawQuery, workflowType, skills, selectedDepartment, currency, limitCount }) {
-  try {
-    const skillCheck = await detectMissingSkillInputs(sb, Array.isArray(skills) ? skills : []);
-    const titleCheck =
-      workflowType === "title" ? await detectTitleKnown(sb, rawQuery) : { provided: "", known: null, correction: null };
-    return {
-      no_result_capture: true,
-      workflow_type: workflowType || "auto",
-      selected_department: selectedDepartment || null,
-      currency: currency || "INR",
-      limit_count: Number(limitCount || 10),
-      raw_query: String(rawQuery || "").slice(0, 1000),
-      input_skills: skillCheck.provided,
-      unmatched_skills: skillCheck.unmatched,
-      title_query: titleCheck.provided,
-      title_known: titleCheck.known,
-      unresolved_terms: [
-        ...(skillCheck.unmatched || []),
-        ...(workflowType === "title" && titleCheck.provided && titleCheck.known === false ? [titleCheck.provided] : [])
-      ],
-      typo_corrections: {
-        title: titleCheck.correction || null,
-        skills: skillCheck.checks || []
-      }
-    };
-  } catch {
-    return {
-      no_result_capture: true,
-      metadata_error: "no_result_metadata_failed"
-    };
-  }
-}
-
 async function logSearchQuery({
-  sb,
   workflowType,
   rawQuery,
   normalizedQuery,
@@ -164,14 +60,12 @@ async function logSearchQuery({
   selectedRoleId,
   resultCount,
   success,
-  responseTimeMs,
-  failureReason = null,
-  metadata = null
+  responseTimeMs
 }) {
-  const client = sb || getSupabaseAdmin();
-  if (!client) return;
+  const sb = getSupabaseAdmin();
+  if (!sb) return;
   try {
-    await client.from("search_query_logs").insert({
+    await sb.from("search_query_logs").insert({
       workflow_type: workflowType,
       raw_query: rawQuery || "",
       normalized_query: normalizedQuery || "",
@@ -180,9 +74,7 @@ async function logSearchQuery({
       selected_role_id: selectedRoleId || null,
       result_count: Number(resultCount || 0),
       success: !!success,
-      failure_reason: failureReason || null,
-      response_time_ms: Number(responseTimeMs || 0),
-      metadata: metadata || null
+      response_time_ms: Number(responseTimeMs || 0)
     });
   } catch (e) {
     // Logging must never fail the search response.
@@ -201,7 +93,6 @@ export async function routeSearchRequest({
   includeDebug = false
 }) {
   const routedWorkflow = classifyWorkflow({ workflowType, rawQuery, skills });
-  const sb = getSupabaseAdmin();
   const params = {
     rawQuery: String(rawQuery || ""),
     selectedDepartment: selectedDepartment || null,
@@ -245,7 +136,6 @@ export async function routeSearchRequest({
       }
     }
     await logSearchQuery({
-      sb,
       workflowType: routedWorkflow,
       rawQuery: params.rawQuery,
       normalizedQuery: response.normalizedQuery,
@@ -253,20 +143,8 @@ export async function routeSearchRequest({
       inferredRoleIds: dedupedResults.map((r) => r?.role_id).filter(Boolean),
       selectedRoleId,
       resultCount: dedupedResults.length,
-      success: dedupedResults.length > 0,
-      responseTimeMs: response.responseTimeMs,
-      failureReason: dedupedResults.length > 0 ? null : "NO_RESULTS",
-      metadata:
-        dedupedResults.length > 0
-          ? null
-          : await buildNoResultMetadata(sb, {
-            rawQuery: params.rawQuery,
-            workflowType: routedWorkflow,
-            skills: params.skills,
-            selectedDepartment: params.selectedDepartment,
-            currency: params.currency,
-            limitCount: params.limitCount
-          })
+      success: true,
+      responseTimeMs: response.responseTimeMs
     });
 
     const responsePayload = {
@@ -286,7 +164,6 @@ export async function routeSearchRequest({
     return responsePayload;
   } catch (error) {
     await logSearchQuery({
-      sb,
       workflowType: routedWorkflow,
       rawQuery: params.rawQuery,
       normalizedQuery: params.rawQuery,
@@ -295,12 +172,7 @@ export async function routeSearchRequest({
       selectedRoleId,
       resultCount: 0,
       success: false,
-      responseTimeMs: 0,
-      failureReason: "REQUEST_FAILED",
-      metadata: {
-        no_result_capture: false,
-        error_message: String(error?.message || "Search failed").slice(0, 500)
-      }
+      responseTimeMs: 0
     });
     throw error;
   }

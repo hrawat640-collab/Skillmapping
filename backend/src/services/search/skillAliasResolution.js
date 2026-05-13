@@ -11,11 +11,6 @@ function normalizeSkillText(t) {
     .trim();
 }
 
-const DEFINITION_STOPWORDS = new Set([
-  "a", "an", "the", "and", "or", "for", "with", "without", "to", "of", "in", "on", "at", "by", "from",
-  "used", "using", "system", "systems", "platform", "platforms", "supports", "support", "work", "workflow", "workflows"
-]);
-
 export function buildSkillAliasIndexes(canonicalRows, aliasRows) {
   const canonicalByLower = new Map();
   const idToCanonicalLower = new Map();
@@ -76,61 +71,6 @@ export function resolveProfessionalConcepts(textSources, idx) {
   return {
     resolvedSkillIds: [...resolvedSkillIds],
     resolvedCanonicalLower: [...resolvedCanonicalLower].filter(Boolean)
-  };
-}
-
-/**
- * Lightweight contextual hinting from skills_v2.short_definition.
- * Safeguards:
- * - Only token overlap (deterministic), no fuzzy/ML.
- * - Requires minimum 2 definition token hits.
- * - Returns a tiny capped set for fallback understanding (not primary retrieval authority).
- */
-export function resolveDefinitionHintConcepts(textSources, canonicalRows, options = {}) {
-  const sources = (Array.isArray(textSources) ? textSources : [textSources]).filter(Boolean);
-  const allText = normalizeSkillText(sources.join(" "));
-  if (!allText) return { resolvedSkillIds: [], resolvedCanonicalLower: [], matchedDefinitionTerms: [] };
-
-  const queryTokens = [...new Set(
-    allText
-      .split(" ")
-      .map((w) => w.trim())
-      .filter((w) => w.length >= 3 && !DEFINITION_STOPWORDS.has(w))
-  )];
-  if (!queryTokens.length) return { resolvedSkillIds: [], resolvedCanonicalLower: [], matchedDefinitionTerms: [] };
-
-  const minHits = Math.max(2, Number(options.minTokenHits || 2));
-  const maxSkills = Math.min(6, Math.max(1, Number(options.maxSkills || 4)));
-
-  const matches = [];
-  for (const row of canonicalRows || []) {
-    const skillId = row?.id;
-    const canonical = normalizeSkillText(row?.canonical_name);
-    const def = normalizeSkillText(row?.short_definition);
-    if (!skillId || !canonical || !def) continue;
-    const defTokens = new Set(
-      def
-        .split(" ")
-        .map((w) => w.trim())
-        .filter((w) => w.length >= 3 && !DEFINITION_STOPWORDS.has(w))
-    );
-    if (!defTokens.size) continue;
-    const hits = queryTokens.filter((t) => defTokens.has(t));
-    if (hits.length < minHits) continue;
-    matches.push({
-      skillId,
-      canonical,
-      hits,
-      score: hits.length / Math.max(1, defTokens.size)
-    });
-  }
-
-  matches.sort((a, b) => b.hits.length - a.hits.length || b.score - a.score || a.canonical.localeCompare(b.canonical));
-  const top = matches.slice(0, maxSkills);
-  return {
-    resolvedSkillIds: [...new Set(top.map((m) => m.skillId))],
-    resolvedCanonicalLower: [...new Set(top.map((m) => m.canonical))],
-    matchedDefinitionTerms: [...new Set(top.flatMap((m) => m.hits))]
   };
 }
 
