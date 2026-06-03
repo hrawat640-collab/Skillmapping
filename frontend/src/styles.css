@@ -88,6 +88,38 @@ body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-
 .suite-step.active .suite-step-num { background: var(--accent); color: #fff; }
 .suite-arrow { color: var(--ink3); font-size: 10px; }
 
+/* ── Avatar & Profile Dropdown ── */
+.avatar-btn {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--teal); color: #fff;
+  font-size: 13px; font-weight: 700; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--sans); letter-spacing: 0.02em;
+  transition: transform .15s, box-shadow .15s;
+}
+.avatar-btn:hover { transform: scale(1.06); box-shadow: 0 2px 8px rgba(6,78,59,0.25); }
+
+.profile-dropdown {
+  position: absolute; top: calc(100% + 10px); right: 0;
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: 14px; padding: 16px; min-width: 240px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.1); z-index: 999;
+  animation: smoothFadeUp 0.15s ease;
+}
+.pd-email { font-size: 13.5px; font-weight: 700; color: var(--ink); margin-bottom: 12px; }
+.pd-divider { height: 1px; background: var(--border); margin: 10px 0; }
+.pd-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; }
+.pd-label { font-size: 13px; color: var(--ink3); }
+.pd-value { font-size: 13px; font-weight: 700; color: var(--ink); }
+.pd-signout {
+  width: 100%; padding: 8px; border-radius: 8px;
+  background: transparent; border: 1.5px solid var(--border);
+  font-size: 13px; font-weight: 600; color: var(--ink2);
+  cursor: pointer; font-family: var(--sans); margin-top: 4px;
+  transition: all .15s;
+}
+.pd-signout:hover { border-color: var(--border2); color: var(--ink); }
+
 .btn-contact {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 14px; background: var(--teal); color: #fff;
@@ -151,7 +183,7 @@ body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-
 .ic-label span { font-size: 11px; color: var(--ink3); font-weight: 500; font-family: var(--mono); }
 
 .btn-find {
-  display: inline-flex; align-items: center; gap: 7px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
   padding: 0 20px; height: 52px; border-radius: 8px;
   background: var(--teal); color: #fff;
   font-family: var(--sans); font-size: 14px; font-weight: 700;
@@ -332,7 +364,7 @@ button:active, .btn-find:active, .sal-btn:active, .cur-chip:active, .dept-btn:ac
 .rc-exp-head .rc-sec-lbl { margin-right: 0; }
 .rc-also-called-text { font-size: 12px; color: var(--ink3); font-family: var(--sans); line-height: 1.5; }
 
-.skill-nice { background: #F8F4FF; color: #6D28D9; }
+.skill-nice { background: #F1F5F9; color: #475569; }
 
 .btn-share-salary {
   display: inline-flex; align-items: center; gap: 6px;
@@ -576,13 +608,23 @@ button:active, .btn-find:active, .sal-btn:active, .cur-chip:active, .dept-btn:ac
 
 /* ── Footer ── */
 .site-footer {
-  background: var(--ink); color: rgba(255,255,255,0.6);
-  font-size: 12.5px; padding: 46px 22px 18px;
-  padding-bottom: max(18px, env(safe-area-inset-bottom));
+  background: #0f172a; color: rgba(255,255,255,0.55);
+  font-size: 13px; padding: 48px 24px 28px;
+  padding-bottom: max(28px, env(safe-area-inset-bottom));
   text-align: center; line-height: 1.8;
 }
-.site-footer strong { color: #fff; font-weight: 600; }
-.site-footer a { color: rgba(255,255,255,0.7); text-decoration: none; }
+.footer-inner { max-width: 860px; margin: 0 auto; }
+.footer-brand { font-size: 14px; color: rgba(255,255,255,0.85); font-weight: 500; margin-bottom: 12px; }
+.footer-brand strong { color: #fff; font-weight: 700; }
+.footer-dot { color: rgba(255,255,255,0.35); }
+.footer-link-teal { color: #2dd4bf !important; text-decoration: none; }
+.footer-link-teal:hover { color: #5eead4 !important; }
+.footer-disclaimer { font-size: 12.5px; color: rgba(255,255,255,0.45); max-width: 680px; margin: 0 auto 14px; line-height: 1.65; }
+.footer-copy { font-size: 12px; color: rgba(255,255,255,0.4); margin-bottom: 12px; }
+.footer-links { font-size: 12.5px; }
+.footer-links a { color: rgba(255,255,255,0.6); text-decoration: underline; text-underline-offset: 2px; }
+.footer-links a:hover { color: #fff; }
+.site-footer a { color: rgba(255,255,255,0.6); text-decoration: none; }
 .site-footer a:hover { color: #fff; }
 
 /* ── Privacy page ── */

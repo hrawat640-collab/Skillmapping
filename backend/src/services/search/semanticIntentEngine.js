@@ -274,7 +274,7 @@ async function enrichIntentCandidates(sb, normalizedQuery, filteredTokens, inten
   const signalTokens = [...new Set([...queryTokens, ...vocabTokens])];
 
   const [rolesRes, metaRes] = await Promise.all([
-    sb.from("roles_v2").select("id, canonical_title, role_family, hint, active").eq("active", true),
+    sb.from("roles_v2").select("id, canonical_title, role_family, hint, description, active").eq("active", true),
     sb.from("role_semantic_metadata").select("role_id, keywords, search_phrases, responsibilities, work_examples, tools, output_types")
   ]);
   if (rolesRes.error) throw new Error(rolesRes.error.message || "enrichment roles_v2 query failed");
@@ -327,6 +327,7 @@ async function enrichIntentCandidates(sb, normalizedQuery, filteredTokens, inten
       final_score: score,
       confidence: mapConfidence(score),
       hint: r.hint || "",
+      role_summary: r.description || "",
       required_skills: [],
       good_to_have: [],
       aliases: [],
@@ -513,7 +514,7 @@ async function fallbackIntentPriorSearch(sb, normalizedQuery, intentCtx, limitCo
   const signalTokens = (intentCtx.expandedTokens || []).map((t) => normalizeIntentQuery(t)).filter(Boolean);
 
   const [rolesRes, metaRes] = await Promise.all([
-    sb.from("roles_v2").select("id, canonical_title, role_family, hint, active").eq("active", true),
+    sb.from("roles_v2").select("id, canonical_title, role_family, hint, description, active").eq("active", true),
     sb.from("role_semantic_metadata").select("role_id, keywords, search_phrases, responsibilities, work_examples, tools, output_types")
   ]);
   if (rolesRes.error) throw new Error(rolesRes.error.message || "fallback roles_v2 query failed");
@@ -550,6 +551,7 @@ async function fallbackIntentPriorSearch(sb, normalizedQuery, intentCtx, limitCo
       final_score: score,
       confidence: mapConfidence(score),
       hint: r.hint || "",
+      role_summary: r.description || "",
       required_skills: [],
       good_to_have: [],
       aliases: [],

@@ -26,19 +26,21 @@ router.post("/salary/contribute", salaryLimiter, async (req, res) => {
     }
   }
 
-  const { role_id, level, inr, usd, yoe, country, city } = req.body;
-  if (!role_id || !level) {
-    return res.status(400).json({ error: "role_id and level are required" });
+  const { dept, sub_dept, your_role, years_working, compensation, currency, country, company, company_stage } = req.body;
+  if (!compensation || !compensation.toString().trim()) {
+    return res.status(400).json({ error: "compensation is required" });
   }
 
   const sb = getSupabaseAdmin();
   if (!sb) return res.status(503).json({ error: "Database unavailable" });
 
-  // If JWT decode worked but sub was email-based, look up the numeric user id
+  // Resolve user email from token if available
+  let userEmail = null;
   if (!userId && token) {
     try {
       const decoded = jwt.decode(token);
       if (decoded?.email) {
+        userEmail = decoded.email;
         const { data } = await sb.from("sm_users").select("id").eq("email", decoded.email).maybeSingle();
         userId = data?.id || null;
       }
@@ -46,19 +48,21 @@ router.post("/salary/contribute", salaryLimiter, async (req, res) => {
   }
 
   const payload = {
-    role_id: String(role_id),
-    level: String(level),
-    inr: inr != null ? Number(inr) || null : null,
-    usd: usd != null ? Number(usd) || null : null,
-    yoe: yoe != null ? Number(yoe) || null : null,
+    designation: your_role ? String(your_role).trim() : null,
+    dept: dept ? String(dept).trim() : null,
+    sub_dept: sub_dept ? String(sub_dept).trim() : null,
+    experience_range: years_working ? String(years_working).trim() : null,
+    ctc: String(compensation).trim(),
+    currency: currency ? String(currency).trim() : "INR",
     country: country ? String(country).trim() : null,
-    city: city ? String(city).trim() : null,
-    user_id: userId
+    company: company ? String(company).trim() : null,
+    role_desc: company_stage ? String(company_stage).trim() : null,
+    user_id: userId,
+    email: userEmail || "anonymous@skillmapper.app"
   };
 
   const { error } = await sb.from("sm_salary_contribution").insert(payload);
   if (error) {
-    // FK violation on user_id — retry without it
     if (error.message?.includes("foreign key") || error.message?.includes("violates")) {
       const { error: e2 } = await sb.from("sm_salary_contribution").insert({ ...payload, user_id: null });
       if (e2) return res.status(500).json({ error: e2.message });

@@ -31,7 +31,7 @@ export default function SearchPage({ user, onLoginRequired }) {
   const [department, setDepartment] = useState(null);
   const [salaryRole, setSalaryRole] = useState(null);
 
-  const { results, loading, error, aiEnhanced, lastQuery, search } = useSearch();
+  const { results, loading, error, aiEnhanced, lastQuery, search, clear } = useSearch();
   const enriched = enrichWithLibrary(results, roles);
 
   // Count results per department for filter pills
@@ -97,30 +97,25 @@ export default function SearchPage({ user, onLoginRequired }) {
 
   return (
     <div className="main">
-      <div className="hero">
-        <h2>Find the right job title, skills &amp; salary</h2>
-        <p>155+ roles · 1400+ skills · INR &amp; USD benchmarks · Built by HR experts</p>
-      </div>
-
       {/* Search card */}
       <div className="input-card">
         <div className="mode-tabs">
           <button
             className={`mode-tab${mode === "skills" ? " active" : ""}`}
-            onClick={() => setMode("skills")}
+            onClick={() => { if (mode !== "skills") { setMode("skills"); clear(); } }}
           >
             Add skills
           </button>
           <button
             className={`mode-tab${mode === "title" ? " active" : ""}`}
-            onClick={() => setMode("title")}
+            onClick={() => { if (mode !== "title") { setMode("title"); clear(); } }}
           >
             Browse by title
           </button>
           {isHR && (
             <button
               className={`mode-tab${mode === "nl" ? " active" : ""}`}
-              onClick={() => setMode("nl")}
+              onClick={() => { if (mode !== "nl") { setMode("nl"); clear(); } }}
             >
               Describe what you need
             </button>
@@ -130,18 +125,20 @@ export default function SearchPage({ user, onLoginRequired }) {
         {/* Skills mode */}
         {mode === "skills" && (
           <div className="mode-pane">
-            <div className="ic-label">
-              <span>Add the skills you are looking for</span>
-              <span>{selectedSkills.length} selected</span>
-            </div>
+            {selectedSkills.length > 0 && (
+              <div className="ic-label" style={{ justifyContent: "flex-end" }}>
+                <span>{selectedSkills.length} selected</span>
+              </div>
+            )}
             <SkillInput
               skills={selectedSkills}
               onChange={setSelectedSkills}
               allSkills={skills}
             />
-            <div style={{ marginTop: 14, display: "flex", justifyContent: "flex-end" }}>
+            <div style={{ marginTop: 14, display: "flex", justifyContent: "center" }}>
               <button
                 className="btn-find"
+                style={{ width: "100%" }}
                 onClick={handleSearch}
                 disabled={loading || !selectedSkills.length}
               >
@@ -153,7 +150,7 @@ export default function SearchPage({ user, onLoginRequired }) {
                 ) : (
                   <>
                     <svg viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" strokeWidth="1.5"/><path d="M10.5 10.5L14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
-                    Find matching roles
+                    Show skills &amp; salary
                   </>
                 )}
               </button>
@@ -164,18 +161,23 @@ export default function SearchPage({ user, onLoginRequired }) {
         {/* Title mode */}
         {mode === "title" && (
           <div className="mode-pane">
-            <div className="ic-label">
-              <span>Search and select role titles</span>
-            </div>
-
             {selectedTitles.length > 0 && (
-              <div className="selected-titles">
-                {selectedTitles.map((t) => (
-                  <span className="title-chip" key={t}>
-                    {t}
-                    <button className="title-chip-x" onClick={() => setSelectedTitles(selectedTitles.filter((x) => x !== t))}>×</button>
-                  </span>
-                ))}
+              <div style={{ marginBottom: 12 }}>
+                <div className="selected-titles">
+                  {selectedTitles.map((t) => (
+                    <span className="title-chip" key={t}>
+                      {t}
+                      <button className="title-chip-x" onClick={() => setSelectedTitles(selectedTitles.filter((x) => x !== t))}>×</button>
+                    </span>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedTitles([])}
+                  style={{ background: "none", border: "none", fontSize: 12, color: "var(--ink3)", cursor: "pointer", padding: "4px 0", fontFamily: "var(--sans)" }}
+                >
+                  ↺ Clear selection
+                </button>
               </div>
             )}
 
@@ -214,13 +216,24 @@ export default function SearchPage({ user, onLoginRequired }) {
               )}
             </div>
 
-            <div style={{ marginTop: 14, display: "flex", justifyContent: "flex-end" }}>
+            <div style={{ marginTop: 14, display: "flex", justifyContent: "center" }}>
               <button
                 className="btn-find"
+                style={{ width: "100%" }}
                 onClick={handleSearch}
                 disabled={loading || !selectedTitles.length}
               >
-                {loading ? "Searching…" : "Find matching roles"}
+                {loading ? (
+                  <>
+                    <span className="loading-dot" style={{ width: 6, height: 6, background: "#fff" }} />
+                    Searching…
+                  </>
+                ) : (
+                  <>
+                    <svg viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" strokeWidth="1.5"/><path d="M10.5 10.5L14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                    Show skills &amp; salary
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -229,9 +242,6 @@ export default function SearchPage({ user, onLoginRequired }) {
         {/* NL / describe mode (HR only) */}
         {mode === "nl" && (
           <div className="mode-pane">
-            <div className="ic-label">
-              <span>Describe what you're looking for in plain English</span>
-            </div>
             <textarea
               className="nl-textarea"
               placeholder="e.g. Someone who builds REST APIs and integrates third-party services…"
@@ -258,13 +268,24 @@ export default function SearchPage({ user, onLoginRequired }) {
               </div>
             )}
 
-            <div style={{ marginTop: 14, display: "flex", justifyContent: "flex-end" }}>
+            <div style={{ marginTop: 14, display: "flex", justifyContent: "center" }}>
               <button
                 className="btn-find"
+                style={{ width: "100%" }}
                 onClick={handleSearch}
                 disabled={loading || !nlText.trim()}
               >
-                {loading ? "Searching…" : "Find matching roles"}
+                {loading ? (
+                  <>
+                    <span className="loading-dot" style={{ width: 6, height: 6, background: "#fff" }} />
+                    Searching…
+                  </>
+                ) : (
+                  <>
+                    <svg viewBox="0 0 16 16" fill="none"><path d="M13 8H3M8 3l5 5-5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    Show skills &amp; salary
+                  </>
+                )}
               </button>
             </div>
           </div>
