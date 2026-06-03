@@ -10,6 +10,7 @@ import {
   resolveProfessionalConcepts
 } from "./skillAliasResolution.js";
 import { fetchSkillGraphRoleRows } from "./skillGraphRetrieval.js";
+import { applyDbIntentPriorBoosts } from "./dbIntentPriors.js";
 
 function normalizeIntentQuery(rawQuery) {
   const base = String(rawQuery || "")
@@ -684,7 +685,8 @@ export async function semanticIntentEngine(params) {
     intentDbOwnership
   );
   const rescored = scoreWithIntentPriors(deduped, { ...intentCtx, executionIntent }, ownershipMerged);
-  const results = rescored.slice(0, Math.min(Math.max(1, Number(params.limitCount || 10)), 50));
+  const boosted = await applyDbIntentPriorBoosts(rescored, intentInputText).catch(() => rescored);
+  const results = boosted.slice(0, Math.min(Math.max(1, Number(params.limitCount || 10)), 50));
   const scoreBreakdown = results.slice(0, 5).map((r) => ({
     role_id: r?.role_id || null,
     title: r?.canonical_title || "",

@@ -2,6 +2,7 @@ import { getSupabaseAdmin } from "../../supabaseClient.js";
 import { skillSearchEngine } from "./skillSearchEngine.js";
 import { titleSearchEngine } from "./titleSearchEngine.js";
 import { semanticIntentEngine } from "./semanticIntentEngine.js";
+import { vectorSearchEngine } from "./vectorSearchEngine.js";
 import { scoreWithShadowRuntime } from "../semanticShadow/shadowScoring.js";
 
 function classifyWorkflow({ workflowType, rawQuery, skills }) {
@@ -103,12 +104,25 @@ export async function routeSearchRequest({
   };
 
   try {
-    let response;
-    if (routedWorkflow === "structured") response = await skillSearchEngine(params);
-    else if (routedWorkflow === "title") response = await titleSearchEngine(params);
-    else response = await semanticIntentEngine(params);
+    const sb = getSupabaseAdmin();
 
-    const dedupedResults = dedupeResultsAcrossWorkflows(response.results || [], params.limitCount);
+    let primaryPromise;
+    if (routedWorkflow === "structured") primaryPromise = skillSearchEngine(params);
+    else if (routedWorkflow === "title") primaryPromise = titleSearchEngine(params);
+    else primaryPromise = semanticIntentEngine(params);
+
+    const [response, vectorRows] = await Promise.all([
+      primaryPromise,
+      vectorSearchEngine({
+        sb,
+        rawQuery: params.rawQuery,
+        selectedDepartment: params.selectedDepartment,
+        limitCount: params.limitCount
+      }).catch(() => [])
+    ]);
+
+    const allResults = [...(response.results || []), ...vectorRows];
+    const dedupedResults = dedupeResultsAcrossWorkflows(allResults, params.limitCount);
     let shadowDebug = null;
     if (includeDebug) {
       try {

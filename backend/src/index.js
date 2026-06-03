@@ -3,11 +3,16 @@ dotenv.config();
 
 import express from "express";
 import cors from "cors";
-import fs from "fs";
 import crypto from "crypto";
+import fs from "fs";
 
 import authRoutes from "./routes/auth.js";
+import authGoogleRoutes, { warmupGoogleKeys } from "./routes/authGoogle.js";
+import dataRoutes from "./routes/data.js";
 import evaluateRoutes from "./routes/evaluate.js";
+import geminiRoutes from "./routes/gemini.js";
+import salaryRoutes from "./routes/salary.js";
+import feedbackRoutes from "./routes/feedback.js";
 import searchRolesRoutes from "./routes/searchRoles.js";
 
 import { getSupabaseAdmin } from "./supabaseClient.js";
@@ -41,6 +46,8 @@ if (!fs.existsSync("uploads")) {
 const allowedOrigins = new Set([
   "http://localhost:5500",
   "http://127.0.0.1:5500",
+  "http://localhost:5173",
+  "http://localhost:5174",
 ]);
 
 if (process.env.FRONTEND_ORIGIN) {
@@ -53,15 +60,12 @@ if (process.env.NETLIFY_ORIGIN) {
 
 const corsOptions = {
   origin(origin, callback) {
-    // Allow non-browser clients and local file origin (origin can be null/undefined).
     if (!origin || origin === "null") {
       return callback(null, true);
     }
-
     if (allowedOrigins.has(origin)) {
       return callback(null, true);
     }
-
     return callback(new Error(`CORS blocked for origin: ${origin}`));
   },
   credentials: true,
@@ -73,12 +77,7 @@ app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
 
 app.use(express.json());
-
-app.use(
-  express.urlencoded({
-    extended: true,
-  })
-);
+app.use(express.urlencoded({ extended: true }));
 
 app.use((req, res, next) => {
   const startedAt = Date.now();
@@ -104,15 +103,16 @@ app.use((req, res, next) => {
 });
 
 app.get("/api/health", (_req, res) => {
-  res.json({
-    ok: true,
-  });
+  res.json({ ok: true });
 });
 
 app.use("/api/auth", authRoutes);
-
+app.use("/api/auth/google", authGoogleRoutes);
+app.use("/api", dataRoutes);
+app.use("/api", geminiRoutes);
+app.use("/api", salaryRoutes);
+app.use("/api", feedbackRoutes);
 app.use("/api", evaluateRoutes);
-
 app.use("/api", searchRolesRoutes);
 
 app.use((err, req, res, next) => {
@@ -155,12 +155,10 @@ if (!runtimeConfig.ok) {
 }
 
 const sb = getSupabaseAdmin();
-
 if (!sb) {
   console.error(
     "Startup failed: configure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_ANON_KEY)."
   );
-
   process.exit(1);
 }
 
@@ -189,6 +187,7 @@ process.on("unhandledRejection", (reason) => {
 });
 
 app.listen(port, () => {
+  warmupGoogleKeys();
   console.log(
     JSON.stringify({
       level: "info",
