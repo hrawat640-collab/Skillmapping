@@ -63,6 +63,7 @@ export async function vectorSearchEngine({ sb, rawQuery, selectedDepartment, lim
       final_score: Number(r.similarity || r.score || 0),
       confidence: Number(r.similarity || 0) >= 0.85 ? "high" : Number(r.similarity || 0) >= 0.75 ? "medium" : "low",
       hint: r.hint || "",
+      role_summary: r.description || "",
       required_skills: r.required_skills || r.required || [],
       good_to_have: r.good_to_have || r.nice || [],
       aliases: r.aliases || [],

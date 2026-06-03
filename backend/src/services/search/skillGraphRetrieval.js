@@ -32,7 +32,7 @@ export async function fetchSkillGraphRoleRows(sb, {
     await Promise.all([
       sb.from("role_skills").select("role_id, skill_id, importance, weight"),
       sb.from("skills_v2").select("id, canonical_name"),
-      sb.from("roles_v2").select("id, canonical_title, role_family, hint, active").eq("active", true),
+      sb.from("roles_v2").select("id, canonical_title, role_family, hint, description, active").eq("active", true),
       sb.from("role_aliases").select("role_id, alias"),
       sb.from("role_levels_valid").select("role_id, level_code, min_exp, max_exp")
     ]);
@@ -99,6 +99,7 @@ export async function fetchSkillGraphRoleRows(sb, {
         final_score: score,
         confidence: mapConfidence(score),
         hint: role.hint || "",
+        role_summary: role.description || "",
         required_skills: requiredSkills,
         good_to_have: goodToHave,
         aliases: aliasesByRole.get(role.id) || [],

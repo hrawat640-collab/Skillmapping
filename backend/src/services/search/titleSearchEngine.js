@@ -107,7 +107,7 @@ export async function titleSearchEngine(params) {
   const normalizedQueryNoDesignation = normalizeTitleSearchText(params.rawQuery);
   const hintedDept = inferDeptFromQuery(params.rawQuery);
   const [rolesRes, aliasRes, roleSkillsRes, skillsRes, skillAliasRes] = await Promise.all([
-    sb.from("roles_v2").select("id, canonical_title, role_family, hint, active").eq("active", true),
+    sb.from("roles_v2").select("id, canonical_title, role_family, hint, description, active").eq("active", true),
     sb.from("role_aliases").select("role_id, alias"),
     sb.from("role_skills").select("role_id, skill_id, importance"),
     sb.from("skills_v2").select("id, canonical_name"),
@@ -213,6 +213,7 @@ export async function titleSearchEngine(params) {
         final_score: finalScore,
         confidence: finalScore >= 0.75 ? "high" : finalScore >= 0.45 ? "medium" : "low",
         hint: role.hint || "",
+        role_summary: role.description || "",
         required_skills: (graphRow?.required_skills?.length
           ? graphRow.required_skills
           : (skillsByRole.get(role.id)?.required || [])

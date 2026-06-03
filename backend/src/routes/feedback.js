@@ -21,19 +21,11 @@ router.post("/feedback", feedbackLimiter, async (req, res) => {
   if (!sb) return res.status(503).json({ error: "Database unavailable" });
 
   const payload = {
-    message: String(message).trim().slice(0, 2000),
-    type: type ? String(type).trim() : "general",
+    comment: String(message).trim().slice(0, 2000),
     page: page ? String(page).trim() : null
   };
 
   let { error } = await sb.from("feedback").insert(payload);
-
-  if (error?.message?.includes("column")) {
-    // Schema mismatch — try minimal insert
-    const { error: e2 } = await sb.from("feedback").insert({ message: payload.message });
-    if (e2) return res.status(500).json({ error: e2.message });
-    return res.json({ ok: true });
-  }
 
   if (error) return res.status(500).json({ error: error.message });
   res.json({ ok: true });

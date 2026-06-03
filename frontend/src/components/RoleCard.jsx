@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { parseSalarySegments, buildTalentXRayUrl } from "../utils/searchUtils";
-import { api } from "../api";
 
 const LEVELS = ["junior", "mid", "senior", "lead"];
 const LEVEL_LABELS = { junior: "Junior", mid: "Mid", senior: "Senior", lead: "Lead" };
@@ -14,17 +13,21 @@ function getUser() {
   try { return JSON.parse(localStorage.getItem("sm_user") || "null"); } catch { return null; }
 }
 
-function isHRUser(user) {
+function isHROrFounder(user) {
+  const p = String(user?.profession || "").toLowerCase();
+  return p === "hr" || p === "founder" || p === "professional";
+}
+
+function isStrictHR(user) {
   return String(user?.profession || "").toLowerCase() === "hr";
 }
 
-function formatSalLine(yrsMin, yrsMax, pipe) {
+function formatSalLine(yrsMin, yrsMax, pipe, currency = "INR") {
   const min = Number(yrsMin);
   const max = Number(yrsMax);
   const expOk = isFinite(min) && isFinite(max) && !(min === 0 && max === 0) && max >= min;
   const segs = parseSalarySegments(pipe);
-  const salParts = ["INR", "USD"].map((c) => segs[c] || "").filter(Boolean);
-  const salStr = salParts.join(" · ");
+  const salStr = segs[currency] || "";
 
   if (!expOk && !salStr) return { exp: "Experience varies", sal: null };
   if (expOk && !salStr) return { exp: `${min}-${max} yrs`, sal: null };
@@ -32,26 +35,26 @@ function formatSalLine(yrsMin, yrsMax, pipe) {
   return { exp: `${min}-${max} yrs`, sal: salStr };
 }
 
-export default function RoleCard({ role, currency, onSalaryContribute, onLoginRequired }) {
+export default function RoleCard({ role, currency = "INR", onSalaryContribute, onLoginRequired }) {
   const [salLevel, setSalLevel] = useState("junior");
-  const [copiedTitle, setCopiedTitle] = useState(false);
-  const [feedback, setFeedback] = useState(null); // "up" | "down" | null
 
   const user = getUser();
-  const isHR = isHRUser(user);
+  const isHR = isHROrFounder(user);
+  const isHROnly = isStrictHR(user);
   const salUnlocked = isSalUnlocked();
 
   const dept = role.dept || role.department_name || "";
   const title = role.title || role.canonical_title || "";
   const score = role.final_score ? Math.round(role.final_score * 100) : null;
-  const aliases = (role.aliases || []).filter((a) => a && a.toLowerCase() !== title.toLowerCase());
-
-  function handleCopyTitle() {
-    navigator.clipboard.writeText(title).then(() => {
-      setCopiedTitle(true);
-      setTimeout(() => setCopiedTitle(false), 1800);
-    });
-  }
+  // Filter out corrupted aliases where the first char was stripped during seeding
+  // (detected by: first word starts with lowercase and has no natural lowercase-start like "ml", "ios", "api")
+  const aliases = (role.aliases || []).filter((a) => {
+    if (!a || a.toLowerCase() === title.toLowerCase()) return false;
+    const firstWord = a.trim().split(/\s+/)[0];
+    const naturallyLower = /^(ml|ai|ios|api|ui|ux|bi|it|qa|hr|vp|cto|cfo|coo|ceo|devops|erp|crm|sap|nlp)$/i.test(firstWord);
+    if (!naturallyLower && firstWord === firstWord.toLowerCase() && firstWord.length > 1) return false;
+    return true;
+  });
 
   function handleSearchProfessional() {
     if (!user) { onLoginRequired?.(); return; }
@@ -68,31 +71,14 @@ export default function RoleCard({ role, currency, onSalaryContribute, onLoginRe
     setSalLevel((prev) => prev === level ? null : level);
   }
 
-  async function handleFeedback(helpful) {
-    if (feedback) return;
-    setFeedback(helpful ? "up" : "down");
-    try {
-      await api.post("/feedback", {
-        message: `Role feedback: ${helpful ? "helpful" : "not helpful"} for "${title}"`,
-        type: "role_feedback",
-        page: window.location.pathname
-      });
-    } catch {
-      // silent
-    }
-  }
-
   const required = role.required || [];
   const nice = role.nice || [];
   const matched = role.matched_skills || [];
 
   const activeLevelData = salLevel ? role.exp?.[salLevel] : null;
   const salLine = activeLevelData
-    ? formatSalLine(activeLevelData[0], activeLevelData[1], activeLevelData[2])
+    ? formatSalLine(activeLevelData[0], activeLevelData[1], activeLevelData[2], currency)
     : null;
-
-  // Show "Share your salary" amber button only when user hasn't unlocked
-  const showShareBtn = !salUnlocked;
 
   return (
     <div className="result-card" role="article">
@@ -107,13 +93,13 @@ export default function RoleCard({ role, currency, onSalaryContribute, onLoginRe
           )}
           <div className="rc-title">{title}</div>
 
-          {(role.role_summary || role.short_description) && (
-            <div className="rc-desc" style={{ marginBottom: 6 }}>
-              {role.role_summary || role.short_description}
+          {(role.role_summary || role.short_description || role.desc || role.description) && (
+            <div className="rc-desc rc-role-summary">
+              {role.role_summary || role.short_description || role.desc || role.description}
             </div>
           )}
 
-          {isHR && role.hint && (
+          {isHROnly && role.hint && (
             <div className="rc-hint">
               <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#D97706" strokeWidth="1.5"/><path d="M8 7v4M8 5.5v.5" stroke="#D97706" strokeWidth="1.5" strokeLinecap="round"/></svg>
               <span>{role.hint}</span>
@@ -121,12 +107,6 @@ export default function RoleCard({ role, currency, onSalaryContribute, onLoginRe
           )}
         </div>
 
-        {score != null && (
-          <div className="rc-score-wrap">
-            <div className="rc-score">{score}</div>
-            <div className="rc-score-lbl">match</div>
-          </div>
-        )}
       </div>
 
       <div className="rc-bottom">
@@ -200,63 +180,19 @@ export default function RoleCard({ role, currency, onSalaryContribute, onLoginRe
             </div>
           )}
 
-          {/* Also Called */}
-          {aliases.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "baseline", maxWidth: "100%" }}>
-              <span className="rc-sec-lbl" style={{ whiteSpace: "nowrap" }}>Also called</span>
-              <span className="rc-also-called-text">{aliases.slice(0, 4).join(", ")}</span>
-            </div>
-          )}
 
           {/* Actions */}
-          <div className="rc-actions">
-            <button
-              className={`btn-copy-title${copiedTitle ? " ok" : ""}`}
-              onClick={handleCopyTitle}
-            >
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-                <rect x="5" y="5" width="9" height="9" rx="2" stroke="currentColor" strokeWidth="1.5"/>
-                <path d="M3 11H2a1 1 0 01-1-1V2a1 1 0 011-1h8a1 1 0 011 1v1" stroke="currentColor" strokeWidth="1.5"/>
-              </svg>
-              {copiedTitle ? "Copied!" : "Copy title"}
-            </button>
-
-            <button className="btn-search" onClick={handleSearchProfessional}>
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-                <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" strokeWidth="1.5"/>
-                <path d="M10.5 10.5L14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-              </svg>
-              {isHR ? "Search professional" : "Show skills & salary"}
-            </button>
-
-            {showShareBtn && (
-              <button
-                className="btn-share-salary"
-                onClick={() => onSalaryContribute?.(role)}
-              >
-                Share your salary
+          {isHR && (
+            <div className="rc-actions">
+              <button className="btn-search" onClick={handleSearchProfessional}>
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                  <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" strokeWidth="1.5"/>
+                  <path d="M10.5 10.5L14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+                Search professional
               </button>
-            )}
-          </div>
-
-          {/* Helpful feedback row */}
-          <div className="rc-feedback" onClick={(e) => e.stopPropagation()}>
-            <span className="rc-feedback-lbl">Helpful?</span>
-            <button
-              type="button"
-              className={`rc-fb-btn${feedback === "up" ? " active" : ""}`}
-              title="Yes"
-              aria-label="Yes, helpful"
-              onClick={() => handleFeedback(true)}
-            >👍</button>
-            <button
-              type="button"
-              className={`rc-fb-btn${feedback === "down" ? " active" : ""}`}
-              title="Not really"
-              aria-label="Not helpful"
-              onClick={() => handleFeedback(false)}
-            >👎</button>
-          </div>
+            </div>
+          )}
 
         </div>
       </div>
