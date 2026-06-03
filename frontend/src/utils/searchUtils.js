@@ -82,16 +82,49 @@ export function enrichWithLibrary(apiResults, roles) {
 }
 
 /**
- * Build a TalentXRay search URL from a role and user.
+ * Build a TalentXRay (or LinkedIn X-Ray) search URL from a role and user.
+ * Matches the logic in the legacy index.html getRoleActionHtml():
+ *   - HR/founders → TalentXRay with title, alt titles, skills, au params
+ *   - Working professionals / freshers → Google LinkedIn X-Ray search
  */
 export function buildTalentXRayUrl(role, user, txrBase = "https://talentxray.talentsradar.com") {
-  const title = encodeURIComponent(role.title || role.canonical_title || "");
-  const alt = (role.aliases || []).slice(0, 2).map(encodeURIComponent).join(",");
-  const skillList = [
+  const titleStr = role.title || role.canonical_title || "";
+  const altTitles = (role.aliases || []).filter(Boolean).slice(0, 2);
+  const allPassSkills = [
     ...(role.required || []).slice(0, 6),
     ...(role.nice || []).slice(0, 2)
-  ].join(",");
-  const skills = encodeURIComponent(skillList);
-  const au = encodeURIComponent(user?.email || "");
-  return `${txrBase}/?title=${title}&alt=${alt}&skills=${skills}&from=skillmapper&au=${au}`;
+  ];
+  const au = user?.email || "";
+  const country = (user?.country || "").toLowerCase();
+  const profession = (user?.profession || "").toLowerCase();
+
+  // Working professionals and freshers get a LinkedIn X-Ray Google search
+  if (profession === "professional" || profession === "fresher") {
+    const allTitles = [titleStr, ...altTitles];
+    const titlePart = allTitles.length === 1
+      ? `"${allTitles[0]}"`
+      : `(${allTitles.map((t) => `"${t}"`).join(" OR ")})`;
+    const skillParts = allPassSkills.slice(0, 3).map((s) => `"${s}"`).join(" ");
+    const liNoise = "-inurl:jobs -inurl:groups -inurl:company -inurl:posts";
+    const liDomainMap = {
+      india: "in.linkedin.com/in/",
+      usa: "www.linkedin.com/in/",
+      "united states": "www.linkedin.com/in/",
+      uk: "uk.linkedin.com/in/",
+      "united kingdom": "uk.linkedin.com/in/",
+      uae: "ae.linkedin.com/in/",
+      singapore: "sg.linkedin.com/in/",
+      australia: "au.linkedin.com/in/",
+    };
+    const liDomain = liDomainMap[country] || "linkedin.com/in/";
+    const query = ["site:" + liDomain, liNoise, titlePart, skillParts].filter(Boolean).join(" ");
+    return "https://www.google.com/search?q=" + encodeURIComponent(query) + "&num=100";
+  }
+
+  // HR / founders / others → TalentXRay with autofill params
+  const titleParam = encodeURIComponent(titleStr);
+  const altParam = altTitles.map(encodeURIComponent).join(",");
+  const skillsParam = encodeURIComponent(allPassSkills.join(","));
+  const auParam = au ? "&au=" + encodeURIComponent(au) : "";
+  return `${txrBase}/?title=${titleParam}&alt=${altParam}&skills=${skillsParam}&from=skillmapper${auParam}`;
 }
