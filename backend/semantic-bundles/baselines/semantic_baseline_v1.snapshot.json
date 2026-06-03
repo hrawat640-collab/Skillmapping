@@ -1,0 +1,1886 @@
+{
+  "baseline_id": "semantic_baseline_v1",
+  "frozen_at": "2026-05-09T08:48:29.342Z",
+  "semantic_bundle_version": "semantic_bundle_v1",
+  "phase_manifest": {
+    "semantic_bundle_version": "semantic_bundle_v1",
+    "phase": "phase1_shadow_readonly",
+    "family_scope": [
+      "engineering",
+      "data_analytics",
+      "design_product",
+      "hr_people_ops"
+    ],
+    "template_versions": {
+      "engineering": "engineering_template_v1.0",
+      "data_analytics": "data_analytics_template_v1.0",
+      "design_product": "design_product_template_v1.0",
+      "hr_people_ops": "hr_people_ops_template_v1.0"
+    },
+    "archetype_versions": {
+      "engineering": "engineering_archetypes_v1.0",
+      "data_analytics": "data_analytics_archetypes_v1.0",
+      "design_product": "design_product_archetypes_v1.0",
+      "hr_people_ops": "hr_people_ops_archetypes_v1.0"
+    },
+    "merge_engine_version": "shadow_merge_engine_v1",
+    "validator_pack_version": "shadow_validator_pack_v1",
+    "ranking_eval_suite_version": "ranking_eval_suite_v1"
+  },
+  "evaluation": {
+    "suite_version": "ranking_eval_suite_v1",
+    "supabase_configured": true,
+    "generated_at": "2026-05-09T08:41:15.313Z",
+    "metrics": {
+      "total_cases": 8,
+      "cases_with_baseline_results": 8,
+      "cases_with_shadow_results": 8,
+      "avg_baseline_top1_score": 0.863752,
+      "avg_shadow_top1_score": 0.2138
+    },
+    "cases": [
+      {
+        "label": "Python + Kafka",
+        "query": "Python Kafka",
+        "workflow": "structured",
+        "baseline_top3": [
+          {
+            "title": "Backend Engineer",
+            "dept": "Engineering",
+            "family_guess": "engineering",
+            "score": 0.6009090909090908,
+            "confidence": "medium"
+          },
+          {
+            "title": "Data Engineer",
+            "dept": "Engineering",
+            "family_guess": "engineering",
+            "score": 0.6,
+            "confidence": "medium"
+          },
+          {
+            "title": "Sdet",
+            "dept": "Engineering",
+            "family_guess": "unknown",
+            "score": 0.6,
+            "confidence": "medium"
+          }
+        ],
+        "shadow_top3": [
+          {
+            "title": "Software Engineer (Python)",
+            "dept": "",
+            "family_guess": "engineering",
+            "score": 0.455,
+            "confidence": null
+          },
+          {
+            "title": "Analytics Engineer",
+            "dept": "",
+            "family_guess": "data_analytics",
+            "score": 0.285,
+            "confidence": null
+          },
+          {
+            "title": "Backend Engineer",
+            "dept": "",
+            "family_guess": "engineering",
+            "score": 0.285,
+            "confidence": null
+          }
+        ],
+        "case_evaluation": {
+          "expected_family": "engineering",
+          "top3_correctness_proxy": {
+            "baseline_family_matches": 2,
+            "shadow_family_matches": 2
+          },
+          "ownership_alignment_proxy": {
+            "baseline_top1_family": "engineering",
+            "shadow_top1_family": "engineering",
+            "expected_family": "engineering"
+          },
+          "family_correctness": {
+            "baseline_top3_expected_family_ratio": 0.666667,
+            "shadow_top3_expected_family_ratio": 0.666667
+          },
+          "confidence_believability": {
+            "baseline": {
+              "avg": 0.600303,
+              "min": 0.6,
+              "max": 0.600909
+            },
+            "shadow": {
+              "avg": 0.341667,
+              "min": 0.285,
+              "max": 0.455
+            }
+          },
+          "noisy_role_suppression": {
+            "baseline_non_expected_count": 0,
+            "shadow_non_expected_count": 1
+          },
+          "semantic_conviction": {
+            "baseline_top3_score_spread": 0.000909,
+            "shadow_top3_score_spread": 0.17
+          },
+          "retrieval_specificity": {
+            "baseline_unique_titles_top3": 3,
+            "shadow_unique_titles_top3": 3
+          },
+          "overlap_comparison": {
+            "top3_overlap_count": 1,
+            "baseline_top3_role_ids": [
+              "34b3e5db-671a-4133-8890-ab0e9818bb57",
+              "9f03e770-7411-45cf-a76e-6b1be6548e56",
+              "944b75a2-06bf-446f-bd8b-51330cba6502"
+            ],
+            "shadow_top3_role_ids": [
+              "b89af930-335b-4e3d-b7e5-33f6ea73d681",
+              "63557482-9156-4c3a-ba1e-a7f36cd20c58",
+              "34b3e5db-671a-4133-8890-ab0e9818bb57"
+            ]
+          },
+          "suppression_explanation": {
+            "baseline": [
+              {
+                "base": 0.26136363636363635,
+                "reqRatio": 0.5,
+                "specRatio": 0.5,
+                "semanticAdjRatio": 0.5,
+                "niceRatio": 0,
+                "broadRatio": 0.5,
+                "backendFamilyHit": true,
+                "noisyFamilyHit": false,
+                "distributedMismatchSuppression": 0,
+                "requiredHits": 1,
+                "niceHits": 0
+              },
+              {
+                "base": 0.25,
+                "reqRatio": 0.5,
+                "specRatio": 0.5,
+                "semanticAdjRatio": 0.5,
+                "niceRatio": 0,
+                "broadRatio": 0.5,
+                "backendFamilyHit": true,
+                "noisyFamilyHit": false,
+                "distributedMismatchSuppression": 0,
+                "requiredHits": 1,
+                "niceHits": 0
+              },
+              {
+                "base": 0.25,
+                "reqRatio": 0.5,
+                "specRatio": 0.5,
+                "semanticAdjRatio": 0.5,
+                "niceRatio": 0,
+                "broadRatio": 0.5,
+                "backendFamilyHit": true,
+                "noisyFamilyHit": false,
+                "distributedMismatchSuppression": 0,
+                "requiredHits": 1,
+                "niceHits": 0
+              }
+            ],
+            "shadow": [
+              {
+                "lexicalOverlap": 0.5,
+                "actScore": 0,
+                "surfaceScore": 0.95,
+                "confidenceCeiling": 0.84
+              },
+              {
+                "lexicalOverlap": 0,
+                "actScore": 0,
+                "surfaceScore": 0.95,
+                "confidenceCeiling": 0.84
+              },
+              {
+                "lexicalOverlap": 0,
+                "actScore": 0,
+                "surfaceScore": 0.95,
+                "confidenceCeiling": 0.84
+              }
+            ]
+          },
+          "ownership_chain_explanation": {
+            "baseline_top3_family_guess": [
+              "engineering",
+              "engineering",
+              "unknown"
+            ],
+            "shadow_top3_family_guess": [
+              "engineering",
+              "data_analytics",
+              "engineering"
+            ]
+          },
+          "notes": "Expected family=engineering. family_match_delta=0, noisy_suppression_delta=-1, conviction_delta=-0.145909."
+        }
+      },
+      {
+        "label": "creates and connects APIs",
+        "query": "someone who creates and connects APIs",
+        "workflow": "intent",
+        "baseline_top3": [
+          {
+            "title": "Power Platform Developer",
+            "dept": "Engineering",
+            "family_guess": "engineering",
+            "score": 1,
+            "confidence": "high"
+          },
+          {
+            "title": "Mulesoft Developer",
+            "dept": "Engineering",
+            "family_guess": "engineering",
+            "score": 0.8631660941018121,
+            "confidence": "high"
+          },
+          {
+            "title": "Salesforce Developer",
+            "dept": "Engineering",
+            "family_guess": "engineering",
+            "score": 0.8332535698661083,
+            "confidence": "high"
+          }
+        ],
+        "shadow_top3": [
+          {
+            "title": ".Net Developer",
+            "dept": "",
+            "family_guess": "engineering",
+            "score": 0,
+            "confidence": null
+          },
+          {
+            "title": "Ar / Vr Developer",
+            "dept": "",
+            "family_guess": "engineering",
+            "score": 0,
+            "confidence": null
+          },
+          {
+            "title": "Blockchain Developer",
+            "dept": "",
+            "family_guess": "engineering",
+            "score": 0,
+            "confidence": null
+          }
+        ],
+        "case_evaluation": {
+          "expected_family": "engineering",
+          "top3_correctness_proxy": {
+            "baseline_family_matches": 3,
+            "shadow_family_matches": 3
+          },
+          "ownership_alignment_proxy": {
+            "baseline_top1_family": "engineering",
+            "shadow_top1_family": "engineering",
+            "expected_family": "engineering"
+          },
+          "family_correctness": {
+            "baseline_top3_expected_family_ratio": 1,
+            "shadow_top3_expected_family_ratio": 1
+          },
+          "confidence_believability": {
+            "baseline": {
+              "avg": 0.898807,
+              "min": 0.833254,
+              "max": 1
+            },
+            "shadow": {
+              "avg": 0,
+              "min": 0,
+              "max": 0
+            }
+          },
+          "noisy_role_suppression": {
+            "baseline_non_expected_count": 0,
+            "shadow_non_expected_count": 0
+          },
+          "semantic_conviction": {
+            "baseline_top3_score_spread": 0.166746,
+            "shadow_top3_score_spread": 0
+          },
+          "retrieval_specificity": {
+            "baseline_unique_titles_top3": 3,
+            "shadow_unique_titles_top3": 3
+          },
+          "overlap_comparison": {
+            "top3_overlap_count": 0,
+            "baseline_top3_role_ids": [
+              "a00b389d-f88e-4b91-a150-81abdaa816c2",
+              "ce03d9c6-92d4-42cd-a924-02f87814f1ec",
+              "2777e629-2ae6-4c12-b1de-1377c1639d36"
+            ],
+            "shadow_top3_role_ids": [
+              "6e64e023-b104-4e58-bd4b-e77d76fee901",
+              "a35a40ee-e079-41a6-a9f6-21f92be1f137",
+              "e115d101-badd-4772-95e6-7fc435a5d52e"
+            ]
+          },
+          "suppression_explanation": {
+            "baseline": [
+              {
+                "base": 0.6483333333333333,
+                "priorBoost": 0.36,
+                "executionSurfaceBoost": 0.24,
+                "executionSuppression": 0,
+                "suppression": 0,
+                "activeSignals": 2,
+                "executionIntent": {
+                  "acts": [
+                    "build",
+                    "integrate"
+                  ],
+                  "surfaces": [
+                    "backend"
+                  ],
+                  "ownershipIntensity": "high"
+                },
+                "roleFamily": {
+                  "backend": true,
+                  "frontend": false,
+                  "mobile_ui": false,
+                  "analytics": false,
+                  "infrastructure": true,
+                  "product_design": false,
+                  "people_ops": false,
+                  "support": false,
+                  "document": false,
+                  "test": false
+                },
+                "spreadIn": 1,
+                "spreadOut": 1
+              },
+              {
+                "base": 0.6951587301587301,
+                "priorBoost": 0.12,
+                "executionSurfaceBoost": 0,
+                "executionSuppression": 0,
+                "suppression": 0,
+                "activeSignals": 1,
+                "executionIntent": {
+                  "acts": [
+                    "build",
+                    "integrate"
+                  ],
+                  "surfaces": [
+                    "backend"
+                  ],
+                  "ownershipIntensity": "high"
+                },
+                "roleFamily": {
+                  "backend": false,
+                  "frontend": false,
+                  "mobile_ui": false,
+                  "analytics": false,
+                  "infrastructure": false,
+                  "product_design": false,
+                  "people_ops": false,
+                  "support": false,
+                  "document": false,
+                  "test": false
+                },
+                "spreadIn": 0.8151587301587301,
+                "spreadOut": 0.8631660941018121
+              },
+              {
+                "base": 0.6561904761904761,
+                "priorBoost": 0.12,
+                "executionSurfaceBoost": 0,
+                "executionSuppression": 0,
+                "suppression": 0,
+                "activeSignals": 1,
+                "executionIntent": {
+                  "acts": [
+                    "build",
+                    "integrate"
+                  ],
+                  "surfaces": [
+                    "backend"
+                  ],
+                  "ownershipIntensity": "high"
+                },
+                "roleFamily": {
+                  "backend": false,
+                  "frontend": false,
+                  "mobile_ui": false,
+                  "analytics": false,
+                  "infrastructure": false,
+                  "product_design": false,
+                  "people_ops": false,
+                  "support": false,
+                  "document": false,
+                  "test": false
+                },
+                "spreadIn": 0.7761904761904761,
+                "spreadOut": 0.8332535698661083
+              }
+            ],
+            "shadow": [
+              {
+                "lexicalOverlap": 0,
+                "actScore": 0,
+                "surfaceScore": 0,
+                "confidenceCeiling": 0.84
+              },
+              {
+                "lexicalOverlap": 0,
+                "actScore": 0,
+                "surfaceScore": 0,
+                "confidenceCeiling": 0.84
+              },
+              {
+                "lexicalOverlap": 0,
+                "actScore": 0,
+                "surfaceScore": 0,
+                "confidenceCeiling": 0.84
+              }
+            ]
+          },
+          "ownership_chain_explanation": {
+            "baseline_top3_family_guess": [
+              "engineering",
+              "engineering",
+              "engineering"
+            ],
+            "shadow_top3_family_guess": [
+              "engineering",
+              "engineering",
+              "engineering"
+            ]
+          },
+          "notes": "Expected family=engineering. family_match_delta=0, noisy_suppression_delta=0, conviction_delta=-1."
+        }
+      },
+      {
+        "label": "dashboards and trends",
+        "query": "someone who creates dashboards and analyzes trends",
+        "workflow": "intent",
+        "baseline_top3": [
+          {
+            "title": "Business Intelligence Analyst",
+            "dept": "Data",
+            "family_guess": "data_analytics",
+            "score": 1,
+            "confidence": "high"
+          },
+          {
+            "title": "Data Analyst",
+            "dept": "Data",
+            "family_guess": "data_analytics",
+            "score": 1,
+            "confidence": "high"
+          },
+          {
+            "title": "Excel Automation Specialist",
+            "dept": "Data",
+            "family_guess": "unknown",
+            "score": 0.9902098973708602,
+            "confidence": "high"
+          }
+        ],
+        "shadow_top3": [
+          {
+            "title": "Business Intelligence Analyst",
+            "dept": "",
+            "family_guess": "data_analytics",
+            "score": 0.3384,
+            "confidence": null
+          },
+          {
+            "title": "Ai Research Scientist",
+            "dept": "",
+            "family_guess": "unknown",
+            "score": 0.3312,
+            "confidence": null
+          },
+          {
+            "title": "Business Analyst",
+            "dept": "",
+            "family_guess": "data_analytics",
+            "score": 0.3312,
+            "confidence": null
+          }
+        ],
+        "case_evaluation": {
+          "expected_family": "data_analytics",
+          "top3_correctness_proxy": {
+            "baseline_family_matches": 2,
+            "shadow_family_matches": 2
+          },
+          "ownership_alignment_proxy": {
+            "baseline_top1_family": "data_analytics",
+            "shadow_top1_family": "data_analytics",
+            "expected_family": "data_analytics"
+          },
+          "family_correctness": {
+            "baseline_top3_expected_family_ratio": 0.666667,
+            "shadow_top3_expected_family_ratio": 0.666667
+          },
+          "confidence_believability": {
+            "baseline": {
+              "avg": 0.996737,
+              "min": 0.99021,
+              "max": 1
+            },
+            "shadow": {
+              "avg": 0.3336,
+              "min": 0.3312,
+              "max": 0.3384
+            }
+          },
+          "noisy_role_suppression": {
+            "baseline_non_expected_count": 0,
+            "shadow_non_expected_count": 0
+          },
+          "semantic_conviction": {
+            "baseline_top3_score_spread": 0.00979,
+            "shadow_top3_score_spread": 0.0072
+          },
+          "retrieval_specificity": {
+            "baseline_unique_titles_top3": 3,
+            "shadow_unique_titles_top3": 3
+          },
+          "overlap_comparison": {
+            "top3_overlap_count": 1,
+            "baseline_top3_role_ids": [
+              "bcd31058-885d-4d87-88ad-64ede31cae18",
+              "760ab297-d4b4-417a-abd6-db79e0851400",
+              "3b842d03-5ee1-4f28-b043-d0fd9836c104"
+            ],
+            "shadow_top3_role_ids": [
+              "bcd31058-885d-4d87-88ad-64ede31cae18",
+              "018921cf-ede1-4859-bb2d-bbbd949f972a",
+              "510bc788-fd78-4997-be54-71ef4092eafb"
+            ]
+          },
+          "suppression_explanation": {
+            "baseline": [
+              {
+                "base": 0.7088095238095238,
+                "priorBoost": 0.12,
+                "executionSurfaceBoost": 0.22,
+                "executionSuppression": 0,
+                "suppression": 0,
+                "activeSignals": 1,
+                "executionIntent": {
+                  "acts": [
+                    "build",
+                    "analyze"
+                  ],
+                  "surfaces": [
+                    "analytics"
+                  ],
+                  "ownershipIntensity": "high"
+                },
+                "roleFamily": {
+                  "backend": false,
+                  "frontend": false,
+                  "mobile_ui": false,
+                  "analytics": true,
+                  "infrastructure": false,
+                  "product_design": false,
+                  "people_ops": false,
+                  "support": false,
+                  "document": false,
+                  "test": false
+                },
+                "spreadIn": 1,
+                "spreadOut": 1
+              },
+              {
+                "base": 0.8200000000000001,
+                "priorBoost": 0.36,
+                "executionSurfaceBoost": 0.22,
+                "executionSuppression": 0,
+                "suppression": 0,
+                "activeSignals": 2,
+                "executionIntent": {
+                  "acts": [
+                    "build",
+                    "analyze"
+                  ],
+                  "surfaces": [
+                    "analytics"
+                  ],
+                  "ownershipIntensity": "high"
+                },
+                "roleFamily": {
+                  "backend": false,
+                  "frontend": false,
+                  "mobile_ui": false,
+                  "analytics": true,
+                  "infrastructure": false,
+                  "product_design": false,
+                  "people_ops": false,
+                  "support": false,
+                  "document": false,
+                  "test": false
+                },
+                "spreadIn": 1,
+                "spreadOut": 1
+              },
+              {
+                "base": 0.6464285714285715,
+                "priorBoost": 0.12,
+                "executionSurfaceBoost": 0.22,
+                "executionSuppression": 0,
+                "suppression": 0,
+                "activeSignals": 1,
+                "executionIntent": {
+                  "acts": [
+                    "build",
+                    "analyze"
+                  ],
+                  "surfaces": [
+                    "analytics"
+                  ],
+                  "ownershipIntensity": "high"
+                },
+                "roleFamily": {
+                  "backend": false,
+                  "frontend": false,
+                  "mobile_ui": false,
+                  "analytics": true,
+                  "infrastructure": false,
+                  "product_design": false,
+                  "people_ops": false,
+                  "support": false,
+                  "document": false,
+                  "test": false
+                },
+                "spreadIn": 0.9864285714285714,
+                "spreadOut": 0.9902098973708602
+              }
+            ],
+            "shadow": [
+              {
+                "lexicalOverlap": 0,
+                "actScore": 0.94,
+                "surfaceScore": 0,
+                "confidenceCeiling": 0.86
+              },
+              {
+                "lexicalOverlap": 0,
+                "actScore": 0.92,
+                "surfaceScore": 0,
+                "confidenceCeiling": 0.86
+              },
+              {
+                "lexicalOverlap": 0,
+                "actScore": 0.92,
+                "surfaceScore": 0,
+                "confidenceCeiling": 0.86
+              }
+            ]
+          },
+          "ownership_chain_explanation": {
+            "baseline_top3_family_guess": [
+              "data_analytics",
+              "data_analytics",
+              "unknown"
+            ],
+            "shadow_top3_family_guess": [
+              "data_analytics",
+              "unknown",
+              "data_analytics"
+            ]
+          },
+          "notes": "Expected family=data_analytics. family_match_delta=0, noisy_suppression_delta=0, conviction_delta=-0.6616."
+        }
+      },
+      {
+        "label": "mobile app interfaces",
+        "query": "someone who designs mobile app interfaces",
+        "workflow": "intent",
+        "baseline_top3": [
+          {
+            "title": "Business Intelligence Analyst",
+            "dept": "Data",
+            "family_guess": "data_analytics",
+            "score": 1,
+            "confidence": "high"
+          },
+          {
+            "title": "Game Designer",
+            "dept": "Design",
+            "family_guess": "design_product",
+            "score": 1,
+            "confidence": "high"
+          },
+          {
+            "title": "Instructional Designer",
+            "dept": "Design",
+            "family_guess": "design_product",
+            "score": 1,
+            "confidence": "high"
+          }
+        ],
+        "shadow_top3": [
+          {
+            "title": "Game Designer",
+            "dept": "",
+            "family_guess": "design_product",
+            "score": 0.186,
+            "confidence": null
+          },
+          {
+            "title": "Instructional Designer",
+            "dept": "",
+            "family_guess": "design_product",
+            "score": 0.186,
+            "confidence": null
+          },
+          {
+            "title": "Motion Designer",
+            "dept": "",
+            "family_guess": "design_product",
+            "score": 0.186,
+            "confidence": null
+          }
+        ],
+        "case_evaluation": {
+          "expected_family": "design_product",
+          "top3_correctness_proxy": {
+            "baseline_family_matches": 2,
+            "shadow_family_matches": 3
+          },
+          "ownership_alignment_proxy": {
+            "baseline_top1_family": "data_analytics",
+            "shadow_top1_family": "design_product",
+            "expected_family": "design_product"
+          },
+          "family_correctness": {
+            "baseline_top3_expected_family_ratio": 0.666667,
+            "shadow_top3_expected_family_ratio": 1
+          },
+          "confidence_believability": {
+            "baseline": {
+              "avg": 1,
+              "min": 1,
+              "max": 1
+            },
+            "shadow": {
+              "avg": 0.186,
+              "min": 0.186,
+              "max": 0.186
+            }
+          },
+          "noisy_role_suppression": {
+            "baseline_non_expected_count": 1,
+            "shadow_non_expected_count": 0
+          },
+          "semantic_conviction": {
+            "baseline_top3_score_spread": 0,
+            "shadow_top3_score_spread": 0
+          },
+          "retrieval_specificity": {
+            "baseline_unique_titles_top3": 3,
+            "shadow_unique_titles_top3": 3
+          },
+          "overlap_comparison": {
+            "top3_overlap_count": 2,
+            "baseline_top3_role_ids": [
+              "bcd31058-885d-4d87-88ad-64ede31cae18",
+              "755a6e33-7fa4-48b5-8cd8-614e6c8d3806",
+              "034dc86e-68e7-4cf8-8f97-bb0928784222"
+            ],
+            "shadow_top3_role_ids": [
+              "755a6e33-7fa4-48b5-8cd8-614e6c8d3806",
+              "034dc86e-68e7-4cf8-8f97-bb0928784222",
+              "2d2d291a-2445-40a6-880f-675919f64b3b"
+            ]
+          },
+          "suppression_explanation": {
+            "baseline": [
+              {
+                "base": 0.8014035087719299,
+                "priorBoost": 0,
+                "executionSurfaceBoost": 0.22,
+                "executionSuppression": 0,
+                "suppression": 0,
+                "activeSignals": 0,
+                "executionIntent": {
+                  "acts": [
+                    "design"
+                  ],
+                  "surfaces": [
+                    "frontend",
+                    "mobile_ui",
+                    "analytics",
+                    "product_design"
+                  ],
+                  "ownershipIntensity": "high"
+                },
+                "roleFamily": {
+                  "backend": false,
+                  "frontend": false,
+                  "mobile_ui": false,
+                  "analytics": true,
+                  "infrastructure": false,
+                  "product_design": false,
+                  "people_ops": false,
+                  "support": false,
+                  "document": false,
+                  "test": false
+                },
+                "spreadIn": 1,
+                "spreadOut": 1
+              },
+              {
+                "base": 0.8300000000000001,
+                "priorBoost": 0.36,
+                "executionSurfaceBoost": 0.24,
+                "executionSuppression": 0,
+                "suppression": 0,
+                "activeSignals": 2,
+                "executionIntent": {
+                  "acts": [
+                    "design"
+                  ],
+                  "surfaces": [
+                    "frontend",
+                    "mobile_ui",
+                    "analytics",
+                    "product_design"
+                  ],
+                  "ownershipIntensity": "high"
+                },
+                "roleFamily": {
+                  "backend": false,
+                  "frontend": false,
+                  "mobile_ui": false,
+                  "analytics": false,
+                  "infrastructure": false,
+                  "product_design": true,
+                  "people_ops": false,
+                  "support": false,
+                  "document": false,
+                  "test": false
+                },
+                "spreadIn": 1,
+                "spreadOut": 1
+              },
+              {
+                "base": 0.8300000000000001,
+                "priorBoost": 0.36,
+                "executionSurfaceBoost": 0.24,
+                "executionSuppression": 0,
+                "suppression": 0,
+                "activeSignals": 2,
+                "executionIntent": {
+                  "acts": [
+                    "design"
+                  ],
+                  "surfaces": [
+                    "frontend",
+                    "mobile_ui",
+                    "analytics",
+                    "product_design"
+                  ],
+                  "ownershipIntensity": "high"
+                },
+                "roleFamily": {
+                  "backend": false,
+                  "frontend": false,
+                  "mobile_ui": false,
+                  "analytics": false,
+                  "infrastructure": false,
+                  "product_design": true,
+                  "people_ops": false,
+                  "support": false,
+                  "document": false,
+                  "test": false
+                },
+                "spreadIn": 1,
+                "spreadOut": 1
+              }
+            ],
+            "shadow": [
+              {
+                "lexicalOverlap": 0,
+                "actScore": 0,
+                "surfaceScore": 0.62,
+                "confidenceCeiling": 0.82
+              },
+              {
+                "lexicalOverlap": 0,
+                "actScore": 0,
+                "surfaceScore": 0.62,
+                "confidenceCeiling": 0.82
+              },
+              {
+                "lexicalOverlap": 0,
+                "actScore": 0,
+                "surfaceScore": 0.62,
+                "confidenceCeiling": 0.82
+              }
+            ]
+          },
+          "ownership_chain_explanation": {
+            "baseline_top3_family_guess": [
+              "data_analytics",
+              "design_product",
+              "design_product"
+            ],
+            "shadow_top3_family_guess": [
+              "design_product",
+              "design_product",
+              "design_product"
+            ]
+          },
+          "notes": "Expected family=design_product. family_match_delta=1, noisy_suppression_delta=1, conviction_delta=-0.814."
+        }
+      },
+      {
+        "label": "employee relations",
+        "query": "someone who handles employee relations",
+        "workflow": "intent",
+        "baseline_top3": [
+          {
+            "title": "Recruitment Manager",
+            "dept": "HR",
+            "family_guess": "hr_people_ops",
+            "score": 0.7378343017050818,
+            "confidence": "medium"
+          },
+          {
+            "title": "People Business Partner",
+            "dept": "HR",
+            "family_guess": "hr_people_ops",
+            "score": 0.6416873931832994,
+            "confidence": "medium"
+          },
+          {
+            "title": "People Operations Manager",
+            "dept": "HR",
+            "family_guess": "hr_people_ops",
+            "score": 0.6416873931832994,
+            "confidence": "medium"
+          }
+        ],
+        "shadow_top3": [
+          {
+            "title": "Recruitment Manager",
+            "dept": "",
+            "family_guess": "unknown",
+            "score": 0.276,
+            "confidence": null
+          },
+          {
+            "title": "Talent Acquisition Specialist",
+            "dept": "",
+            "family_guess": "hr_people_ops",
+            "score": 0.276,
+            "confidence": null
+          },
+          {
+            "title": "Compensation & Benefits Specialist",
+            "dept": "",
+            "family_guess": "unknown",
+            "score": 0.27,
+            "confidence": null
+          }
+        ],
+        "case_evaluation": {
+          "expected_family": "hr_people_ops",
+          "top3_correctness_proxy": {
+            "baseline_family_matches": 3,
+            "shadow_family_matches": 1
+          },
+          "ownership_alignment_proxy": {
+            "baseline_top1_family": "hr_people_ops",
+            "shadow_top1_family": "unknown",
+            "expected_family": "hr_people_ops"
+          },
+          "family_correctness": {
+            "baseline_top3_expected_family_ratio": 1,
+            "shadow_top3_expected_family_ratio": 0.333333
+          },
+          "confidence_believability": {
+            "baseline": {
+              "avg": 0.673736,
+              "min": 0.641687,
+              "max": 0.737834
+            },
+            "shadow": {
+              "avg": 0.274,
+              "min": 0.27,
+              "max": 0.276
+            }
+          },
+          "noisy_role_suppression": {
+            "baseline_non_expected_count": 0,
+            "shadow_non_expected_count": 0
+          },
+          "semantic_conviction": {
+            "baseline_top3_score_spread": 0.096147,
+            "shadow_top3_score_spread": 0.006
+          },
+          "retrieval_specificity": {
+            "baseline_unique_titles_top3": 3,
+            "shadow_unique_titles_top3": 3
+          },
+          "overlap_comparison": {
+            "top3_overlap_count": 1,
+            "baseline_top3_role_ids": [
+              "9aefe813-af28-44d7-870e-b421d502276f",
+              "1a746818-7e24-4e78-90b9-9c8e667611fc",
+              "390858b0-8c90-4481-adb7-d9eee5e1a8e3"
+            ],
+            "shadow_top3_role_ids": [
+              "9aefe813-af28-44d7-870e-b421d502276f",
+              "c85dfd73-f896-41d3-9e80-2f708edc7d8b",
+              "0955e89c-57c2-451b-a541-132a99a4c514"
+            ]
+          },
+          "suppression_explanation": {
+            "baseline": [
+              {
+                "base": 0.6555555555555556,
+                "priorBoost": 0,
+                "executionSurfaceBoost": 0,
+                "executionSuppression": 0,
+                "suppression": 0,
+                "activeSignals": 0,
+                "executionIntent": {
+                  "acts": [],
+                  "surfaces": [
+                    "people_ops"
+                  ],
+                  "ownershipIntensity": "low"
+                },
+                "roleFamily": {
+                  "backend": false,
+                  "frontend": false,
+                  "mobile_ui": false,
+                  "analytics": false,
+                  "infrastructure": false,
+                  "product_design": false,
+                  "people_ops": true,
+                  "support": false,
+                  "document": false,
+                  "test": false
+                },
+                "spreadIn": 0.6555555555555556,
+                "spreadOut": 0.7378343017050818
+              },
+              {
+                "base": 0.54,
+                "priorBoost": 0,
+                "executionSurfaceBoost": 0,
+                "executionSuppression": 0,
+                "suppression": 0,
+                "activeSignals": 0,
+                "executionIntent": {
+                  "acts": [],
+                  "surfaces": [
+                    "people_ops"
+                  ],
+                  "ownershipIntensity": "low"
+                },
+                "roleFamily": {
+                  "backend": false,
+                  "frontend": false,
+                  "mobile_ui": false,
+                  "analytics": false,
+                  "infrastructure": false,
+                  "product_design": false,
+                  "people_ops": true,
+                  "support": false,
+                  "document": false,
+                  "test": false
+                },
+                "spreadIn": 0.54,
+                "spreadOut": 0.6416873931832994
+              },
+              {
+                "base": 0.54,
+                "priorBoost": 0,
+                "executionSurfaceBoost": 0,
+                "executionSuppression": 0,
+                "suppression": 0,
+                "activeSignals": 0,
+                "executionIntent": {
+                  "acts": [],
+                  "surfaces": [
+                    "people_ops"
+                  ],
+                  "ownershipIntensity": "low"
+                },
+                "roleFamily": {
+                  "backend": false,
+                  "frontend": false,
+                  "mobile_ui": false,
+                  "analytics": false,
+                  "infrastructure": false,
+                  "product_design": false,
+                  "people_ops": true,
+                  "support": false,
+                  "document": false,
+                  "test": false
+                },
+                "spreadIn": 0.54,
+                "spreadOut": 0.6416873931832994
+              }
+            ],
+            "shadow": [
+              {
+                "lexicalOverlap": 0,
+                "actScore": 0,
+                "surfaceScore": 0.92,
+                "confidenceCeiling": 0.86
+              },
+              {
+                "lexicalOverlap": 0,
+                "actScore": 0,
+                "surfaceScore": 0.92,
+                "confidenceCeiling": 0.86
+              },
+              {
+                "lexicalOverlap": 0,
+                "actScore": 0,
+                "surfaceScore": 0.9,
+                "confidenceCeiling": 0.86
+              }
+            ]
+          },
+          "ownership_chain_explanation": {
+            "baseline_top3_family_guess": [
+              "hr_people_ops",
+              "hr_people_ops",
+              "hr_people_ops"
+            ],
+            "shadow_top3_family_guess": [
+              "unknown",
+              "hr_people_ops",
+              "unknown"
+            ]
+          },
+          "notes": "Expected family=hr_people_ops. family_match_delta=-2, noisy_suppression_delta=0, conviction_delta=-0.461834."
+        }
+      },
+      {
+        "label": "hiring and recruiting",
+        "query": "someone who manages hiring and recruiting",
+        "workflow": "intent",
+        "baseline_top3": [
+          {
+            "title": "Product Designer",
+            "dept": "Product",
+            "family_guess": "design_product",
+            "score": 0.7844282167022053,
+            "confidence": "medium"
+          },
+          {
+            "title": "Ux Researcher",
+            "dept": "Design",
+            "family_guess": "design_product",
+            "score": 0.7844282167022053,
+            "confidence": "medium"
+          },
+          {
+            "title": "Recruitment Manager",
+            "dept": "HR",
+            "family_guess": "hr_people_ops",
+            "score": 0.7204211523941791,
+            "confidence": "medium"
+          }
+        ],
+        "shadow_top3": [
+          {
+            "title": "Hr Business Partner",
+            "dept": "",
+            "family_guess": "hr_people_ops",
+            "score": 0,
+            "confidence": null
+          },
+          {
+            "title": "Hr Generalist",
+            "dept": "",
+            "family_guess": "hr_people_ops",
+            "score": 0,
+            "confidence": null
+          },
+          {
+            "title": "L&D Manager",
+            "dept": "",
+            "family_guess": "unknown",
+            "score": 0,
+            "confidence": null
+          }
+        ],
+        "case_evaluation": {
+          "expected_family": "hr_people_ops",
+          "top3_correctness_proxy": {
+            "baseline_family_matches": 1,
+            "shadow_family_matches": 2
+          },
+          "ownership_alignment_proxy": {
+            "baseline_top1_family": "design_product",
+            "shadow_top1_family": "hr_people_ops",
+            "expected_family": "hr_people_ops"
+          },
+          "family_correctness": {
+            "baseline_top3_expected_family_ratio": 0.333333,
+            "shadow_top3_expected_family_ratio": 0.666667
+          },
+          "confidence_believability": {
+            "baseline": {
+              "avg": 0.763093,
+              "min": 0.720421,
+              "max": 0.784428
+            },
+            "shadow": {
+              "avg": 0,
+              "min": 0,
+              "max": 0
+            }
+          },
+          "noisy_role_suppression": {
+            "baseline_non_expected_count": 2,
+            "shadow_non_expected_count": 0
+          },
+          "semantic_conviction": {
+            "baseline_top3_score_spread": 0.064007,
+            "shadow_top3_score_spread": 0
+          },
+          "retrieval_specificity": {
+            "baseline_unique_titles_top3": 3,
+            "shadow_unique_titles_top3": 3
+          },
+          "overlap_comparison": {
+            "top3_overlap_count": 0,
+            "baseline_top3_role_ids": [
+              "f065dac3-94c1-4a37-ad1b-f55a43984f11",
+              "2a6ff56e-6f78-42c3-bc9d-1ace79902f5a",
+              "9aefe813-af28-44d7-870e-b421d502276f"
+            ],
+            "shadow_top3_role_ids": [
+              "a003e465-8175-412b-b83b-6ef9bd3504f9",
+              "a9fbb1c2-1728-401d-879a-368298ce866a",
+              "759ffee3-7df2-46b7-9d4c-90ba03ee9966"
+            ]
+          },
+          "suppression_explanation": {
+            "baseline": [
+              {
+                "base": 0.47374999999999995,
+                "priorBoost": 0,
+                "executionSurfaceBoost": 0.24,
+                "executionSuppression": 0,
+                "suppression": 0,
+                "activeSignals": 0,
+                "executionIntent": {
+                  "acts": [
+                    "design"
+                  ],
+                  "surfaces": [
+                    "mobile_ui",
+                    "product_design",
+                    "people_ops"
+                  ],
+                  "ownershipIntensity": "high"
+                },
+                "roleFamily": {
+                  "backend": false,
+                  "frontend": false,
+                  "mobile_ui": false,
+                  "analytics": false,
+                  "infrastructure": false,
+                  "product_design": true,
+                  "people_ops": false,
+                  "support": false,
+                  "document": false,
+                  "test": false
+                },
+                "spreadIn": 0.7137499999999999,
+                "spreadOut": 0.7844282167022053
+              },
+              {
+                "base": 0.47374999999999995,
+                "priorBoost": 0,
+                "executionSurfaceBoost": 0.24,
+                "executionSuppression": 0,
+                "suppression": 0,
+                "activeSignals": 0,
+                "executionIntent": {
+                  "acts": [
+                    "design"
+                  ],
+                  "surfaces": [
+                    "mobile_ui",
+                    "product_design",
+                    "people_ops"
+                  ],
+                  "ownershipIntensity": "high"
+                },
+                "roleFamily": {
+                  "backend": false,
+                  "frontend": false,
+                  "mobile_ui": true,
+                  "analytics": false,
+                  "infrastructure": false,
+                  "product_design": true,
+                  "people_ops": false,
+                  "support": false,
+                  "document": false,
+                  "test": false
+                },
+                "spreadIn": 0.7137499999999999,
+                "spreadOut": 0.7844282167022053
+              },
+              {
+                "base": 0.6341666666666667,
+                "priorBoost": 0,
+                "executionSurfaceBoost": 0,
+                "executionSuppression": 0,
+                "suppression": 0,
+                "activeSignals": 0,
+                "executionIntent": {
+                  "acts": [
+                    "design"
+                  ],
+                  "surfaces": [
+                    "mobile_ui",
+                    "product_design",
+                    "people_ops"
+                  ],
+                  "ownershipIntensity": "high"
+                },
+                "roleFamily": {
+                  "backend": false,
+                  "frontend": false,
+                  "mobile_ui": false,
+                  "analytics": false,
+                  "infrastructure": false,
+                  "product_design": false,
+                  "people_ops": true,
+                  "support": false,
+                  "document": false,
+                  "test": false
+                },
+                "spreadIn": 0.6341666666666667,
+                "spreadOut": 0.7204211523941791
+              }
+            ],
+            "shadow": [
+              {
+                "lexicalOverlap": 0,
+                "actScore": 0,
+                "surfaceScore": 0,
+                "confidenceCeiling": 0.86
+              },
+              {
+                "lexicalOverlap": 0,
+                "actScore": 0,
+                "surfaceScore": 0,
+                "confidenceCeiling": 0.86
+              },
+              {
+                "lexicalOverlap": 0,
+                "actScore": 0,
+                "surfaceScore": 0,
+                "confidenceCeiling": 0.86
+              }
+            ]
+          },
+          "ownership_chain_explanation": {
+            "baseline_top3_family_guess": [
+              "design_product",
+              "design_product",
+              "hr_people_ops"
+            ],
+            "shadow_top3_family_guess": [
+              "hr_people_ops",
+              "hr_people_ops",
+              "unknown"
+            ]
+          },
+          "notes": "Expected family=hr_people_ops. family_match_delta=1, noisy_suppression_delta=2, conviction_delta=-0.784428."
+        }
+      },
+      {
+        "label": "business intelligence reporting",
+        "query": "someone who owns business intelligence reporting",
+        "workflow": "intent",
+        "baseline_top3": [
+          {
+            "title": "Business Intelligence Analyst",
+            "dept": "Data",
+            "family_guess": "data_analytics",
+            "score": 0.9886809120848655,
+            "confidence": "high"
+          },
+          {
+            "title": "Business Analyst",
+            "dept": "Data",
+            "family_guess": "data_analytics",
+            "score": 0.891197732900563,
+            "confidence": "high"
+          },
+          {
+            "title": "Excel Automation Specialist",
+            "dept": "Data",
+            "family_guess": "unknown",
+            "score": 0.8757907449725238,
+            "confidence": "high"
+          }
+        ],
+        "shadow_top3": [
+          {
+            "title": "Business Intelligence Analyst",
+            "dept": "",
+            "family_guess": "data_analytics",
+            "score": 0.113333,
+            "confidence": null
+          },
+          {
+            "title": "Business Analyst",
+            "dept": "",
+            "family_guess": "data_analytics",
+            "score": 0.056667,
+            "confidence": null
+          },
+          {
+            "title": "Ai Research Scientist",
+            "dept": "",
+            "family_guess": "unknown",
+            "score": 0,
+            "confidence": null
+          }
+        ],
+        "case_evaluation": {
+          "expected_family": "data_analytics",
+          "top3_correctness_proxy": {
+            "baseline_family_matches": 2,
+            "shadow_family_matches": 2
+          },
+          "ownership_alignment_proxy": {
+            "baseline_top1_family": "data_analytics",
+            "shadow_top1_family": "data_analytics",
+            "expected_family": "data_analytics"
+          },
+          "family_correctness": {
+            "baseline_top3_expected_family_ratio": 0.666667,
+            "shadow_top3_expected_family_ratio": 0.666667
+          },
+          "confidence_believability": {
+            "baseline": {
+              "avg": 0.918556,
+              "min": 0.875791,
+              "max": 0.988681
+            },
+            "shadow": {
+              "avg": 0.056667,
+              "min": 0,
+              "max": 0.113333
+            }
+          },
+          "noisy_role_suppression": {
+            "baseline_non_expected_count": 0,
+            "shadow_non_expected_count": 0
+          },
+          "semantic_conviction": {
+            "baseline_top3_score_spread": 0.11289,
+            "shadow_top3_score_spread": 0.113333
+          },
+          "retrieval_specificity": {
+            "baseline_unique_titles_top3": 3,
+            "shadow_unique_titles_top3": 3
+          },
+          "overlap_comparison": {
+            "top3_overlap_count": 2,
+            "baseline_top3_role_ids": [
+              "bcd31058-885d-4d87-88ad-64ede31cae18",
+              "510bc788-fd78-4997-be54-71ef4092eafb",
+              "3b842d03-5ee1-4f28-b043-d0fd9836c104"
+            ],
+            "shadow_top3_role_ids": [
+              "bcd31058-885d-4d87-88ad-64ede31cae18",
+              "510bc788-fd78-4997-be54-71ef4092eafb",
+              "018921cf-ede1-4859-bb2d-bbbd949f972a"
+            ]
+          },
+          "suppression_explanation": {
+            "baseline": [
+              {
+                "base": 0.764313725490196,
+                "priorBoost": 0,
+                "executionSurfaceBoost": 0.22,
+                "executionSuppression": 0,
+                "suppression": 0,
+                "activeSignals": 0,
+                "executionIntent": {
+                  "acts": [
+                    "analyze"
+                  ],
+                  "surfaces": [
+                    "analytics"
+                  ],
+                  "ownershipIntensity": "high"
+                },
+                "roleFamily": {
+                  "backend": false,
+                  "frontend": false,
+                  "mobile_ui": false,
+                  "analytics": true,
+                  "infrastructure": false,
+                  "product_design": false,
+                  "people_ops": false,
+                  "support": false,
+                  "document": false,
+                  "test": false
+                },
+                "spreadIn": 0.984313725490196,
+                "spreadOut": 0.9886809120848655
+              },
+              {
+                "base": 0.632156862745098,
+                "priorBoost": 0,
+                "executionSurfaceBoost": 0.22,
+                "executionSuppression": 0,
+                "suppression": 0,
+                "activeSignals": 0,
+                "executionIntent": {
+                  "acts": [
+                    "analyze"
+                  ],
+                  "surfaces": [
+                    "analytics"
+                  ],
+                  "ownershipIntensity": "high"
+                },
+                "roleFamily": {
+                  "backend": false,
+                  "frontend": false,
+                  "mobile_ui": false,
+                  "analytics": true,
+                  "infrastructure": false,
+                  "product_design": false,
+                  "people_ops": false,
+                  "support": false,
+                  "document": false,
+                  "test": false
+                },
+                "spreadIn": 0.8521568627450979,
+                "spreadOut": 0.891197732900563
+              },
+              {
+                "base": 0.611764705882353,
+                "priorBoost": 0,
+                "executionSurfaceBoost": 0.22,
+                "executionSuppression": 0,
+                "suppression": 0,
+                "activeSignals": 0,
+                "executionIntent": {
+                  "acts": [
+                    "analyze"
+                  ],
+                  "surfaces": [
+                    "analytics"
+                  ],
+                  "ownershipIntensity": "high"
+                },
+                "roleFamily": {
+                  "backend": false,
+                  "frontend": false,
+                  "mobile_ui": false,
+                  "analytics": true,
+                  "infrastructure": false,
+                  "product_design": false,
+                  "people_ops": false,
+                  "support": false,
+                  "document": false,
+                  "test": false
+                },
+                "spreadIn": 0.831764705882353,
+                "spreadOut": 0.8757907449725238
+              }
+            ],
+            "shadow": [
+              {
+                "lexicalOverlap": 0.333333,
+                "actScore": 0,
+                "surfaceScore": 0,
+                "confidenceCeiling": 0.86
+              },
+              {
+                "lexicalOverlap": 0.166667,
+                "actScore": 0,
+                "surfaceScore": 0,
+                "confidenceCeiling": 0.86
+              },
+              {
+                "lexicalOverlap": 0,
+                "actScore": 0,
+                "surfaceScore": 0,
+                "confidenceCeiling": 0.86
+              }
+            ]
+          },
+          "ownership_chain_explanation": {
+            "baseline_top3_family_guess": [
+              "data_analytics",
+              "data_analytics",
+              "unknown"
+            ],
+            "shadow_top3_family_guess": [
+              "data_analytics",
+              "data_analytics",
+              "unknown"
+            ]
+          },
+          "notes": "Expected family=data_analytics. family_match_delta=0, noisy_suppression_delta=0, conviction_delta=-0.875348."
+        }
+      },
+      {
+        "label": "distributed backend systems",
+        "query": "someone who builds distributed backend systems",
+        "workflow": "intent",
+        "baseline_top3": [
+          {
+            "title": "Backend Engineer",
+            "dept": "Engineering",
+            "family_guess": "engineering",
+            "score": 0.7981669170453509,
+            "confidence": "medium"
+          },
+          {
+            "title": "Devops Engineer",
+            "dept": "Engineering",
+            "family_guess": "engineering",
+            "score": 0.7342780043002415,
+            "confidence": "medium"
+          },
+          {
+            "title": "Embedded Systems Engineer",
+            "dept": "Engineering",
+            "family_guess": "engineering",
+            "score": 0.7064227332647881,
+            "confidence": "medium"
+          }
+        ],
+        "shadow_top3": [
+          {
+            "title": "Backend Engineer",
+            "dept": "",
+            "family_guess": "engineering",
+            "score": 0.341667,
+            "confidence": null
+          },
+          {
+            "title": "Embedded Systems Engineer",
+            "dept": "",
+            "family_guess": "engineering",
+            "score": 0.341667,
+            "confidence": null
+          },
+          {
+            "title": ".Net Developer",
+            "dept": "",
+            "family_guess": "engineering",
+            "score": 0.285,
+            "confidence": null
+          }
+        ],
+        "case_evaluation": {
+          "expected_family": "engineering",
+          "top3_correctness_proxy": {
+            "baseline_family_matches": 3,
+            "shadow_family_matches": 3
+          },
+          "ownership_alignment_proxy": {
+            "baseline_top1_family": "engineering",
+            "shadow_top1_family": "engineering",
+            "expected_family": "engineering"
+          },
+          "family_correctness": {
+            "baseline_top3_expected_family_ratio": 1,
+            "shadow_top3_expected_family_ratio": 1
+          },
+          "confidence_believability": {
+            "baseline": {
+              "avg": 0.746289,
+              "min": 0.706423,
+              "max": 0.798167
+            },
+            "shadow": {
+              "avg": 0.322778,
+              "min": 0.285,
+              "max": 0.341667
+            }
+          },
+          "noisy_role_suppression": {
+            "baseline_non_expected_count": 0,
+            "shadow_non_expected_count": 0
+          },
+          "semantic_conviction": {
+            "baseline_top3_score_spread": 0.091744,
+            "shadow_top3_score_spread": 0.056667
+          },
+          "retrieval_specificity": {
+            "baseline_unique_titles_top3": 3,
+            "shadow_unique_titles_top3": 3
+          },
+          "overlap_comparison": {
+            "top3_overlap_count": 2,
+            "baseline_top3_role_ids": [
+              "34b3e5db-671a-4133-8890-ab0e9818bb57",
+              "86697b2c-e199-4db9-a6e5-c2220cf00732",
+              "988df181-d9ab-4fa9-b86d-0fd471dd2291"
+            ],
+            "shadow_top3_role_ids": [
+              "34b3e5db-671a-4133-8890-ab0e9818bb57",
+              "988df181-d9ab-4fa9-b86d-0fd471dd2291",
+              "6e64e023-b104-4e58-bd4b-e77d76fee901"
+            ]
+          },
+          "suppression_explanation": {
+            "baseline": [
+              {
+                "base": 0.6111711711711711,
+                "priorBoost": 0,
+                "executionSurfaceBoost": 0.24,
+                "executionSuppression": 0.12,
+                "suppression": 0,
+                "activeSignals": 0,
+                "executionIntent": {
+                  "acts": [
+                    "build",
+                    "design"
+                  ],
+                  "surfaces": [
+                    "backend",
+                    "mobile_ui",
+                    "product_design"
+                  ],
+                  "ownershipIntensity": "high"
+                },
+                "roleFamily": {
+                  "backend": true,
+                  "frontend": false,
+                  "mobile_ui": false,
+                  "analytics": false,
+                  "infrastructure": false,
+                  "product_design": false,
+                  "people_ops": false,
+                  "support": false,
+                  "document": false,
+                  "test": false
+                },
+                "spreadIn": 0.7311711711711711,
+                "spreadOut": 0.7981669170453509
+              },
+              {
+                "base": 0.5311711711711712,
+                "priorBoost": 0,
+                "executionSurfaceBoost": 0.24,
+                "executionSuppression": 0.12,
+                "suppression": 0,
+                "activeSignals": 0,
+                "executionIntent": {
+                  "acts": [
+                    "build",
+                    "design"
+                  ],
+                  "surfaces": [
+                    "backend",
+                    "mobile_ui",
+                    "product_design"
+                  ],
+                  "ownershipIntensity": "high"
+                },
+                "roleFamily": {
+                  "backend": false,
+                  "frontend": false,
+                  "mobile_ui": false,
+                  "analytics": false,
+                  "infrastructure": true,
+                  "product_design": false,
+                  "people_ops": false,
+                  "support": false,
+                  "document": false,
+                  "test": false
+                },
+                "spreadIn": 0.6511711711711712,
+                "spreadOut": 0.7342780043002415
+              },
+              {
+                "base": 0.617117117117117,
+                "priorBoost": 0,
+                "executionSurfaceBoost": 0,
+                "executionSuppression": 0,
+                "suppression": 0,
+                "activeSignals": 0,
+                "executionIntent": {
+                  "acts": [
+                    "build",
+                    "design"
+                  ],
+                  "surfaces": [
+                    "backend",
+                    "mobile_ui",
+                    "product_design"
+                  ],
+                  "ownershipIntensity": "high"
+                },
+                "roleFamily": {
+                  "backend": false,
+                  "frontend": false,
+                  "mobile_ui": false,
+                  "analytics": false,
+                  "infrastructure": false,
+                  "product_design": false,
+                  "people_ops": false,
+                  "support": false,
+                  "document": false,
+                  "test": false
+                },
+                "spreadIn": 0.617117117117117,
+                "spreadOut": 0.7064227332647881
+              }
+            ],
+            "shadow": [
+              {
+                "lexicalOverlap": 0.166667,
+                "actScore": 0,
+                "surfaceScore": 0.95,
+                "confidenceCeiling": 0.84
+              },
+              {
+                "lexicalOverlap": 0.166667,
+                "actScore": 0,
+                "surfaceScore": 0.95,
+                "confidenceCeiling": 0.84
+              },
+              {
+                "lexicalOverlap": 0,
+                "actScore": 0,
+                "surfaceScore": 0.95,
+                "confidenceCeiling": 0.84
+              }
+            ]
+          },
+          "ownership_chain_explanation": {
+            "baseline_top3_family_guess": [
+              "engineering",
+              "engineering",
+              "engineering"
+            ],
+            "shadow_top3_family_guess": [
+              "engineering",
+              "engineering",
+              "engineering"
+            ]
+          },
+          "notes": "Expected family=engineering. family_match_delta=0, noisy_suppression_delta=0, conviction_delta=-0.4565."
+        }
+      }
+    ]
+  }
+}

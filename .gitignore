@@ -1,0 +1,20 @@
+# OS / editor
+.DS_Store
+
+# Dependencies — install on deploy via npm ci / npm install
+node_modules/
+
+# Local env / secrets
+.env
+.env.local
+.env.*.local
+backend/.env
+frontend/.env.local
+
+# Build output
+frontend/dist/
+.vite/
+
+# Optional: keep real keys only on the server — copy from supabase-config.example.js locally
+# and do not commit supabase-config.js (then inject at build/deploy).
+# supabase-config.js
