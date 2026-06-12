@@ -17,15 +17,17 @@ function loadStoredUser() {
 }
 
 export default function App() {
-  const [user, setUser] = useState(loadStoredUser);
-  const [showLogin, setShowLogin] = useState(() => !loadStoredUser());
+  const storedUser = loadStoredUser();
+  const storedToken = localStorage.getItem("sm_token");
+  const validSession = storedUser && storedToken;
 
+  const [user, setUser] = useState(validSession ? storedUser : null);
+  const [showLogin, setShowLogin] = useState(!validSession);
+
+  // Keep login modal open whenever user is null
   useEffect(() => {
-    const token = localStorage.getItem("sm_token");
-    if (!token && user) {
-      setUser(null);
-    }
-  }, []);
+    if (!user) setShowLogin(true);
+  }, [user]);
 
   function handleLogin(userData, token) {
     localStorage.setItem("sm_token", token);
