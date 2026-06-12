@@ -86,7 +86,7 @@ export default function RoleCard({ role, currency = "INR", onSalaryContribute, o
         <div className="rc-left">
           {dept && (
             <div className="rc-dept">
-              <span style={{ background: "#ECFDF5", color: "#064E3B", padding: "2px 8px", borderRadius: 20, fontSize: 10 }}>
+              <span style={{ background: "#F6F3FD", color: "#6E56F0", padding: "2px 8px", borderRadius: 20, fontSize: 10 }}>
                 {dept}
               </span>
             </div>
