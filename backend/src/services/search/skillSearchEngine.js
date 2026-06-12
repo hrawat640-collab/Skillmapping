@@ -59,7 +59,7 @@ const HIGH_SPECIFICITY_TOOLS = new Set([
 const TYPO_NORMALIZATION = {
   reactjs: "react",
   react_js: "react",
-  hrpb: "hrbp",
+  hrbp: "hrbp",
   swe: "software engineer"
 };
 

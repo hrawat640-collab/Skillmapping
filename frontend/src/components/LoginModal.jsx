@@ -22,7 +22,7 @@ const PROFESSION_VALUES = {
   "Other": "professional"
 };
 
-export default function LoginModal({ onLogin, onClose }) {
+export default function LoginModal({ onLogin, onClose, required = false }) {
   const [step, setStep] = useState("google"); // "google" | "profile"
   const [pendingToken, setPendingToken] = useState(null);
   const [pendingUser, setPendingUser] = useState(null);
@@ -77,7 +77,7 @@ export default function LoginModal({ onLogin, onClose }) {
   }
 
   return (
-    <div className="login-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="login-overlay" onClick={(e) => { if (!required && onClose && e.target === e.currentTarget) onClose(); }}>
       <div className="login-card">
         <div className="login-top">
           <h2>

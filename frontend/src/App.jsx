@@ -18,7 +18,7 @@ function loadStoredUser() {
 
 export default function App() {
   const [user, setUser] = useState(loadStoredUser);
-  const [showLogin, setShowLogin] = useState(false);
+  const [showLogin, setShowLogin] = useState(() => !loadStoredUser());
 
   useEffect(() => {
     const token = localStorage.getItem("sm_token");
@@ -50,10 +50,12 @@ export default function App() {
           <Route
             path="/"
             element={
-              <SearchPage
-                user={user}
-                onLoginRequired={() => setShowLogin(true)}
-              />
+              user ? (
+                <SearchPage
+                  user={user}
+                  onLoginRequired={() => setShowLogin(true)}
+                />
+              ) : null
             }
           />
           <Route path="/privacy" element={<PrivacyPage />} />
@@ -66,7 +68,8 @@ export default function App() {
       {showLogin && (
         <LoginModal
           onLogin={handleLogin}
-          onClose={() => setShowLogin(false)}
+          onClose={user ? () => setShowLogin(false) : null}
+          required={!user}
         />
       )}
     </div>
