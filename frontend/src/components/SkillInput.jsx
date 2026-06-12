@@ -95,7 +95,7 @@ export default function SkillInput({ skills, onChange, allSkills = [] }) {
           value={inputVal}
           onChange={handleInput}
           onKeyDown={handleKeyDown}
-          placeholder={skills.length ? "" : "Type a skill, e.g. React, Python…"}
+          placeholder={skills.length ? "" : allSkills.length === 0 ? "Loading skills…" : "Type a skill, e.g. React, Python…"}
           autoComplete="off"
           spellCheck="false"
         />

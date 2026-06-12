@@ -17,15 +17,17 @@ function loadStoredUser() {
 }
 
 export default function App() {
-  const [user, setUser] = useState(loadStoredUser);
-  const [showLogin, setShowLogin] = useState(false);
+  const storedUser = loadStoredUser();
+  const storedToken = localStorage.getItem("sm_token");
+  const validSession = storedUser && storedToken;
 
+  const [user, setUser] = useState(validSession ? storedUser : null);
+  const [showLogin, setShowLogin] = useState(!validSession);
+
+  // Keep login modal open whenever user is null
   useEffect(() => {
-    const token = localStorage.getItem("sm_token");
-    if (!token && user) {
-      setUser(null);
-    }
-  }, []);
+    if (!user) setShowLogin(true);
+  }, [user]);
 
   function handleLogin(userData, token) {
     localStorage.setItem("sm_token", token);
@@ -50,10 +52,12 @@ export default function App() {
           <Route
             path="/"
             element={
-              <SearchPage
-                user={user}
-                onLoginRequired={() => setShowLogin(true)}
-              />
+              user ? (
+                <SearchPage
+                  user={user}
+                  onLoginRequired={() => setShowLogin(true)}
+                />
+              ) : null
             }
           />
           <Route path="/privacy" element={<PrivacyPage />} />
@@ -66,7 +70,8 @@ export default function App() {
       {showLogin && (
         <LoginModal
           onLogin={handleLogin}
-          onClose={() => setShowLogin(false)}
+          onClose={user ? () => setShowLogin(false) : null}
+          required={!user}
         />
       )}
     </div>

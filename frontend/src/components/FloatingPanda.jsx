@@ -14,10 +14,10 @@ export default function FloatingPanda({ onContribute, hasResults }) {
     return () => clearTimeout(t);
   }, [hasResults, dismissed]);
 
-  // Hide if user unlocks salary
+  // Hide on mount if salary already contributed
   useEffect(() => {
     if (isSalUnlocked()) setVisible(false);
-  });
+  }, []);
 
   if (!visible) return null;
 
