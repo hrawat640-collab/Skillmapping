@@ -129,20 +129,37 @@ var DB_LOADED = false;
 <style>
 @keyframes smoothFadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 :root{
-  --bg:#F8FAFC;--white:#FFFFFF;--surface:#FFFFFF;
-  --border:#E2E8F0;--border2:#CBD5E1;
-  --ink:#0F172A;--ink2:#334155;--ink3:#64748B;
-  --accent:#6E56F0;--accent-lt:#F6F3FD;--accent-md:#B0A0F8;--accent-deep:#4631B8;
-  --green:#059669;--green-lt:#D1FAE5;
-  --amber:#b45309;--amber-lt:#fef3c7;
-  --red:#b91c1c;--red-lt:#fef2f2;
-  --purple:#5b21b6;--purple-lt:#ede9fe;
-  --teal:#6E56F0;--teal-lt:#F6F3FD;
-  --rose:#be185d;--rose-lt:#fdf2f8;
-  --orange:#c2410c;--orange-lt:#fff7ed;
-  --sans:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;
-  --shadow:0 4px 6px -1px rgba(0,0,0,0.03);
-  --shadow-md:0 12px 32px rgba(0,0,0,0.05);
+  /* HQ editorial palette sync (HeadcountIQ) */
+  --bg:#FCFCFB;
+  --white:#FCFCFB;
+  --surface:#FCFCFB;
+  --border:#E7E7E3;
+  --border2:#D4D2CB;
+  --ink:#16161A;
+  --ink2:#2A2A2E;
+  --ink3:#7A7872;
+  --accent:#6E56F0;
+  --accent-lt:#F4F0FE;
+  --accent-md:#B0A0F8;
+  --accent-deep:#4631B8;
+  --green:#0F766E;
+  --green-lt:#E4F2EF;
+  --amber:#8B5A00;
+  --amber-lt:#FBF6EA;
+  --red:#9B1B1B;
+  --red-lt:#FAEFEF;
+  --purple:#3B0764;
+  --purple-lt:#E8E2FD;
+  --teal:#6E56F0;
+  --teal-lt:#F4F0FE;
+  --rose:#be185d; /* kept - no HQ equivalent */
+  --rose-lt:#fdf2f8; /* kept - no HQ equivalent */
+  --orange:#A67000;
+  --orange-lt:#FBF6EA;
+  --sans:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --shadow:0 1px 2px rgba(21,21,21,.04),0 2px 6px rgba(21,21,21,.05);
+  --shadow-md:0 8px 24px rgba(21,21,21,.08),0 16px 48px rgba(21,21,21,.06),0 0 0 1px rgba(21,21,21,.04);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 /* iOS input zoom fix */
