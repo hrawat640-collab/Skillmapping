@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { parseSalarySegments, buildTalentXRayUrl } from "../utils/searchUtils";
 
+const SHOW_ROLE_HINT = false; // Phase 2: gate on company_admin viewer
+
 const LEVELS = ["junior", "mid", "senior", "lead"];
 const LEVEL_LABELS = { junior: "Junior", mid: "Mid", senior: "Senior", lead: "Lead" };
 
@@ -99,7 +101,7 @@ export default function RoleCard({ role, currency = "INR", onSalaryContribute, o
             </div>
           )}
 
-          {isHROnly && role.hint && (
+          {SHOW_ROLE_HINT && isHROnly && role.hint && (
             <div className="rc-hint">
               <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#D97706" strokeWidth="1.5"/><path d="M8 7v4M8 5.5v.5" stroke="#D97706" strokeWidth="1.5" strokeLinecap="round"/></svg>
               <span>{role.hint}</span>
