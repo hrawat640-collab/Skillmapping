@@ -2,6 +2,7 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import { getSupabaseAdmin } from "../supabaseClient.js";
 import { createRateLimiter } from "../middleware/rateLimit.js";
+import { optionalSupabaseAuth } from "../middleware/supabaseAuth.js";
 
 const router = express.Router();
 
@@ -92,12 +93,19 @@ router.get("/salary/is-unlocked", salaryLimiter, async (req, res) => {
 });
 
 // POST /api/salary/contribute
-router.post("/salary/contribute", salaryLimiter, async (req, res) => {
+router.post("/salary/contribute", salaryLimiter, optionalSupabaseAuth, async (req, res) => {
   const authHeader = req.headers.authorization || "";
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
   let userId = null;
-  if (token) {
+  let userUuid = null;
+  let userEmail = null;
+
+  if (req.authUser) {
+    userId = req.authUser.id;
+    userUuid = req.authUser.id;
+    userEmail = req.authUser.email;
+  } else if (token) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       userId = decoded.sub || null;
@@ -114,9 +122,8 @@ router.post("/salary/contribute", salaryLimiter, async (req, res) => {
   const sb = getSupabaseAdmin();
   if (!sb) return res.status(503).json({ error: "Database unavailable" });
 
-  // Resolve user email from token if available
-  let userEmail = null;
-  if (!userId && token) {
+  // Legacy app JWT: resolve sm_users id from email when Supabase auth not used
+  if (!userEmail && !userId && token) {
     try {
       const decoded = jwt.decode(token);
       if (decoded?.email) {
@@ -138,6 +145,7 @@ router.post("/salary/contribute", salaryLimiter, async (req, res) => {
     company: company ? String(company).trim() : null,
     role_desc: company_stage ? String(company_stage).trim() : null,
     user_id: userId,
+    user_uuid: userUuid,
     email: userEmail || "anonymous@skillmapper.app"
   };
 
