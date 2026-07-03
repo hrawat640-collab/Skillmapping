@@ -586,6 +586,53 @@ button:active, .btn-find:active, .sal-btn:active, .cur-chip:active, .dept-btn:ac
 }
 .profile-submit:hover { background: #5840d8; transform: translateY(-1px); }
 
+.auth-form { display: flex; flex-direction: column; gap: 14px; }
+.auth-form label { font-size: 12px; font-weight: 600; color: var(--ink2); margin-bottom: 4px; display: block; }
+.auth-form input {
+  width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 10px;
+  font-size: 14px; font-family: var(--sans); color: var(--ink);
+  background: var(--white); outline: none; transition: border-color .15s;
+}
+.auth-form input:focus { border-color: var(--teal); }
+.password-field { position: relative; }
+.password-field input { padding-right: 44px; }
+.password-toggle {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  border: none; background: transparent; color: var(--ink3); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; padding: 4px;
+}
+.password-toggle:hover { color: var(--ink2); }
+.auth-forgot-wrap { text-align: right; margin-top: -6px; }
+.auth-link, .auth-link-btn {
+  color: var(--teal); font-size: 12.5px; font-weight: 600; text-decoration: none;
+  background: none; border: none; padding: 0; cursor: pointer; font-family: var(--sans);
+}
+.auth-link-btn:hover, .auth-link:hover { text-decoration: underline; }
+.auth-error { font-size: 12.5px; color: var(--red); margin: 0; text-align: center; }
+.auth-success { font-size: 14px; color: var(--ink2); text-align: center; line-height: 1.5; }
+.auth-toggle { font-size: 13px; color: var(--ink3); text-align: center; margin: 16px 0 0; }
+.auth-divider {
+  display: flex; align-items: center; gap: 12px; margin: 20px 0 16px;
+  color: var(--ink3); font-size: 12px; text-transform: lowercase;
+}
+.auth-divider::before, .auth-divider::after {
+  content: ""; flex: 1; height: 1px; background: var(--border);
+}
+.auth-google-btn {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 12px 16px; border: 1.5px solid var(--border); border-radius: 10px;
+  background: var(--white); color: var(--ink); font-family: var(--sans);
+  font-size: 14px; font-weight: 600; cursor: pointer; transition: border-color .15s, background .15s;
+}
+.auth-google-btn:hover:not(:disabled) { border-color: #c7c7c7; background: #fafafa; }
+.auth-google-btn:disabled { opacity: .6; cursor: not-allowed; }
+.auth-privacy { font-size: 11.5px; color: var(--ink3); text-align: center; margin-top: 16px; line-height: 1.5; }
+.auth-page {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  padding: 20px; background: rgba(15,14,12,0.85);
+}
+.auth-page-card { max-width: 440px; width: 100%; }
+
 /* ── Feedback button ── */
 #feedbackBtn {
   position: fixed; bottom: 24px; left: 18px; z-index: 9980;
