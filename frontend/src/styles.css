@@ -664,6 +664,42 @@ button:active, .btn-find:active, .sal-btn:active, .cur-chip:active, .dept-btn:ac
   font-weight: bold;
 }
 
+.corner-spinner {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 8px 12px;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  font-size: 12px;
+  color: #666;
+  z-index: 100;
+  opacity: 0;
+  transition: opacity 300ms;
+  pointer-events: none;
+}
+
+.corner-spinner.visible {
+  opacity: 1;
+}
+
+.corner-spinner-circle {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #eee;
+  border-top-color: var(--accent, #7c3aed);
+  border-radius: 50%;
+  animation: corner-spin 1s linear infinite;
+}
+
+@keyframes corner-spin {
+  to { transform: rotate(360deg); }
+}
+
 .auth-form { display: flex; flex-direction: column; gap: 14px; }
 .auth-form label { font-size: 12px; font-weight: 600; color: var(--ink2); margin-bottom: 4px; display: block; }
 .auth-form input {

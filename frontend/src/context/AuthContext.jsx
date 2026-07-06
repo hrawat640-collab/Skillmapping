@@ -26,6 +26,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
   const [pageReady, setPageReady] = useState(false);
+  const [showOverlayOnLoad, setShowOverlayOnLoad] = useState(false);
   const legacyCleared = useRef(false);
   const authUserEmailRef = useRef(null);
 
@@ -82,6 +83,7 @@ export function AuthProvider({ children }) {
         setProfile(null);
         setNeedsProfile(false);
         setPageReady(false);
+        setShowOverlayOnLoad(false);
         return;
       }
 
@@ -105,7 +107,13 @@ export function AuthProvider({ children }) {
         return;
       }
 
-      if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+      if (event === "SIGNED_IN") {
+        setShowOverlayOnLoad(true);
+        loadProfileForSession();
+        return;
+      }
+
+      if (event === "INITIAL_SESSION") {
         loadProfileForSession();
       }
     });
@@ -143,6 +151,7 @@ export function AuthProvider({ children }) {
     setProfile(null);
     setNeedsProfile(false);
     setPageReady(false);
+    setShowOverlayOnLoad(false);
   }, []);
 
   const resetPassword = useCallback(async (email) => {
@@ -161,6 +170,8 @@ export function AuthProvider({ children }) {
     profileLoading,
     pageReady,
     setPageReady,
+    showOverlayOnLoad,
+    setShowOverlayOnLoad,
     signIn,
     signUp,
     signInWithGoogle,
@@ -176,6 +187,8 @@ export function AuthProvider({ children }) {
     profileLoading,
     pageReady,
     setPageReady,
+    showOverlayOnLoad,
+    setShowOverlayOnLoad,
     signIn,
     signUp,
     signInWithGoogle,

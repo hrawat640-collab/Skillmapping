@@ -9,6 +9,7 @@ import Header from "./components/Header";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import LoadingMessages from "./components/LoadingMessages";
+import CornerSpinner from "./components/CornerSpinner";
 import ActivityToast from "./components/ActivityToast";
 import { useAuth } from "./context/AuthContext";
 
@@ -16,20 +17,33 @@ const STANDALONE_AUTH_PATHS = new Set(["/forgot-password", "/reset-password"]);
 
 export default function App() {
   const location = useLocation();
-  const { profile, session, needsProfile, loading, profileLoading, pageReady, signOut } = useAuth();
+  const {
+    profile,
+    session,
+    authUser,
+    needsProfile,
+    loading,
+    profileLoading,
+    pageReady,
+    showOverlayOnLoad,
+    setShowOverlayOnLoad,
+    signOut
+  } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
 
   const isStandaloneAuthPage = STANDALONE_AUTH_PATHS.has(location.pathname);
   const isAuthenticated = Boolean(session && profile && !needsProfile);
   const authLoading = loading || profileLoading;
-  const wantsLoadingOverlay = Boolean(
-    session && (authLoading || !pageReady) && !isStandaloneAuthPage
+  const showOverlay = Boolean(
+    !isStandaloneAuthPage && (authLoading || (Boolean(authUser) && !pageReady))
   );
+  const wantsFullscreenOverlay = showOverlay && showOverlayOnLoad;
+  const wantsCornerSpinner = showOverlay && !showOverlayOnLoad;
   const showActivityToast = isAuthenticated && location.pathname === "/";
   const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
 
   useEffect(() => {
-    if (!wantsLoadingOverlay) {
+    if (!wantsFullscreenOverlay) {
       setShowLoadingOverlay(false);
       return undefined;
     }
@@ -41,7 +55,13 @@ export default function App() {
     return () => {
       clearTimeout(timer);
     };
-  }, [wantsLoadingOverlay]);
+  }, [wantsFullscreenOverlay]);
+
+  useEffect(() => {
+    if (!wantsFullscreenOverlay && showOverlayOnLoad) {
+      setShowOverlayOnLoad(false);
+    }
+  }, [wantsFullscreenOverlay, showOverlayOnLoad, setShowOverlayOnLoad]);
 
   useEffect(() => {
     if (loading || isStandaloneAuthPage) return;
@@ -67,6 +87,7 @@ export default function App() {
   return (
     <div className="app-shell">
       {showLoadingOverlay && <LoadingMessages />}
+      <CornerSpinner visible={wantsCornerSpinner} />
       {showActivityToast && <ActivityToast />}
 
       <Header
