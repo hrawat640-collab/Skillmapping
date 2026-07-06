@@ -2,44 +2,15 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 
 const SEEN_KEY = "sm_loading_seen";
-const ROTATE_MS = 4000;
+const ROTATE_MS = 5000;
+const FADE_MS = 300;
 
-const FAKE_ACTIVITY = [
-  "A Senior Product Manager in Bangalore just contributed",
-  "Someone in Mumbai just added their SDE-3 benchmark",
-  "A UX Designer in Pune contributed a few minutes ago",
-  "Someone at a Series B startup just shared their salary",
-  "A Data Scientist in Delhi just contributed",
-  "An Engineering Manager in Hyderabad just added theirs",
-  "Someone in Chennai just contributed to the Backend Engineer benchmark",
-  "A Marketing Lead in Bangalore just added their comp",
-  "Someone in Gurgaon just contributed",
-  "A Solutions Architect in Bangalore just shared their salary",
-  "12 minutes ago: an HRBP in Mumbai contributed",
-  "18 minutes ago: a Full Stack Developer in Bangalore added their salary",
-  "Half an hour ago: a Product Designer in Pune contributed",
-  "Earlier today: 4 SDE-2s in Bangalore added their benchmarks",
-  "Earlier today: 3 Product Managers contributed across cities",
-  "Someone in Bangalore contributed 25 minutes ago",
-  "An ML Engineer in Hyderabad added theirs an hour ago",
-  "A DevOps Engineer in Chennai contributed today",
-  "A Business Analyst in Mumbai just added their salary",
-  "A Frontend Engineer in Delhi contributed earlier",
-  "Someone just helped 12 others benchmark their SDE-3 salary",
-  "A recent contribution just updated the Bangalore Product Manager range",
-  "Fresh data just came in for Backend Engineers in Pune",
-  "Someone at a fintech just contributed to the Data Scientist benchmark",
-  "Community update: 8 new contributions this hour",
-  "Two Senior UX Designers just added their comp in the last 20 minutes",
-  "Someone contributed to make the SDE-2 benchmark more accurate",
-  "A Product Lead just added theirs — helping the community",
-  "Fresh benchmark data just landed for HR roles",
-  "Community just crossed another salary contribution milestone",
-  "'Am I underpaid?' — the question everyone's asking. Someone just answered it for themselves.",
-  "Someone just gave their salary to help thousands of others",
-  "A contributor in Bangalore just made the SDE benchmark stronger",
-  "A fresh Product Manager benchmark just went live",
-  "Every salary contributed makes the next negotiation easier"
+const MOTIVATIONAL = [
+  "Building your personalized salary insights...",
+  "Finding your role benchmarks...",
+  "Almost there — pulling market data...",
+  "Preparing your dashboard...",
+  "One moment — verifying your access..."
 ];
 
 const HIGHLIGHT_TEMPLATES = [
@@ -88,7 +59,7 @@ function buildHighlightMessages(stats) {
 }
 
 function buildMessagePool(highlights) {
-  const all = [...FAKE_ACTIVITY, ...highlights];
+  const all = [...MOTIVATIONAL, ...highlights];
   const seen = readSeen();
   const unseen = all.filter((msg) => !seen.includes(msg));
   const alreadySeen = all.filter((msg) => seen.includes(msg));
@@ -101,15 +72,15 @@ function buildMessagePool(highlights) {
   return [...shuffle(unseen), ...shuffle(alreadySeen)];
 }
 
-function markSeen(message, seen) {
-  if (!message || seen.includes(message)) return seen;
-  const next = [...seen, message];
-  writeSeen(next);
-  return next;
+function markSeen(message) {
+  if (!message) return;
+  const seen = readSeen();
+  if (seen.includes(message)) return;
+  writeSeen([...seen, message]);
 }
 
 export default function LoadingMessages() {
-  const [pool, setPool] = useState(() => shuffle([...FAKE_ACTIVITY]));
+  const [pool, setPool] = useState(() => shuffle([...MOTIVATIONAL]));
   const [index, setIndex] = useState(0);
   const [fadeIn, setFadeIn] = useState(true);
 
@@ -138,7 +109,7 @@ export default function LoadingMessages() {
 
   useEffect(() => {
     if (!message) return;
-    markSeen(message, readSeen());
+    markSeen(message);
   }, [message]);
 
   useEffect(() => {
@@ -149,7 +120,7 @@ export default function LoadingMessages() {
       setTimeout(() => {
         setIndex((prev) => (prev + 1) % pool.length);
         setFadeIn(true);
-      }, 150);
+      }, FADE_MS);
     }, ROTATE_MS);
 
     return () => clearInterval(timer);
@@ -158,8 +129,7 @@ export default function LoadingMessages() {
   return (
     <div className="loading-messages" aria-live="polite" aria-busy="true">
       <p
-        className="loading-messages-text"
-        style={{ opacity: fadeIn ? 1 : 0 }}
+        className={`loading-messages-text${fadeIn ? " is-visible" : " is-hidden"}`}
       >
         <span className="loading-messages-bullet" aria-hidden="true">•</span>
         {message}

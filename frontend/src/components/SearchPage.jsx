@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useAppData } from "../hooks/useAppData";
 import { useSearch } from "../hooks/useSearch";
+import { useAuth } from "../context/AuthContext";
 import { enrichWithLibrary } from "../utils/searchUtils";
 import SkillInput from "./SkillInput";
 import DeptFilter from "./DeptFilter";
@@ -19,6 +20,7 @@ function isHRUser(user) {
 }
 
 export default function SearchPage({ user, onLoginRequired }) {
+  const { setPageReady } = useAuth();
   const { roles, skills, departments } = useAppData();
 
   const [mode, setMode] = useState("skills");
@@ -85,6 +87,16 @@ export default function SearchPage({ user, onLoginRequired }) {
   }
 
   // Close title dropdown on outside click
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPageReady(true);
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [setPageReady]);
+
   useEffect(() => {
     function handleClickOutside(e) {
       if (titleDropRef.current && !titleDropRef.current.contains(e.target)) {

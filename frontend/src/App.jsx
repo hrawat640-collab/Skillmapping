@@ -9,18 +9,23 @@ import Header from "./components/Header";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import LoadingMessages from "./components/LoadingMessages";
+import ActivityToast from "./components/ActivityToast";
 import { useAuth } from "./context/AuthContext";
 
 const STANDALONE_AUTH_PATHS = new Set(["/forgot-password", "/reset-password"]);
 
 export default function App() {
   const location = useLocation();
-  const { profile, session, needsProfile, loading, profileLoading, signOut } = useAuth();
+  const { profile, session, needsProfile, loading, profileLoading, pageReady, signOut } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
 
   const isStandaloneAuthPage = STANDALONE_AUTH_PATHS.has(location.pathname);
   const isAuthenticated = Boolean(session && profile && !needsProfile);
-  const wantsLoadingOverlay = Boolean(session && (loading || profileLoading) && !isStandaloneAuthPage);
+  const authLoading = loading || profileLoading;
+  const wantsLoadingOverlay = Boolean(
+    session && (authLoading || !pageReady) && !isStandaloneAuthPage
+  );
+  const showActivityToast = isAuthenticated && location.pathname === "/";
   const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
 
   useEffect(() => {
@@ -62,6 +67,7 @@ export default function App() {
   return (
     <div className="app-shell">
       {showLoadingOverlay && <LoadingMessages />}
+      {showActivityToast && <ActivityToast />}
 
       <Header
         user={isAuthenticated ? profile : null}
