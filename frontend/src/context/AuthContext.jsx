@@ -27,6 +27,7 @@ export function AuthProvider({ children }) {
   const [profileLoading, setProfileLoading] = useState(false);
   const [pageReady, setPageReady] = useState(false);
   const [showOverlayOnLoad, setShowOverlayOnLoad] = useState(false);
+  const [salaryUnlocked, setSalaryUnlocked] = useState(false);
   const legacyCleared = useRef(false);
   const authUserEmailRef = useRef(null);
   const hasSeenSessionRef = useRef(false);
@@ -42,17 +43,28 @@ export function AuthProvider({ children }) {
     return result;
   }, [applyProfile]);
 
+  const refreshSalaryUnlock = useCallback(async () => {
+    try {
+      const { data } = await api.get("/salary/is-unlocked");
+      setSalaryUnlocked(Boolean(data?.unlocked));
+    } catch {
+      setSalaryUnlocked(false);
+    }
+  }, []);
+
   const loadProfileForSession = useCallback(async () => {
     setProfileLoading(true);
     try {
       await refreshProfile();
+      await refreshSalaryUnlock();
     } catch {
       setProfile(null);
       setNeedsProfile(false);
+      setSalaryUnlocked(false);
     } finally {
       setProfileLoading(false);
     }
-  }, [refreshProfile]);
+  }, [refreshProfile, refreshSalaryUnlock]);
 
   useEffect(() => {
     if (!legacyCleared.current) {
@@ -86,6 +98,7 @@ export function AuthProvider({ children }) {
         setNeedsProfile(false);
         setPageReady(false);
         setShowOverlayOnLoad(false);
+        setSalaryUnlocked(false);
         return;
       }
 
@@ -161,6 +174,7 @@ export function AuthProvider({ children }) {
     setNeedsProfile(false);
     setPageReady(false);
     setShowOverlayOnLoad(false);
+    setSalaryUnlocked(false);
   }, []);
 
   const resetPassword = useCallback(async (email) => {
@@ -181,6 +195,8 @@ export function AuthProvider({ children }) {
     setPageReady,
     showOverlayOnLoad,
     setShowOverlayOnLoad,
+    salaryUnlocked,
+    refreshSalaryUnlock,
     signIn,
     signUp,
     signInWithGoogle,
@@ -198,6 +214,8 @@ export function AuthProvider({ children }) {
     setPageReady,
     showOverlayOnLoad,
     setShowOverlayOnLoad,
+    salaryUnlocked,
+    refreshSalaryUnlock,
     signIn,
     signUp,
     signInWithGoogle,

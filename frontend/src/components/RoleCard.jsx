@@ -1,15 +1,11 @@
 import { useState } from "react";
+import { useAuth } from "../context/AuthContext";
 import { parseSalarySegments, buildTalentXRayUrl } from "../utils/searchUtils";
 
 const SHOW_ROLE_HINT = false; // Phase 2: gate on company_admin viewer
 
 const LEVELS = ["junior", "mid", "senior", "lead"];
 const LEVEL_LABELS = { junior: "Junior", mid: "Mid", senior: "Senior", lead: "Lead" };
-
-function isSalUnlocked() {
-  const until = Number(localStorage.getItem("sm_sal_unlocked_until") || 0);
-  return Date.now() < until;
-}
 
 function getUser() {
   try { return JSON.parse(localStorage.getItem("sm_user") || "null"); } catch { return null; }
@@ -39,11 +35,12 @@ function formatSalLine(yrsMin, yrsMax, pipe, currency = "INR") {
 
 export default function RoleCard({ role, currency = "INR", onSalaryContribute, onLoginRequired }) {
   const [salLevel, setSalLevel] = useState("junior");
+  const { salaryUnlocked } = useAuth();
 
   const user = getUser();
   const isHR = isHROrFounder(user);
   const isHROnly = isStrictHR(user);
-  const salUnlocked = isSalUnlocked();
+  const salUnlocked = salaryUnlocked;
 
   const dept = role.dept || role.department_name || "";
   const title = role.title || role.canonical_title || "";

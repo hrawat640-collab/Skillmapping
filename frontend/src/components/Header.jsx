@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const TALENTXRAY_URL = import.meta.env.VITE_TALENTXRAY_URL || "https://talentxray.talentsradar.com";
 
@@ -14,7 +15,7 @@ function ProfileDropdown({ user, onLogout, onClose }) {
     return () => document.removeEventListener("mousedown", handleClick);
   }, [onClose]);
 
-  const salaryFilled = !!localStorage.getItem("sm_sal_unlocked_until");
+  const { salaryUnlocked } = useAuth();
   const notifyChecked = !!localStorage.getItem("sm_notify_salary");
 
   const professionLabel = {
@@ -31,7 +32,7 @@ function ProfileDropdown({ user, onLogout, onClose }) {
       <div className="pd-row"><span className="pd-label">Name</span><span className="pd-value">{user?.name || "—"}</span></div>
       <div className="pd-row"><span className="pd-label">Profession</span><span className="pd-value">{professionLabel}</span></div>
       <div className="pd-row"><span className="pd-label">Country</span><span className="pd-value">{user?.country || "—"}</span></div>
-      <div className="pd-row"><span className="pd-label">Salary details</span><span className="pd-value">{salaryFilled ? "Filled" : "Not filled"}</span></div>
+      <div className="pd-row"><span className="pd-label">Salary details</span><span className="pd-value">{salaryUnlocked ? "Filled" : "Not filled"}</span></div>
       <div className="pd-row"><span className="pd-label">Salary alerts</span><span className="pd-value">{notifyChecked ? "Enabled" : "Disabled"}</span></div>
       <div className="pd-divider" />
       <button className="pd-signout" onClick={onLogout}>Sign out</button>
