@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { api } from "../api";
+import { useAuth } from "../context/AuthContext";
 
 const DEPT_SUBS = {
   Engineering: ["Backend", "Frontend", "Full Stack", "Mobile (iOS)", "Mobile (Android)", "DevOps / Platform", "QA / Testing", "Embedded", "Security", "Site Reliability", "ML Platform", "Data Engineering"],
@@ -16,6 +17,7 @@ const DEPT_SUBS = {
 };
 
 export default function SalaryModal({ role, onClose, onSuccess }) {
+  const { refreshSalaryUnlock } = useAuth();
   const [form, setForm] = useState({
     dept: "",
     subDept: "",
@@ -67,7 +69,7 @@ export default function SalaryModal({ role, onClose, onSuccess }) {
         company_stage: form.companyStage || null
       });
 
-      localStorage.setItem("sm_sal_unlocked_until", String(Date.now() + 7 * 24 * 60 * 60 * 1000));
+      await refreshSalaryUnlock();
       onSuccess?.();
       onClose();
     } catch (err) {

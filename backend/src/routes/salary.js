@@ -118,17 +118,35 @@ async function fetchLastContributionRow(sb, email, userUuid) {
 }
 
 // GET /api/salary/is-unlocked
-router.get("/salary/is-unlocked", salaryLimiter, async (req, res) => {
-  const email = typeof req.query.email === "string" ? req.query.email.trim() : "";
-  const userUuid = typeof req.query.user_uuid === "string" ? req.query.user_uuid.trim() : "";
-
-  if (!email && !userUuid) {
-    return res.json({ unlocked: false, reason: "no_identity" });
-  }
-
+router.get("/salary/is-unlocked", salaryLimiter, optionalSupabaseAuth, async (req, res) => {
   const sb = getSupabaseAdmin();
   if (!sb) {
     return res.json({ unlocked: false, reason: "error", message: "Database unavailable" });
+  }
+
+  let email = "";
+  let userUuid = "";
+
+  if (req.authUser) {
+    const smUserResult = await resolveSmUserForContribution(req.authUser);
+    if (smUserResult.error) {
+      return res.json({ unlocked: false, reason: "error", message: smUserResult.error });
+    }
+    const row = smUserResult.row;
+    if (!row) {
+      return res.json({ unlocked: false, reason: "no_identity" });
+    }
+    email = String(row.email || "").trim();
+    userUuid = String(row.user_uuid || "").trim();
+    if (!email && !userUuid) {
+      return res.json({ unlocked: false, reason: "no_identity" });
+    }
+  } else {
+    email = typeof req.query.email === "string" ? req.query.email.trim() : "";
+    userUuid = typeof req.query.user_uuid === "string" ? req.query.user_uuid.trim() : "";
+    if (!email && !userUuid) {
+      return res.json({ unlocked: false, reason: "no_identity" });
+    }
   }
 
   try {

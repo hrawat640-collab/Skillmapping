@@ -1,23 +1,20 @@
 import { useState, useEffect } from "react";
-
-function isSalUnlocked() {
-  return Date.now() < Number(localStorage.getItem("sm_sal_unlocked_until") || 0);
-}
+import { useAuth } from "../context/AuthContext";
 
 export default function FloatingPanda({ onContribute, hasResults }) {
+  const { salaryUnlocked } = useAuth();
   const [visible, setVisible] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    if (!hasResults || dismissed || isSalUnlocked()) return;
+    if (!hasResults || dismissed || salaryUnlocked) return;
     const t = setTimeout(() => setVisible(true), 3000);
     return () => clearTimeout(t);
-  }, [hasResults, dismissed]);
+  }, [hasResults, dismissed, salaryUnlocked]);
 
-  // Hide on mount if salary already contributed
   useEffect(() => {
-    if (isSalUnlocked()) setVisible(false);
-  }, []);
+    if (salaryUnlocked) setVisible(false);
+  }, [salaryUnlocked]);
 
   if (!visible) return null;
 
