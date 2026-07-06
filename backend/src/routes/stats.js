@@ -15,6 +15,11 @@ let cachedHighlights = null;
 let cacheExpiresAt = 0;
 let cacheTimer = null;
 
+const RECENT_CACHE_TTL_MS = 60 * 1000;
+let cachedRecentActivity = null;
+let recentCacheExpiresAt = 0;
+let recentCacheTimer = null;
+
 async function countTable(sb, table) {
   const { count, error } = await sb
     .from(table)
@@ -100,6 +105,50 @@ function setCachedHighlights(data) {
   }, CACHE_TTL_MS);
 }
 
+function getCachedRecentActivity() {
+  if (cachedRecentActivity && Date.now() < recentCacheExpiresAt) {
+    return cachedRecentActivity;
+  }
+  return null;
+}
+
+function setCachedRecentActivity(data) {
+  cachedRecentActivity = data;
+  recentCacheExpiresAt = Date.now() + RECENT_CACHE_TTL_MS;
+
+  if (recentCacheTimer) clearTimeout(recentCacheTimer);
+  recentCacheTimer = setTimeout(() => {
+    cachedRecentActivity = null;
+    recentCacheExpiresAt = 0;
+    recentCacheTimer = null;
+  }, RECENT_CACHE_TTL_MS);
+}
+
+async function fetchRecentActivity() {
+  const sb = getSupabaseAdmin();
+  if (!sb) {
+    const err = new Error("Database unavailable");
+    err.status = 503;
+    throw err;
+  }
+
+  const { data, error } = await sb
+    .from("sm_salary_contribution")
+    .select("designation, loc_detected, created_at")
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if (error) throw error;
+
+  return {
+    recent: (data || []).map((row) => ({
+      designation: row.designation ?? null,
+      loc_detected: row.loc_detected ?? null,
+      created_at: row.created_at ?? null
+    }))
+  };
+}
+
 // GET /api/stats/highlights
 router.get("/stats/highlights", statsLimiter, async (_req, res) => {
   try {
@@ -114,6 +163,23 @@ router.get("/stats/highlights", statsLimiter, async (_req, res) => {
   } catch (e) {
     const status = e?.status || 500;
     return res.status(status).json({ error: e?.message || "Failed to load stats" });
+  }
+});
+
+// GET /api/stats/recent-activity
+router.get("/stats/recent-activity", statsLimiter, async (_req, res) => {
+  try {
+    const cached = getCachedRecentActivity();
+    if (cached) {
+      return res.json(cached);
+    }
+
+    const recent = await fetchRecentActivity();
+    setCachedRecentActivity(recent);
+    return res.json(recent);
+  } catch (e) {
+    const status = e?.status || 500;
+    return res.status(status).json({ error: e?.message || "Failed to load recent activity" });
   }
 });
 

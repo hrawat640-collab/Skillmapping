@@ -25,6 +25,7 @@ export function AuthProvider({ children }) {
   const [needsProfile, setNeedsProfile] = useState(false);
   const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [pageReady, setPageReady] = useState(false);
   const legacyCleared = useRef(false);
 
   const applyProfile = useCallback((nextProfile, nextNeedsProfile) => {
@@ -39,6 +40,7 @@ export function AuthProvider({ children }) {
   }, [applyProfile]);
 
   const loadProfileForSession = useCallback(async () => {
+    setPageReady(false);
     setProfileLoading(true);
     try {
       await refreshProfile();
@@ -80,6 +82,7 @@ export function AuthProvider({ children }) {
       } else {
         setProfile(null);
         setNeedsProfile(false);
+        setPageReady(false);
       }
     });
 
@@ -115,6 +118,7 @@ export function AuthProvider({ children }) {
     setAuthUser(null);
     setProfile(null);
     setNeedsProfile(false);
+    setPageReady(false);
   }, []);
 
   const resetPassword = useCallback(async (email) => {
@@ -131,6 +135,8 @@ export function AuthProvider({ children }) {
     needsProfile,
     loading,
     profileLoading,
+    pageReady,
+    setPageReady,
     signIn,
     signUp,
     signInWithGoogle,
@@ -144,6 +150,8 @@ export function AuthProvider({ children }) {
     needsProfile,
     loading,
     profileLoading,
+    pageReady,
+    setPageReady,
     signIn,
     signUp,
     signInWithGoogle,
