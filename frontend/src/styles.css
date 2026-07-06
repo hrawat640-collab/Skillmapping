@@ -4,28 +4,31 @@
 
 /* ── Design tokens ── */
 :root {
-  --bg: #F8FAFC;
-  --white: #FFFFFF;
-  --surface: #FFFFFF;
-  --border: #E2E8F0;
-  --border2: #CBD5E1;
-  --ink: #0F172A;
-  --ink2: #334155;
-  --ink3: #64748B;
+  /* HQ editorial palette sync (HeadcountIQ) */
+  --bg: #FCFCFB;
+  --white: #FCFCFB;
+  --surface: #FCFCFB;
+  --border: #E7E7E3;
+  --border2: #D4D2CB;
+  --ink: #16161A;
+  --ink2: #2A2A2E;
+  --ink3: #7A7872;
   --accent: #6E56F0;
-  --accent-lt: #F6F3FD;
+  --accent-lt: #F4F0FE;
   --accent-md: #B0A0F8;
   --accent-deep: #4631B8;
-  --green: #059669;
-  --green-lt: #D1FAE5;
-  --amber: #b45309;
-  --amber-lt: #fef3c7;
-  --red: #b91c1c;
-  --red-lt: #fef2f2;
-  --purple: #5b21b6;
-  --purple-lt: #ede9fe;
+  --green: #0F766E;
+  --green-lt: #E4F2EF;
+  --amber: #8B5A00;
+  --amber-lt: #FBF6EA;
+  --red: #9B1B1B;
+  --red-lt: #FAEFEF;
+  --purple: #3B0764;
+  --purple-lt: #E8E2FD;
   --teal: #6E56F0;
-  --teal-lt: #F6F3FD;
+  --teal-lt: #F4F0FE;
+  --rose: #be185d;
+  --rose-lt: #fdf2f8;
   --sans: 'Inter', sans-serif;
   --mono: 'JetBrains Mono', monospace;
   --shadow: 0 4px 6px -1px rgba(0,0,0,0.03);
@@ -614,7 +617,7 @@ button:active, .btn-find:active, .sal-btn:active, .cur-chip:active, .dept-btn:ac
   opacity: 1;
 }
 .loading-messages-bullet {
-  color: var(--accent, #7c3aed);
+  color: var(--accent, #6E56F0);
   margin-right: 8px;
   font-weight: 700;
 }
@@ -626,7 +629,7 @@ button:active, .btn-find:active, .sal-btn:active, .cur-chip:active, .dept-btn:ac
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--accent, #7c3aed);
+  background: var(--accent, #6E56F0);
   animation: loading-dot-bounce 1.4s infinite ease-in-out;
 }
 .loading-messages-dot:nth-child(2) { animation-delay: 0.2s; }
@@ -659,7 +662,7 @@ button:active, .btn-find:active, .sal-btn:active, .cur-chip:active, .dept-btn:ac
 
 .activity-toast::before {
   content: "•";
-  color: var(--accent, #7c3aed);
+  color: var(--accent, #6E56F0);
   margin-right: 6px;
   font-weight: bold;
 }
@@ -691,7 +694,7 @@ button:active, .btn-find:active, .sal-btn:active, .cur-chip:active, .dept-btn:ac
   width: 14px;
   height: 14px;
   border: 2px solid #eee;
-  border-top-color: var(--accent, #7c3aed);
+  border-top-color: var(--accent, #6E56F0);
   border-radius: 50%;
   animation: corner-spin 1s linear infinite;
 }
