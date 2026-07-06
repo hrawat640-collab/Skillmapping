@@ -14,6 +14,7 @@ import geminiRoutes from "./routes/gemini.js";
 import salaryRoutes from "./routes/salary.js";
 import feedbackRoutes from "./routes/feedback.js";
 import searchRolesRoutes from "./routes/searchRoles.js";
+import statsRoutes from "./routes/stats.js";
 import meRoutes from "./routes/me.js";
 
 import { getSupabaseAdmin } from "./supabaseClient.js";
@@ -110,6 +111,7 @@ app.get("/api/health", (_req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/auth/google", authGoogleRoutes);
 app.use("/api", meRoutes);
+app.use("/api", statsRoutes);
 app.use("/api", dataRoutes);
 app.use("/api", geminiRoutes);
 app.use("/api", salaryRoutes);

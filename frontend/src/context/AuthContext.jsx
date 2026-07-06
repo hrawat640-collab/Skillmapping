@@ -24,6 +24,7 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [needsProfile, setNeedsProfile] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
   const legacyCleared = useRef(false);
 
   const applyProfile = useCallback((nextProfile, nextNeedsProfile) => {
@@ -38,11 +39,14 @@ export function AuthProvider({ children }) {
   }, [applyProfile]);
 
   const loadProfileForSession = useCallback(async () => {
+    setProfileLoading(true);
     try {
       await refreshProfile();
     } catch {
       setProfile(null);
       setNeedsProfile(false);
+    } finally {
+      setProfileLoading(false);
     }
   }, [refreshProfile]);
 
@@ -126,6 +130,7 @@ export function AuthProvider({ children }) {
     profile,
     needsProfile,
     loading,
+    profileLoading,
     signIn,
     signUp,
     signInWithGoogle,
@@ -138,6 +143,7 @@ export function AuthProvider({ children }) {
     profile,
     needsProfile,
     loading,
+    profileLoading,
     signIn,
     signUp,
     signInWithGoogle,

@@ -8,17 +8,35 @@ import FeedbackButton from "./components/FeedbackButton";
 import Header from "./components/Header";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import LoadingMessages from "./components/LoadingMessages";
 import { useAuth } from "./context/AuthContext";
 
 const STANDALONE_AUTH_PATHS = new Set(["/forgot-password", "/reset-password"]);
 
 export default function App() {
   const location = useLocation();
-  const { profile, session, needsProfile, loading, signOut } = useAuth();
+  const { profile, session, needsProfile, loading, profileLoading, signOut } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
 
   const isStandaloneAuthPage = STANDALONE_AUTH_PATHS.has(location.pathname);
   const isAuthenticated = Boolean(session && profile && !needsProfile);
+  const wantsLoadingOverlay = Boolean(session && (loading || profileLoading) && !isStandaloneAuthPage);
+  const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
+
+  useEffect(() => {
+    if (!wantsLoadingOverlay) {
+      setShowLoadingOverlay(false);
+      return undefined;
+    }
+
+    const timer = setTimeout(() => {
+      setShowLoadingOverlay(true);
+    }, 800);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [wantsLoadingOverlay]);
 
   useEffect(() => {
     if (loading || isStandaloneAuthPage) return;
@@ -43,6 +61,8 @@ export default function App() {
 
   return (
     <div className="app-shell">
+      {showLoadingOverlay && <LoadingMessages />}
+
       <Header
         user={isAuthenticated ? profile : null}
         onLoginClick={() => setShowLogin(true)}
