@@ -1,77 +1,80 @@
 import { useState, useEffect } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 import SearchPage from "./components/SearchPage";
 import PrivacyPage from "./components/PrivacyPage";
 import LoginModal from "./components/LoginModal";
 import Footer from "./components/Footer";
 import FeedbackButton from "./components/FeedbackButton";
 import Header from "./components/Header";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
+import { useAuth } from "./context/AuthContext";
 
-function loadStoredUser() {
-  try {
-    const raw = localStorage.getItem("sm_user");
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
+const STANDALONE_AUTH_PATHS = new Set(["/forgot-password", "/reset-password"]);
 
 export default function App() {
-  const storedUser = loadStoredUser();
-  const storedToken = localStorage.getItem("sm_token");
-  const validSession = storedUser && storedToken;
+  const location = useLocation();
+  const { profile, session, needsProfile, loading, signOut } = useAuth();
+  const [showLogin, setShowLogin] = useState(false);
 
-  const [user, setUser] = useState(validSession ? storedUser : null);
-  const [showLogin, setShowLogin] = useState(!validSession);
+  const isStandaloneAuthPage = STANDALONE_AUTH_PATHS.has(location.pathname);
+  const isAuthenticated = Boolean(session && profile && !needsProfile);
 
-  // Keep login modal open whenever user is null
   useEffect(() => {
-    if (!user) setShowLogin(true);
-  }, [user]);
-
-  function handleLogin(userData, token) {
-    localStorage.setItem("sm_token", token);
-    localStorage.setItem("sm_user", JSON.stringify(userData));
-    setUser(userData);
-    setShowLogin(false);
-  }
+    if (loading || isStandaloneAuthPage) return;
+    if (!session || needsProfile) {
+      setShowLogin(true);
+    }
+  }, [loading, session, needsProfile, isStandaloneAuthPage]);
 
   function handleLogout() {
-    localStorage.removeItem("sm_token");
-    localStorage.removeItem("sm_user");
-    localStorage.removeItem("sm_sal_unlocked_until");
-    setUser(null);
+    signOut();
+    setShowLogin(true);
+  }
+
+  if (isStandaloneAuthPage) {
+    return (
+      <Routes>
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+      </Routes>
+    );
   }
 
   return (
     <div className="app-shell">
-      <Header user={user} onLoginClick={() => setShowLogin(true)} onLogout={handleLogout} />
+      <Header
+        user={isAuthenticated ? profile : null}
+        onLoginClick={() => setShowLogin(true)}
+        onLogout={handleLogout}
+      />
 
       <main>
-        <Routes>
-          <Route
-            path="/"
-            element={
-              user ? (
-                <SearchPage
-                  user={user}
-                  onLoginRequired={() => setShowLogin(true)}
-                />
-              ) : null
-            }
-          />
-          <Route path="/privacy" element={<PrivacyPage />} />
-        </Routes>
+        {!loading && (
+          <Routes>
+            <Route
+              path="/"
+              element={
+                isAuthenticated ? (
+                  <SearchPage
+                    user={profile}
+                    onLoginRequired={() => setShowLogin(true)}
+                  />
+                ) : null
+              }
+            />
+            <Route path="/privacy" element={<PrivacyPage />} />
+          </Routes>
+        )}
       </main>
 
       <Footer />
       <FeedbackButton />
 
-      {showLogin && (
+      {!loading && showLogin && (!isAuthenticated || needsProfile) && (
         <LoginModal
-          onLogin={handleLogin}
-          onClose={user ? () => setShowLogin(false) : null}
-          required={!user}
+          onClose={isAuthenticated ? () => setShowLogin(false) : null}
+          required={!isAuthenticated || needsProfile}
         />
       )}
     </div>
