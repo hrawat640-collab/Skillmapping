@@ -29,6 +29,7 @@ export function AuthProvider({ children }) {
   const [showOverlayOnLoad, setShowOverlayOnLoad] = useState(false);
   const legacyCleared = useRef(false);
   const authUserEmailRef = useRef(null);
+  const hasSeenSessionRef = useRef(false);
 
   const applyProfile = useCallback((nextProfile, nextNeedsProfile) => {
     setProfile(nextProfile);
@@ -77,6 +78,7 @@ export function AuthProvider({ children }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (event === "SIGNED_OUT" || !nextSession) {
+        hasSeenSessionRef.current = false;
         authUserEmailRef.current = null;
         setSession(null);
         setAuthUser(null);
@@ -108,12 +110,18 @@ export function AuthProvider({ children }) {
       }
 
       if (event === "SIGNED_IN") {
-        setShowOverlayOnLoad(true);
+        if (!hasSeenSessionRef.current) {
+          setShowOverlayOnLoad(true);
+          hasSeenSessionRef.current = true;
+        }
         loadProfileForSession();
         return;
       }
 
       if (event === "INITIAL_SESSION") {
+        if (nextSession) {
+          hasSeenSessionRef.current = true;
+        }
         loadProfileForSession();
       }
     });
@@ -146,6 +154,7 @@ export function AuthProvider({ children }) {
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
+    hasSeenSessionRef.current = false;
     setSession(null);
     setAuthUser(null);
     setProfile(null);
