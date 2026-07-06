@@ -15,6 +15,73 @@ const salaryLimiter = createRateLimiter({
 const LAST_CONTRIBUTION_COLUMNS =
   "designation, dept, sub_dept, company, country, currency, experience_range, ctc";
 
+const SM_USER_SELECT = "id, email, user_uuid, auth_user_id";
+
+async function resolveSmUserForContribution(authUser) {
+  const sb = getSupabaseAdmin();
+  if (!sb) return { error: "Database unavailable" };
+
+  const authUserId = authUser.id;
+  const email = String(authUser.email || "").trim();
+
+  const { data: byAuthId, error: byAuthErr } = await sb
+    .from("sm_users")
+    .select(SM_USER_SELECT)
+    .eq("auth_user_id", authUserId)
+    .maybeSingle();
+
+  if (byAuthErr) {
+    return { error: byAuthErr.message };
+  }
+  if (byAuthId) {
+    return { row: byAuthId };
+  }
+
+  const { data: byEmailRows, error: byEmailErr } = await sb
+    .from("sm_users")
+    .select(SM_USER_SELECT)
+    .ilike("email", email)
+    .limit(1);
+
+  if (byEmailErr) {
+    return { error: byEmailErr.message };
+  }
+
+  const byEmail = byEmailRows?.[0] || null;
+  if (byEmail) {
+    const patch = {
+      auth_user_id: authUserId,
+      user_uuid: byEmail.user_uuid || authUserId
+    };
+    const { data: linked, error: linkErr } = await sb
+      .from("sm_users")
+      .update(patch)
+      .eq("id", byEmail.id)
+      .select(SM_USER_SELECT)
+      .single();
+
+    if (linkErr) {
+      return { error: linkErr.message };
+    }
+    return { row: linked };
+  }
+
+  const { data: created, error: insertErr } = await sb
+    .from("sm_users")
+    .insert({
+      auth_user_id: authUserId,
+      email,
+      user_uuid: authUserId
+    })
+    .select(SM_USER_SELECT)
+    .single();
+
+  if (insertErr) {
+    return { error: insertErr.message };
+  }
+  return { row: created };
+}
+
 function pickLastContribution(row) {
   return {
     designation: row?.designation ?? null,
@@ -103,8 +170,13 @@ router.post("/salary/contribute", salaryLimiter, optionalSupabaseAuth, async (re
 
   if (req.authUser) {
     userId = req.authUser.id;
-    userUuid = req.authUser.id;
     userEmail = req.authUser.email;
+
+    const smUserResult = await resolveSmUserForContribution(req.authUser);
+    if (smUserResult.error) {
+      return res.status(500).json({ error: smUserResult.error });
+    }
+    userUuid = smUserResult.row?.user_uuid ?? null;
   } else if (token) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
