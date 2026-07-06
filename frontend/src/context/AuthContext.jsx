@@ -27,6 +27,7 @@ export function AuthProvider({ children }) {
   const [profileLoading, setProfileLoading] = useState(false);
   const [pageReady, setPageReady] = useState(false);
   const legacyCleared = useRef(false);
+  const authUserEmailRef = useRef(null);
 
   const applyProfile = useCallback((nextProfile, nextNeedsProfile) => {
     setProfile(nextProfile);
@@ -40,7 +41,6 @@ export function AuthProvider({ children }) {
   }, [applyProfile]);
 
   const loadProfileForSession = useCallback(async () => {
-    setPageReady(false);
     setProfileLoading(true);
     try {
       await refreshProfile();
@@ -74,15 +74,39 @@ export function AuthProvider({ children }) {
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession);
-      setAuthUser(nextSession?.user ?? null);
-      if (nextSession) {
-        loadProfileForSession();
-      } else {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      if (event === "SIGNED_OUT" || !nextSession) {
+        authUserEmailRef.current = null;
+        setSession(null);
+        setAuthUser(null);
         setProfile(null);
         setNeedsProfile(false);
         setPageReady(false);
+        return;
+      }
+
+      if (event === "TOKEN_REFRESHED") {
+        setSession(nextSession);
+        setAuthUser(nextSession.user ?? null);
+        authUserEmailRef.current = nextSession.user?.email ?? null;
+        return;
+      }
+
+      const prevEmail = authUserEmailRef.current;
+      const nextEmail = nextSession.user?.email ?? null;
+      authUserEmailRef.current = nextEmail;
+      setSession(nextSession);
+      setAuthUser(nextSession.user ?? null);
+
+      if (event === "USER_UPDATED") {
+        if (prevEmail !== nextEmail) {
+          loadProfileForSession();
+        }
+        return;
+      }
+
+      if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+        loadProfileForSession();
       }
     });
 
