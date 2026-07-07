@@ -2,8 +2,6 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-const TALENTXRAY_URL = import.meta.env.VITE_TALENTXRAY_URL || "https://talentxray.talentsradar.com";
-
 function ProfileDropdown({ user, onLogout, onClose }) {
   const dropRef = useRef(null);
 
@@ -59,15 +57,15 @@ export default function Header({ user, onLoginClick, onLogout }) {
         <span className="topbar-name">Skill<span>Mapper</span></span>
       </button>
 
-      <nav className="suite-steps" aria-label="Suite navigation">
-        <a className="suite-step active" href="/" aria-current="page">
-          <span className="suite-step-num">①</span>
-          <span>SkillMapper</span>
-        </a>
-        <span className="suite-arrow">›</span>
-        <a className="suite-step" href={TALENTXRAY_URL} target="_blank" rel="noopener noreferrer">
-          <span className="suite-step-num">②</span>
-          <span>TalentXRay</span>
+      <nav className="product-tabs" aria-label="Suite navigation">
+        <div className="product-tab active">SkillMapper</div>
+        <a
+          className="product-tab"
+          href="https://talentxray.talentsradar.com"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          TalentXRay
         </a>
       </nav>
 

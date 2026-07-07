@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 
 const SEEN_KEY = "sm_toast_seen";
-const INTERVAL_MS = 2 * 60 * 1000;
-const VISIBLE_MS = 8000;
+const INTERVAL_MS = 20 * 1000;
+const VISIBLE_MS = 5000;
 const FADE_MS = 300;
 
 const FAKE_ACTIVITY = [
@@ -85,19 +85,41 @@ function formatLocation(loc) {
   return mapped || value;
 }
 
+function formatTimeAgo(createdAt) {
+  const created = new Date(createdAt);
+  const ts = created.getTime();
+  if (Number.isNaN(ts)) return null;
+
+  const seconds = Math.floor((Date.now() - ts) / 1000);
+  if (seconds < 0) return null;
+  if (seconds < 60) return "just now";
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return minutes === 1 ? "1 minute ago" : `${minutes} minutes ago`;
+  }
+
+  const hours = Math.floor(seconds / 3600);
+  if (hours < 24) {
+    return hours === 1 ? "an hour ago" : `${hours} hours ago`;
+  }
+
+  const days = Math.floor(seconds / 86400);
+  if (days < 7) {
+    return days === 1 ? "yesterday" : `${days} days ago`;
+  }
+  if (days < 30) return "a few days ago";
+  return "a while ago";
+}
+
 function formatContributionMessage(row) {
   const designation = String(row.designation || "Someone").trim() || "Someone";
   const city = formatLocation(row.loc_detected);
-  const created = new Date(row.created_at);
-  if (Number.isNaN(created.getTime())) {
-    return `A ${designation} in ${city} just contributed`;
-  }
-
-  const minutesAgo = Math.floor((Date.now() - created.getTime()) / 60000);
-  if (minutesAgo < 30) {
-    return `A ${designation} in ${city} just contributed`;
-  }
-  return `A ${designation} in ${city} contributed ${minutesAgo} minutes ago`;
+  const suffix = formatTimeAgo(row.created_at);
+  const base = `A ${designation} in ${city} contributed`;
+  if (!suffix) return base;
+  if (suffix === "just now") return `A ${designation} in ${city} contributed just now`;
+  return `${base} ${suffix}`;
 }
 
 function buildFakeEntry(text) {
